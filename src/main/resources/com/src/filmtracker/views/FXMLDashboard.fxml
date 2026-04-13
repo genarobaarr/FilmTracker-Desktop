@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefHeight="800.0" prefWidth="1500.0" spacing="10.0" style="-fx-background-color: #121212;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.DashboardController">
+   <children>
+      <Label text="FilmTracker" textFill="WHITE">
+         <font>
+            <Font name="System Bold" size="28.0" />
+         </font>
+         <VBox.margin>
+            <Insets left="20.0" top="10.0" />
+         </VBox.margin>
+      </Label>
+      
+      <ScrollPane fitToHeight="true" minHeight="300.0" pannable="true" style="-fx-background-color: transparent; -fx-background: transparent;" vbarPolicy="NEVER">
+         <content>
+            <VBox spacing="10.0">
+               <children>
+                  <Label text="Series Destacadas" textFill="WHITE">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Label>
+                  <HBox fx:id="carruselDestacados" spacing="15.0">
+                     <padding>
+                        <Insets bottom="10.0" top="5.0" />
+                     </padding>
+                  </HBox>
+                  
+                  <Label text="Mejor Puntuadas" textFill="WHITE">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                     <VBox.margin>
+                        <Insets top="20.0" />
+                     </VBox.margin>
+                  </Label>
+                  <HBox fx:id="carruselMejorPuntuadas" spacing="15.0">
+                     <padding>
+                        <Insets bottom="10.0" top="5.0" />
+                     </padding>
+                  </HBox>
+                  
+                  <Label text="Series Nuevas" textFill="WHITE">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                     <VBox.margin>
+                        <Insets top="20.0" />
+                     </VBox.margin>
+                  </Label>
+                  <HBox fx:id="carruselRecientes" spacing="15.0">
+                     <padding>
+                        <Insets bottom="10.0" top="5.0" />
+                     </padding>
+                  </HBox>
+                  
+                  <Label text="Series Para Maratonear" textFill="WHITE">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                     <VBox.margin>
+                        <Insets top="20.0" />
+                     </VBox.margin>
+                  </Label>
+                  <HBox fx:id="carruselTerminadas" spacing="15.0">
+                     <padding>
+                        <Insets bottom="10.0" top="5.0" />
+                     </padding>
+                  </HBox>
+               </children>
+               <padding>
+                  <Insets left="20.0" />
+               </padding>
+            </VBox>
+         </content>
+      </ScrollPane>
+   </children>
+</VBox>
