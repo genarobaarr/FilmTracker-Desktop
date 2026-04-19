@@ -13,6 +13,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -27,6 +29,12 @@ public class DashboardController implements Initializable {
     @FXML private HBox carruselRecientes;
     @FXML private HBox carruselTerminadas;
     
+    @FXML private TextField searchField;
+    @FXML private VBox resultadosContainer;
+    @FXML private HBox carruselResultados;
+    @FXML private Label labelResultados;
+    
+    @FXML private ScrollPane scrollResultados;
     @FXML private ScrollPane scrollDestacados;
     @FXML private ScrollPane scrollMejorPuntuadas;
     @FXML private ScrollPane scrollRecientes;
@@ -45,6 +53,37 @@ public class DashboardController implements Initializable {
     }
     
     @FXML
+    private void handleSearch() {
+        String query = searchField.getText().trim();
+
+        if (query.isEmpty()) {
+            resultadosContainer.setVisible(false);
+            resultadosContainer.setManaged(false);
+            return;
+        }
+
+        apiService.searchShows(query).thenAccept(shows -> {
+            Platform.runLater(() -> {
+                carruselResultados.getChildren().clear();
+                scrollResultados.setHvalue(0.0);
+
+                if (shows.isEmpty()) {
+                    labelResultados.setText("No se encontraron resultados para: " + query);
+                } else {
+                    labelResultados.setText("Resultados para: " + query);
+                    shows.forEach(show -> agregarTarjeta(show, carruselResultados));
+                }
+
+                resultadosContainer.setVisible(true);
+                resultadosContainer.setManaged(true);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> mostrarErrorDeRed(e));
+            return null;
+        });
+    }
+    
+    @FXML
     private void handleClose() {
         Platform.exit();
         System.exit(0);
@@ -55,6 +94,9 @@ public class DashboardController implements Initializable {
         Stage stage = (Stage) carruselDestacados.getScene().getWindow();
         stage.setIconified(true);
     }
+    
+    @FXML private void scrollIzqResultados() { moverCarrusel(scrollResultados, -SCROLL_STEP); }
+    @FXML private void scrollDerResultados() { moverCarrusel(scrollResultados, SCROLL_STEP); }
     
     @FXML private void scrollIzqDestacados() { moverCarrusel(scrollDestacados, -SCROLL_STEP); }
     @FXML private void scrollDerDestacados() { moverCarrusel(scrollDestacados, SCROLL_STEP); }

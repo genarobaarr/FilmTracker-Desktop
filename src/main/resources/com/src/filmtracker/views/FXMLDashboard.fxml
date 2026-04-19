@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -12,17 +13,26 @@
 <BorderPane prefHeight="600.0" prefWidth="900.0" style="-fx-background-color: #121212;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.DashboardController">
    
    <top>
-      <HBox alignment="CENTER_RIGHT" prefHeight="40.0" spacing="15.0" style="-fx-background-color: #000000;" BorderPane.alignment="CENTER">
-         <children>
-            <Button mnemonicParsing="false" onAction="#handleMinimize" style="-fx-background-color: transparent; -fx-cursor: hand;" text="—" textFill="WHITE">
-               <font><Font name="System Bold" size="16.0" /></font>
-            </Button>
-            <Button mnemonicParsing="false" onAction="#handleClose" style="-fx-background-color: transparent; -fx-cursor: hand;" text="X" textFill="WHITE">
-               <font><Font name="System Bold" size="16.0" /></font>
-               <HBox.margin><Insets right="15.0" /></HBox.margin>
-            </Button>
-         </children>
-      </HBox>
+      <HBox alignment="CENTER_LEFT" prefHeight="50.0" spacing="15.0" style="-fx-background-color: #000000;" BorderPane.alignment="CENTER">
+        <children>
+           <TextField fx:id="searchField" onAction="#handleSearch" prefWidth="400.0" promptText="Buscar series..." style="-fx-background-color: #222222; -fx-text-fill: white; -fx-prompt-text-fill: #888888; -fx-background-radius: 15;">
+              <HBox.margin><Insets left="20.0" /></HBox.margin>
+           </TextField>
+           <Button onAction="#handleSearch" style="-fx-background-color: transparent; -fx-cursor: hand;" text="🔍" textFill="WHITE">
+              <font><Font size="16.0" /></font>
+           </Button>
+
+           <javafx.scene.layout.Region HBox.hgrow="ALWAYS" />
+
+           <Button mnemonicParsing="false" onAction="#handleMinimize" style="-fx-background-color: transparent; -fx-cursor: hand;" text="—" textFill="WHITE">
+              <font><Font name="System Bold" size="16.0" /></font>
+           </Button>
+           <Button mnemonicParsing="false" onAction="#handleClose" style="-fx-background-color: transparent; -fx-cursor: hand;" text="X" textFill="WHITE">
+              <font><Font name="System Bold" size="16.0" /></font>
+              <HBox.margin><Insets right="15.0" /></HBox.margin>
+           </Button>
+        </children>
+     </HBox>
    </top>
 
    <center>
@@ -37,7 +47,30 @@
                <content>
                   <VBox spacing="20.0">
                      <children>
-                        
+                         
+                        <VBox fx:id="resultadosContainer" managed="false" spacing="5.0" visible="false">
+                            <Label fx:id="labelResultados" text="Resultados de búsqueda" textFill="WHITE">
+                               <font><Font name="System Bold" size="18.0" /></font>
+                            </Label>
+                            <BorderPane>
+                               <left>
+                                  <Button text="&lt;" onAction="#scrollIzqResultados" style="-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 20px; -fx-cursor: hand;" BorderPane.alignment="CENTER" />
+                               </left>
+                               <center>
+                                  <ScrollPane fx:id="scrollResultados" fitToHeight="true" hbarPolicy="NEVER" vbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;">
+                                      <content>
+                                          <HBox fx:id="carruselResultados" spacing="15.0">
+                                             <padding><Insets left="10.0" right="10.0"/></padding>
+                                          </HBox>
+                                      </content>
+                                  </ScrollPane>
+                               </center>
+                               <right>
+                                  <Button text="&gt;" onAction="#scrollDerResultados" style="-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 20px; -fx-cursor: hand;" BorderPane.alignment="CENTER" />
+                               </right>
+                            </BorderPane>
+                         </VBox>
+                         
                         <VBox spacing="5.0">
                            <Label text="Series Destacadas" textFill="WHITE">
                               <font><Font name="System Bold" size="18.0" /></font>
@@ -81,7 +114,7 @@
                         </VBox>
 
                         <VBox spacing="5.0">
-                           <Label text="Agregadas Recientemente" textFill="WHITE">
+                           <Label text="Series Nuevas" textFill="WHITE">
                               <font><Font name="System Bold" size="18.0" /></font>
                            </Label>
                            <BorderPane>
@@ -102,7 +135,7 @@
                         </VBox>
 
                         <VBox spacing="5.0">
-                           <Label text="Series Terminadas" textFill="WHITE">
+                           <Label text="Series Para Maratonear" textFill="WHITE">
                               <font><Font name="System Bold" size="18.0" /></font>
                            </Label>
                            <BorderPane>
