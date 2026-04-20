@@ -12,6 +12,7 @@ public final class AppConstants {
 
     public static final String FXML_DASHBOARD = "/com/src/filmtracker/views/FXMLDashboard.fxml";
     public static final String FXML_SHOW_CARD = "/com/src/filmtracker/views/FXMLShowCard.fxml";
+    public static final String FXML_SHOW_DETAIL = "/com/src/filmtracker/views/FXMLShowDetail.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";

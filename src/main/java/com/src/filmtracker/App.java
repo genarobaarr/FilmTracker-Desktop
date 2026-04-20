@@ -1,5 +1,7 @@
 package com.src.filmtracker;
 
+import com.src.filmtracker.controllers.ShowDetailController;
+import com.src.filmtracker.models.Show;
 import com.src.filmtracker.utils.AppConstants;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -12,17 +14,17 @@ import java.io.IOException;
 
 public class App extends Application {
 
+    private static Scene scene;
+
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_DASHBOARD));
         Parent root = loader.load();
         
-        Scene scene = new Scene(root);
+        scene = new Scene(root);
         
         stage.initStyle(StageStyle.UNDECORATED); 
-        
         stage.setMaximized(true);
-        
         stage.setTitle(AppConstants.APP_TITLE);
         stage.setScene(scene);
         stage.show();
@@ -30,5 +32,31 @@ public class App extends Application {
 
     public static void main(String[] args) {
         launch();
+    }
+    
+    public static void setRoot(String fxml) {
+        try {
+            FXMLLoader loader = new FXMLLoader(App.class.getResource(fxml));
+            Parent root = loader.load();
+            scene.setRoot(root);
+        } catch (IOException e) {
+            System.err.println("Error crítico al intentar cargar la vista: " + fxml);
+            e.printStackTrace();
+        }
+    }
+
+    public static void showDetailView(Show show) {
+        try {
+            FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_SHOW_DETAIL));
+            Parent root = loader.load();
+
+            ShowDetailController controller = loader.getController();
+            controller.initData(show);
+
+            scene.setRoot(root);
+        } catch (IOException e) {
+            System.err.println("Error crítico al intentar cargar la vista de detalle para: " + show.name());
+            e.printStackTrace();
+        }
     }
 }

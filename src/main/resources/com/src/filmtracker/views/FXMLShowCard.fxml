@@ -6,7 +6,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox alignment="TOP_CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="260.0" prefWidth="150.0" spacing="5.0" style="-fx-background-color: #1e1e1e; -fx-background-radius: 10;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.ShowCardController">
+<VBox fx:id="cardContainer" onMouseClicked="#onCardClicked" alignment="TOP_CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="260.0" prefWidth="150.0" spacing="5.0" style="-fx-background-color: #1e1e1e; -fx-background-radius: 10;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.ShowCardController">
    <children>
       <ImageView fx:id="posterImageView" fitHeight="200.0" fitWidth="140.0" pickOnBounds="true" preserveRatio="false">
          <VBox.margin>

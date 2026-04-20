@@ -2,9 +2,7 @@ package com.src.filmtracker.services;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.src.filmtracker.models.HomeResponse;
-import com.src.filmtracker.models.SearchResponse;
-import com.src.filmtracker.models.Show;
+import com.src.filmtracker.models.*;
 import com.src.filmtracker.utils.AppConstants;
 
 import java.lang.reflect.Type;
@@ -18,7 +16,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class ApiService implements IShowService {
-    
     private final HttpClient client;
     private final Gson gson;
 
@@ -37,35 +34,39 @@ public class ApiService implements IShowService {
     public CompletableFuture<List<Show>> searchShows(String query) {
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
         String url = AppConstants.SHOWS_SERVICE_URL + "/search?q=" + encodedQuery;
-        
         Type listType = new TypeToken<List<SearchResponse>>(){}.getType();
-        
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
 
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(HttpResponse::body)
                 .thenApply(json -> {
-                    List<SearchResponse> searchResults = gson.fromJson(json, listType);
-                    
-                    return searchResults.stream()
-                            .map(SearchResponse::show)
-                            .toList();
+                    List<SearchResponse> results = gson.fromJson(json, listType);
+                    return results.stream().map(SearchResponse::show).toList();
                 });
     }
 
+    @Override
+    public CompletableFuture<ShowFullResponse> getFullShowDetails(Integer id) {
+        String url = AppConstants.SHOWS_SERVICE_URL + "/" + id + "/full";
+        return executeGet(url, ShowFullResponse.class);
+    }
+
     private <T> CompletableFuture<T> executeGet(String url, Class<T> responseClass) {
-        HttpRequest request = HttpRequest.newBuilder()
+        return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
+                .thenApply(HttpResponse::body)
+                .thenApply(json -> gson.fromJson(json, responseClass));
+    }
+
+    private <T> CompletableFuture<List<T>> executeGetList(String url, Type type) {
+        return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
+                .thenApply(HttpResponse::body)
+                .thenApply(json -> gson.fromJson(json, type));
+    }
+
+    private HttpRequest createRequest(String url) {
+        return HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
                 .GET()
                 .build();
-
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::body)
-                .thenApply(json -> gson.fromJson(json, responseClass));
     }
 }
