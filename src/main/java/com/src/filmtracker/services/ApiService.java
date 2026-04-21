@@ -49,6 +49,19 @@ public class ApiService implements IShowService {
         String url = AppConstants.SHOWS_SERVICE_URL + "/" + id + "/full";
         return executeGet(url, ShowFullResponse.class);
     }
+    
+    @Override
+    public CompletableFuture<List<EpisodeDto>> getShowEpisodes(Integer id) {
+        String url = AppConstants.SHOWS_SERVICE_URL + "/" + id + "/episodes";
+        
+        return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
+                .thenApply(HttpResponse::body)
+                .thenApply(json -> {
+                    ShowEpisodesResponse response = gson.fromJson(json, ShowEpisodesResponse.class);
+                    
+                    return response != null && response.episodes() != null ? response.episodes() : List.of();
+                });
+    }
 
     private <T> CompletableFuture<T> executeGet(String url, Class<T> responseClass) {
         return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
