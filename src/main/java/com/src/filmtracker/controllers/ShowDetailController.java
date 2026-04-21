@@ -7,36 +7,38 @@ import com.src.filmtracker.services.IShowService;
 import com.src.filmtracker.utils.AppConstants;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.text.TextAlignment;
 
 public class ShowDetailController {
 
     @FXML private Label titleLabel, ratingLabel, statusLabel, genresLabel, summaryLabel;
     @FXML private ImageView posterDetail;
     @FXML private HBox castContainer;
-    @FXML private VBox episodesContainer; 
+    @FXML private VBox episodesContainer, similarShowsSection; 
     @FXML private ScrollPane scrollCast; 
 
     private IShowService apiService;
-    
     private final Map<Integer, List<EpisodeDto>> seasonEpisodesMap = new ConcurrentHashMap<>();
 
     public ShowDetailController() {
@@ -47,16 +49,11 @@ public class ShowDetailController {
         this.apiService = apiService;
     }
 
-    @FXML 
-    private void scrollIzqCast() { moverCarrusel(scrollCast, -1); }
-    
-    @FXML 
-    private void scrollDerCast() { moverCarrusel(scrollCast, 1); }
-
-    @FXML 
-    private void handleBack() {
-        App.setRoot(AppConstants.FXML_DASHBOARD);
-    }
+    @FXML private void handleClose() { Platform.exit(); System.exit(0); }
+    @FXML private void handleMinimize() { ((Stage)titleLabel.getScene().getWindow()).setIconified(true); }
+    @FXML private void scrollIzqCast() { moverCarruselDinamico(scrollCast, -1); }
+    @FXML private void scrollDerCast() { moverCarruselDinamico(scrollCast, 1); }
+    @FXML private void handleBack() { App.setRoot(AppConstants.FXML_DASHBOARD); }
     
     public void initData(Show basicShow) {
         cargarDatosBasicos(basicShow);
@@ -67,30 +64,99 @@ public class ShowDetailController {
                 
                 castContainer.getChildren().clear();
                 scrollCast.setHvalue(0.0); 
-                for (CastDto member : fullData.cast()) {
-                    castContainer.getChildren().add(createPersonBox(member));
-                }
+                fullData.cast().forEach(member -> castContainer.getChildren().add(createPersonBox(member)));
 
                 episodesContainer.getChildren().clear();
-                for (SeasonDto season : fullData.seasons()) {
-                    episodesContainer.getChildren().add(createSeasonAccordion(season));
+                fullData.seasons().forEach(season -> episodesContainer.getChildren().add(createSeasonAccordion(season)));
+
+                if (fullData.show().genres() != null && !fullData.show().genres().isEmpty()) {
+                    cargarSeriesSimilares(fullData.show().genres().get(0), basicShow.tvmazeId());
+                } else {
+                    mostrarMensajeSimilaresVacio();
                 }
             });
         }).exceptionally(e -> {
-            System.err.println("Error al cargar detalles completos: " + e.getMessage());
+            System.err.println(AppConstants.MESSAGE_ERROR_API + " Detalles: " + e.getMessage());
             return null;
         });
-
+        
         apiService.getShowEpisodes(basicShow.tvmazeId()).thenAccept(episodes -> {
             if (episodes != null) {
-                for (EpisodeDto ep : episodes) {
-                    seasonEpisodesMap.computeIfAbsent(ep.season(), k -> new ArrayList<>()).add(ep);
-                }
+                episodes.forEach(ep -> seasonEpisodesMap.computeIfAbsent(ep.season(), k -> new ArrayList<>()).add(ep));
             }
         }).exceptionally(e -> {
-            System.err.println("Error de red al obtener episodios: " + e.getMessage());
+            System.err.println(AppConstants.MESSAGE_ERROR_API + " Episodios: " + e.getMessage());
             return null;
         });
+    }
+
+    private void cargarSeriesSimilares(String genre, Integer currentShowId) {
+        apiService.getShowsByGenre(genre).thenAccept(shows -> {
+            Platform.runLater(() -> {
+                similarShowsSection.getChildren().clear();
+                
+                List<Show> filteredShows = shows.stream()
+                        .filter(s -> !s.tvmazeId().equals(currentShowId))
+                        .toList();
+
+                if (filteredShows.isEmpty()) {
+                    mostrarMensajeSimilaresVacio();
+                    return;
+                }
+
+                HBox content = new HBox(15);
+                content.setPadding(new Insets(10));
+                
+                filteredShows.forEach(show -> agregarTarjetaShow(show, content));
+
+                ScrollPane scrollPane = new ScrollPane(content);
+                scrollPane.setFitToHeight(true);
+                scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+                scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+                scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+                Button btnIzq = new Button("<");
+                btnIzq.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
+                btnIzq.setOnAction(e -> moverCarruselDinamico(scrollPane, -1));
+
+                Button btnDer = new Button(">");
+                btnDer.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
+                btnDer.setOnAction(e -> moverCarruselDinamico(scrollPane, 1));
+
+                BorderPane carousel = new BorderPane();
+                carousel.setLeft(btnIzq);
+                carousel.setCenter(scrollPane);
+                carousel.setRight(btnDer);
+                BorderPane.setAlignment(btnIzq, Pos.CENTER);
+                BorderPane.setAlignment(btnDer, Pos.CENTER);
+
+                similarShowsSection.getChildren().add(carousel);
+            });
+        }).exceptionally(e -> {
+            System.err.println(AppConstants.MESSAGE_ERROR_SIMILAR + " " + e.getMessage());
+            Platform.runLater(this::mostrarMensajeSimilaresVacio);
+            return null;
+        });
+    }
+
+    private void agregarTarjetaShow(Show show, HBox contenedor) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_SHOW_CARD));
+            VBox card = loader.load();
+            ShowCardController controller = loader.getController();
+            controller.setData(show);
+            contenedor.getChildren().add(card);
+        } catch (IOException e) {
+            System.err.println(AppConstants.MESSAGE_ERROR_LOAD_CARD + " " + show.name());
+        }
+    }
+
+    private void mostrarMensajeSimilaresVacio() {
+        Label empty = new Label(AppConstants.MESSAGE_INFO_NO_SIMILAR);
+        empty.setTextFill(Color.GRAY);
+        empty.setStyle("-fx-font-size: 14px; -fx-padding: 20;");
+        similarShowsSection.getChildren().clear();
+        similarShowsSection.getChildren().add(empty);
     }
 
     private void cargarDatosBasicos(Show show) {
@@ -116,10 +182,10 @@ public class ShowDetailController {
 
     private VBox createPersonBox(CastDto member) {
         VBox box = new VBox(5);
-        box.setAlignment(javafx.geometry.Pos.TOP_CENTER);
-        box.setPrefWidth(120);
+        box.setAlignment(Pos.TOP_CENTER); 
+        box.setPrefWidth(120); 
         box.setMaxWidth(120);
-        
+
         ImageView iv = new ImageView();
         iv.setFitHeight(150);
         iv.setFitWidth(110);
@@ -130,15 +196,15 @@ public class ShowDetailController {
         Label name = new Label(member.person().name());
         name.setTextFill(Color.WHITE);
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
-        name.setWrapText(true);
-        name.setTextAlignment(TextAlignment.CENTER);
+        name.setWrapText(true); 
+        name.setTextAlignment(TextAlignment.CENTER); 
         name.setAlignment(Pos.CENTER);
         
         Label character = new Label(member.character().name());
         character.setTextFill(Color.GRAY);
         character.setStyle("-fx-font-size: 12px;");
-        character.setWrapText(true);
-        character.setTextAlignment(TextAlignment.CENTER);
+        character.setWrapText(true); 
+        character.setTextAlignment(TextAlignment.CENTER); 
         character.setAlignment(Pos.CENTER);
         
         box.getChildren().addAll(iv, name, character);
@@ -151,10 +217,10 @@ public class ShowDetailController {
 
         HBox header = new HBox(15);
         header.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 10 20; -fx-background-radius: 5; -fx-cursor: hand;");
-        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        header.setAlignment(Pos.CENTER_LEFT);
         
         Label number = new Label("Temp " + season.number());
-        number.setTextFill(Color.web("#e50914"));
+        number.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         number.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
         number.setMinWidth(70);
         
@@ -224,11 +290,11 @@ public class ShowDetailController {
 
         Button btnIzq = new Button("<");
         btnIzq.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
-        btnIzq.setOnAction(e -> moverCarrusel(scrollPane, -1));
+        btnIzq.setOnAction(e -> moverCarruselDinamico(scrollPane, -1));
 
         Button btnDer = new Button(">");
         btnDer.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
-        btnDer.setOnAction(e -> moverCarrusel(scrollPane, 1));
+        btnDer.setOnAction(e -> moverCarruselDinamico(scrollPane, 1));
 
         BorderPane interactiveCarousel = new BorderPane();
         interactiveCarousel.setLeft(btnIzq);
@@ -243,7 +309,7 @@ public class ShowDetailController {
     private VBox createEpisodeCard(EpisodeDto ep) {
         VBox card = new VBox(8);
         card.setStyle("-fx-background-color: #222222; -fx-background-radius: 8; -fx-padding: 12;");
-        card.setPrefWidth(260);
+        card.setPrefWidth(260); 
         card.setMaxWidth(260);
 
         ImageView iv = new ImageView();
@@ -272,23 +338,22 @@ public class ShowDetailController {
         }
         summary.setTextFill(Color.web("#cccccc"));
         summary.setWrapText(true);
-        summary.setPrefHeight(60);
+        summary.setPrefHeight(60); 
         summary.setTextAlignment(TextAlignment.JUSTIFY);
 
         card.getChildren().addAll(iv, title, info, summary);
         return card;
     }
-    
-    private void moverCarrusel(ScrollPane scrollPane, int direccion) {
+
+    private void moverCarruselDinamico(ScrollPane scrollPane, int direccion) {
         double viewportWidth = scrollPane.getViewportBounds().getWidth();
         double contentWidth = scrollPane.getContent().getBoundsInLocal().getWidth();
 
         if (contentWidth <= viewportWidth || viewportWidth == 0) return;
 
         double scrollableWidth = contentWidth - viewportWidth;
-        
         double avanceReal = viewportWidth - 275; 
-        if (avanceReal <= 0) avanceReal = viewportWidth / 2;
+        if (avanceReal <= 0) avanceReal = viewportWidth / 2; 
 
         double porcentajeSalto = avanceReal / scrollableWidth;
         double newValue = scrollPane.getHvalue() + (porcentajeSalto * direccion);

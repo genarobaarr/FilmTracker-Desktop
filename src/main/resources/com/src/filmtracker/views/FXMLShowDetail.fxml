@@ -7,6 +7,7 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
@@ -18,6 +19,16 @@
             <Label fx:id="headerTitle" text="Detalle de Serie" textFill="WHITE">
                <font><Font name="System Bold" size="20.0" /></font>
             </Label>
+            
+            <Region HBox.hgrow="ALWAYS" />
+            
+            <Button mnemonicParsing="false" onAction="#handleMinimize" style="-fx-background-color: transparent; -fx-cursor: hand;" text="—" textFill="WHITE">
+               <font><Font name="System Bold" size="16.0" /></font>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#handleClose" style="-fx-background-color: transparent; -fx-cursor: hand;" text="X" textFill="WHITE">
+               <font><Font name="System Bold" size="16.0" /></font>
+               <HBox.margin><Insets right="15.0" /></HBox.margin>
+            </Button>
          </children>
          <padding><Insets left="30.0" /></padding>
       </HBox>
@@ -25,36 +36,23 @@
    <center>
       <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent; -fx-control-inner-background: transparent;" vbarPolicy="ALWAYS">
          <content>
-            <VBox spacing="30.0">
+            <VBox fx:id="mainContainer" spacing="30.0">
                <children>
                   <HBox spacing="40.0">
                      <children>
                         <ImageView fx:id="posterDetail" fitHeight="500.0" fitWidth="350.0" pickOnBounds="true" preserveRatio="true" />
                         <VBox spacing="15.0" HBox.hgrow="ALWAYS">
                            <children>
-                              <Label fx:id="titleLabel" text="Título de la Serie" textFill="WHITE" wrapText="true">
-                                 <font><Font name="System Bold" size="48.0" /></font>
-                              </Label>
+                              <Label fx:id="titleLabel" textFill="WHITE" wrapText="true"><font><Font name="System Bold" size="48.0" /></font></Label>
                               <HBox spacing="20.0">
                                  <children>
-                                    <Label fx:id="ratingLabel" text="⭐ 9.5" textFill="#ffcc00">
-                                       <font><Font name="System Bold" size="22.0" /></font>
-                                    </Label>
-                                    <Label fx:id="statusLabel" text="Status: Ended" textFill="#bbbbbb">
-                                       <font><Font size="18.0" /></font>
-                                    </Label>
+                                    <Label fx:id="ratingLabel" textFill="#ffcc00"><font><Font name="System Bold" size="22.0" /></font></Label>
+                                    <Label fx:id="statusLabel" textFill="#bbbbbb"><font><Font size="18.0" /></font></Label>
                                  </children>
                               </HBox>
-                              <Label fx:id="genresLabel" text="Géneros: Drama, Suspenso" textFill="#bbbbbb">
-                                 <font><Font size="18.0" /></font>
-                              </Label>
-                              <Label text="SINOPSIS" textFill="#e50914">
-                                 <font><Font name="System Bold" size="20.0" /></font>
-                                 <VBox.margin><Insets top="10.0" /></VBox.margin>
-                              </Label>
-                              <Label fx:id="summaryLabel" lineSpacing="5.0" text="Descripción de la serie..." textFill="WHITE" wrapText="true">
-                                 <font><Font size="16.0" /></font>
-                              </Label>
+                              <Label fx:id="genresLabel" textFill="#bbbbbb"><font><Font size="18.0" /></font></Label>
+                              <Label text="Sinopsis" textFill="#e50914"><font><Font name="System Bold" size="20.0" /></font></Label>
+                              <Label fx:id="summaryLabel" lineSpacing="5.0" textFill="WHITE" wrapText="true"><font><Font size="16.0" /></font></Label>
                            </children>
                         </VBox>
                      </children>
@@ -62,35 +60,32 @@
                   
                   <VBox spacing="10.0">
                      <children>
-                        <Label text="ELENCO PRINCIPAL" textFill="WHITE">
-                           <font><Font name="System Bold" size="22.0" /></font>
-                        </Label>
+                        <Label text="Elenco Principal" textFill="WHITE"><font><Font name="System Bold" size="22.0" /></font></Label>
                         <BorderPane>
-                           <left>
-                              <Button mnemonicParsing="false" onAction="#scrollIzqCast" style="-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 20px; -fx-cursor: hand;" text="&lt;" BorderPane.alignment="CENTER" />
-                           </left>
+                           <left><Button onAction="#scrollIzqCast" style="-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 20px; -fx-cursor: hand;" text="&lt;" /></left>
                            <center>
-                              <ScrollPane fx:id="scrollCast" fitToHeight="true" minHeight="200.0" hbarPolicy="NEVER" vbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;" BorderPane.alignment="CENTER">
-                                 <content>
-                                    <HBox fx:id="castContainer" spacing="20.0">
-                                       <padding><Insets left="10.0" right="10.0" /></padding>
-                                    </HBox>
-                                 </content>
+                              <ScrollPane fx:id="scrollCast" fitToHeight="true" hbarPolicy="NEVER" vbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;">
+                                 <content><HBox fx:id="castContainer" spacing="20.0"><padding><Insets left="10.0" right="10.0" /></padding></HBox></content>
                               </ScrollPane>
                            </center>
-                           <right>
-                              <Button mnemonicParsing="false" onAction="#scrollDerCast" style="-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 20px; -fx-cursor: hand;" text="&gt;" BorderPane.alignment="CENTER" />
-                           </right>
+                           <right><Button onAction="#scrollDerCast" style="-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 20px; -fx-cursor: hand;" text="&gt;" /></right>
                         </BorderPane>
                      </children>
                   </VBox>
 
                   <VBox spacing="10.0">
                      <children>
-                        <Label text="TEMPORADAS" textFill="WHITE">
+                        <Label text="Temporadas" textFill="WHITE"><font><Font name="System Bold" size="22.0" /></font></Label>
+                        <VBox fx:id="episodesContainer" spacing="10.0" />
+                     </children>
+                  </VBox>
+
+                  <VBox spacing="10.0">
+                     <children>
+                        <Label text="Series Similares" textFill="WHITE">
                            <font><Font name="System Bold" size="22.0" /></font>
                         </Label>
-                        <VBox fx:id="episodesContainer" spacing="10.0" />
+                        <VBox fx:id="similarShowsSection" minHeight="200.0" />
                      </children>
                   </VBox>
                </children>

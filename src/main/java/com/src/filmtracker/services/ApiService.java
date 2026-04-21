@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 public class ApiService implements IShowService {
     private final HttpClient client;
     private final Gson gson;
-
+    
     public ApiService() {
         this.client = HttpClient.newHttpClient();
         this.gson = new Gson();
@@ -48,6 +48,19 @@ public class ApiService implements IShowService {
     public CompletableFuture<ShowFullResponse> getFullShowDetails(Integer id) {
         String url = AppConstants.SHOWS_SERVICE_URL + "/" + id + "/full";
         return executeGet(url, ShowFullResponse.class);
+    }
+    
+    @Override
+    public CompletableFuture<List<Show>> getShowsByGenre(String genre) {
+        String encodedGenre = java.net.URLEncoder.encode(genre, java.nio.charset.StandardCharsets.UTF_8);
+        String url = AppConstants.SHOWS_BY_GENRE_URL + encodedGenre;
+        
+        return client.sendAsync(createRequest(url), java.net.http.HttpResponse.BodyHandlers.ofString())
+                .thenApply(java.net.http.HttpResponse::body)
+                .thenApply(json -> {
+                    ShowsByGenreResponse response = gson.fromJson(json, ShowsByGenreResponse.class);
+                    return response != null && response.results() != null ? response.results() : List.of();
+                });
     }
     
     @Override
