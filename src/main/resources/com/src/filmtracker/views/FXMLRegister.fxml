@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #121212;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.RegisterController">
+   <top>
+      <HBox alignment="CENTER_RIGHT" prefHeight="50.0" spacing="10.0" style="-fx-background-color: #000000;" BorderPane.alignment="CENTER">
+         <children>
+            <Button mnemonicParsing="false" onAction="#handleMinimize" style="-fx-background-color: transparent; -fx-cursor: hand;" text="—" textFill="WHITE">
+               <font><Font name="System Bold" size="16.0" /></font>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#handleClose" style="-fx-background-color: transparent; -fx-cursor: hand;" text="X" textFill="WHITE">
+               <font><Font name="System Bold" size="16.0" /></font>
+               <HBox.margin><Insets right="15.0" /></HBox.margin>
+            </Button>
+         </children>
+      </HBox>
+   </top>
+   <center>
+      <VBox alignment="CENTER" maxWidth="400.0" spacing="20.0" style="-fx-background-color: #1e1e1e; -fx-background-radius: 15;" BorderPane.alignment="CENTER">
+         <children>
+            <Label text="FilmTracker" textFill="#e50914">
+               <font><Font name="System Bold" size="36.0" /></font>
+            </Label>
+            <Label text="Crear Cuenta" textFill="WHITE">
+               <font><Font size="20.0" /></font>
+            </Label>
+            
+            <Label fx:id="errorLabel" textFill="#e50914" visible="false" managed="false" />
+            
+            <VBox spacing="5.0">
+               <Label text="Nombre" textFill="#bbbbbb" />
+               <TextField fx:id="nameField" promptText="Tu nombre" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-padding: 10;" />
+            </VBox>
+
+            <VBox spacing="5.0">
+               <Label text="Correo Electrónico" textFill="#bbbbbb" />
+               <TextField fx:id="emailField" promptText="ejemplo@correo.com" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-padding: 10;" />
+            </VBox>
+            
+            <VBox spacing="5.0">
+               <Label text="Contraseña" textFill="#bbbbbb" />
+               <PasswordField fx:id="passwordField" promptText="••••••••" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-padding: 10;" />
+            </VBox>
+            
+            <Button mnemonicParsing="false" onAction="#handleRegister" prefWidth="400.0" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12; -fx-cursor: hand; -fx-background-radius: 5;" text="REGISTRARSE" />
+            
+            <HBox alignment="CENTER" spacing="5.0">
+               <Label text="¿Ya tienes cuenta?" textFill="#bbbbbb" />
+               <Button mnemonicParsing="false" onAction="#goToLogin" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 0;" text="Inicia sesión" underline="true">
+                  <font><Font name="System Bold" size="12.0" /></font>
+               </Button>
+            </HBox>
+         </children>
+         <padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
+         <BorderPane.margin><Insets bottom="60.0" top="30.0" /></BorderPane.margin>
+      </VBox>
+   </center>
+</BorderPane>

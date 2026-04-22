@@ -2,7 +2,7 @@ package com.src.filmtracker.controllers;
 
 import com.src.filmtracker.models.Show;
 import com.src.filmtracker.services.IShowService;
-import com.src.filmtracker.services.ApiService;
+import com.src.filmtracker.services.ShowService;
 import com.src.filmtracker.utils.AppConstants;
 
 import javafx.application.Platform;
@@ -40,11 +40,11 @@ public class DashboardController implements Initializable {
     @FXML private ScrollPane scrollRecientes;
     @FXML private ScrollPane scrollTerminadas;
 
-    private final IShowService apiService;
+    private final IShowService showService;
     private static final double SCROLL_STEP = 0.3;
 
     public DashboardController() {
-        this.apiService = new ApiService();
+        this.showService = new ShowService();
     }
 
     @Override
@@ -62,7 +62,7 @@ public class DashboardController implements Initializable {
             return;
         }
 
-        apiService.searchShows(query).thenAccept(shows -> {
+        showService.searchShows(query).thenAccept(shows -> {
             Platform.runLater(() -> {
                 carruselResultados.getChildren().clear();
                 scrollResultados.setHvalue(0.0);
@@ -111,7 +111,7 @@ public class DashboardController implements Initializable {
     @FXML private void scrollDerTerminadas() { moverCarrusel(scrollTerminadas, SCROLL_STEP); }
 
     private void cargarDatosHome() {
-        apiService.getHomeData().thenAccept(homeResponse -> {
+        showService.getHomeData().thenAccept(homeResponse -> {
             Platform.runLater(() -> {
                 poblarCarrusel(homeResponse.featured(), carruselDestacados);
                 poblarCarrusel(homeResponse.topRated(), carruselMejorPuntuadas);

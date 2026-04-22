@@ -2,7 +2,7 @@ package com.src.filmtracker.controllers;
 
 import com.src.filmtracker.App;
 import com.src.filmtracker.models.*;
-import com.src.filmtracker.services.ApiService;
+import com.src.filmtracker.services.ShowService;
 import com.src.filmtracker.services.IShowService;
 import com.src.filmtracker.utils.AppConstants;
 import javafx.application.Platform;
@@ -38,15 +38,15 @@ public class ShowDetailController {
     @FXML private VBox episodesContainer, similarShowsSection; 
     @FXML private ScrollPane scrollCast; 
 
-    private IShowService apiService;
+    private IShowService showService;
     private final Map<Integer, List<EpisodeDto>> seasonEpisodesMap = new ConcurrentHashMap<>();
 
     public ShowDetailController() {
-        this.apiService = new ApiService();
+        this.showService = new ShowService();
     }
 
     public ShowDetailController(IShowService apiService) {
-        this.apiService = apiService;
+        this.showService = apiService;
     }
 
     @FXML private void handleClose() { Platform.exit(); System.exit(0); }
@@ -58,7 +58,7 @@ public class ShowDetailController {
     public void initData(Show basicShow) {
         cargarDatosBasicos(basicShow);
 
-        apiService.getFullShowDetails(basicShow.tvmazeId()).thenAccept(fullData -> {
+        showService.getFullShowDetails(basicShow.tvmazeId()).thenAccept(fullData -> {
             Platform.runLater(() -> {
                 cargarDatosBasicos(fullData.show()); 
                 
@@ -80,7 +80,7 @@ public class ShowDetailController {
             return null;
         });
         
-        apiService.getShowEpisodes(basicShow.tvmazeId()).thenAccept(episodes -> {
+        showService.getShowEpisodes(basicShow.tvmazeId()).thenAccept(episodes -> {
             if (episodes != null) {
                 episodes.forEach(ep -> seasonEpisodesMap.computeIfAbsent(ep.season(), k -> new ArrayList<>()).add(ep));
             }
@@ -91,7 +91,7 @@ public class ShowDetailController {
     }
 
     private void cargarSeriesSimilares(String genre, Integer currentShowId) {
-        apiService.getShowsByGenre(genre).thenAccept(shows -> {
+        showService.getShowsByGenre(genre).thenAccept(shows -> {
             Platform.runLater(() -> {
                 similarShowsSection.getChildren().clear();
                 

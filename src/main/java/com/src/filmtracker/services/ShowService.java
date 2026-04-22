@@ -15,11 +15,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class ApiService implements IShowService {
+public class ShowService implements IShowService {
     private final HttpClient client;
     private final Gson gson;
     
-    public ApiService() {
+    public ShowService() {
         this.client = HttpClient.newHttpClient();
         this.gson = new Gson();
     }
