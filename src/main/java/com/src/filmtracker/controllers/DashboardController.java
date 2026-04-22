@@ -1,9 +1,13 @@
 package com.src.filmtracker.controllers;
 
+import com.src.filmtracker.App;
 import com.src.filmtracker.models.Show;
 import com.src.filmtracker.services.IShowService;
+import com.src.filmtracker.services.IUserService;
 import com.src.filmtracker.services.ShowService;
+import com.src.filmtracker.services.UserService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.SessionManager;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -41,6 +45,7 @@ public class DashboardController implements Initializable {
     @FXML private ScrollPane scrollTerminadas;
 
     private final IShowService showService;
+    private final IUserService userService = new UserService();
     private static final double SCROLL_STEP = 0.3;
 
     public DashboardController() {
@@ -81,6 +86,25 @@ public class DashboardController implements Initializable {
             Platform.runLater(() -> mostrarErrorDeRed(e));
             return null;
         });
+    }
+    
+    @FXML
+    private void handleVerPerfil() {
+        userService.getProfile().thenAccept(user -> {
+            Platform.runLater(() -> {
+                App.showProfileView(user);
+            });
+        }).exceptionally(e -> {
+            System.err.println("Error: " + e.getMessage());
+            return null;
+        });
+    }
+
+    @FXML
+    private void handleLogout() {
+        SessionManager.getInstance().logout();
+        
+        App.setRoot(AppConstants.FXML_LOGIN);
     }
     
     @FXML

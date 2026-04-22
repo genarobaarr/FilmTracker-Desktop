@@ -1,7 +1,9 @@
 package com.src.filmtracker;
 
+import com.src.filmtracker.controllers.ProfileController;
 import com.src.filmtracker.controllers.ShowDetailController;
 import com.src.filmtracker.models.Show;
+import com.src.filmtracker.models.UserDto;
 import com.src.filmtracker.utils.AppConstants;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -41,7 +43,6 @@ public class App extends Application {
             scene.setRoot(root);
         } catch (IOException e) {
             System.err.println("Error crítico al intentar cargar la vista: " + fxml);
-            e.printStackTrace();
         }
     }
 
@@ -56,7 +57,20 @@ public class App extends Application {
             scene.setRoot(root);
         } catch (IOException e) {
             System.err.println("Error crítico al intentar cargar la vista de detalle para: " + show.name());
-            e.printStackTrace();
+        }
+    }
+    
+    public static void showProfileView(UserDto user) {
+        try {
+            FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_PROFILE));
+            Parent root = loader.load();
+
+            ProfileController controller = loader.getController();
+            controller.initData(user);
+
+            scene.setRoot(root);
+        } catch (IOException e) {
+            System.err.println("Error al cargar vista de perfil: " + e.getMessage());
         }
     }
 }

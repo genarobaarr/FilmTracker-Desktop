@@ -5,6 +5,8 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.MenuButton?>
+<?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -23,6 +25,19 @@
            </Button>
 
            <javafx.scene.layout.Region HBox.hgrow="ALWAYS" />
+           
+           <MenuButton fx:id="profileMenu" mnemonicParsing="false" style="-fx-background-color: transparent; -fx-cursor: hand;" text="👤" textFill="WHITE">
+                <items>
+                  <MenuItem mnemonicParsing="false" onAction="#handleVerPerfil" text="Ver Perfil" />
+                  <MenuItem mnemonicParsing="false" onAction="#handleLogout" text="Cerrar Sesión" />
+                </items>
+                <font>
+                  <Font size="18.0" />
+                </font>
+                <HBox.margin>
+                  <Insets right="10.0" />
+                </HBox.margin>
+           </MenuButton>
 
            <Button mnemonicParsing="false" onAction="#handleMinimize" style="-fx-background-color: transparent; -fx-cursor: hand;" text="—" textFill="WHITE">
               <font><Font name="System Bold" size="16.0" /></font>

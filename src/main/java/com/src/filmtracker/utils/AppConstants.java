@@ -7,6 +7,7 @@ public final class AppConstants {
     public static final String SHOWS_SERVICE_URL = "http://localhost:3001/api/shows";
     public static final String SHOWS_BY_GENRE_URL = SHOWS_SERVICE_URL + "/by-genre/";
     public static final String USERS_SERVICE_URL = "http://localhost:3002/api/users";
+    public static final String USERS_PROFILE_URL = USERS_SERVICE_URL + "/profile";
     public static final String AUTH_SERVICE_URL = "http://localhost:3003/api/auth";
     public static final String AUTH_LOGIN_URL = AUTH_SERVICE_URL + "/login";
     public static final String AUTH_REGISTER_URL = AUTH_SERVICE_URL + "/register";
@@ -15,6 +16,7 @@ public final class AppConstants {
 
     public static final String FXML_LOGIN = "/com/src/filmtracker/views/FXMLLogin.fxml";
     public static final String FXML_REGISTER = "/com/src/filmtracker/views/FXMLRegister.fxml";
+    public static final String FXML_PROFILE = "/com/src/filmtracker/views/FXMLProfile.fxml";
     public static final String FXML_DASHBOARD = "/com/src/filmtracker/views/FXMLDashboard.fxml";
     public static final String FXML_SHOW_CARD = "/com/src/filmtracker/views/FXMLShowCard.fxml";
     public static final String FXML_SHOW_DETAIL = "/com/src/filmtracker/views/FXMLShowDetail.fxml";
