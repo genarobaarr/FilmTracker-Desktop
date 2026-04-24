@@ -55,9 +55,7 @@ public class App extends Application {
         }
     }
 
-    // Navegación hacia Adelante (Apila la serie actual)
     public static void showDetailView(Show show) {
-        // Si ya estábamos viendo una serie diferente, la guardamos en el historial antes de avanzar
         if (currentViewedShow != null && !currentViewedShow.tvmazeId().equals(show.tvmazeId())) {
             historyStack.push(currentViewedShow);
         }
@@ -66,19 +64,16 @@ public class App extends Application {
         loadShowDetailTemplate(show);
     }
 
-    // Navegación hacia Atrás (Desapila la serie anterior)
     public static void goBackFromDetail() {
         if (!historyStack.isEmpty()) {
             Show previousShow = historyStack.pop();
             currentViewedShow = previousShow;
             loadShowDetailTemplate(previousShow);
         } else {
-            // Si no hay más historial, volvemos directamente al Home
             setRoot(AppConstants.FXML_DASHBOARD);
         }
     }
 
-    // Método auxiliar (DRY) para no repetir la carga del FXML
     private static void loadShowDetailTemplate(Show show) {
         try {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_SHOW_DETAIL));
@@ -93,7 +88,6 @@ public class App extends Application {
         }
     }
 
-    // Método para la Vista de Perfil
     public static void showProfileView(UserDto user) {
         try {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_PROFILE));
