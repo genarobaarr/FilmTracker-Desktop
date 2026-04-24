@@ -13,10 +13,14 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 import java.io.IOException;
+import java.util.Stack;
 
 public class App extends Application {
 
     private static Scene scene;
+    
+    private static final Stack<Show> historyStack = new Stack<>();
+    private static Show currentViewedShow = null;
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -37,16 +41,45 @@ public class App extends Application {
     }
     
     public static void setRoot(String fxml) {
+        if (fxml.equals(AppConstants.FXML_DASHBOARD) || fxml.equals(AppConstants.FXML_LOGIN)) {
+            historyStack.clear();
+            currentViewedShow = null;
+        }
+        
         try {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(fxml));
             Parent root = loader.load();
             scene.setRoot(root);
         } catch (IOException e) {
-            System.err.println("Error crítico al intentar cargar la vista: " + fxml);
+            System.err.println("Error crítico al intentar cargar la vista: " + fxml + " | " + e.getMessage());
         }
     }
 
+    // Navegación hacia Adelante (Apila la serie actual)
     public static void showDetailView(Show show) {
+        // Si ya estábamos viendo una serie diferente, la guardamos en el historial antes de avanzar
+        if (currentViewedShow != null && !currentViewedShow.tvmazeId().equals(show.tvmazeId())) {
+            historyStack.push(currentViewedShow);
+        }
+        
+        currentViewedShow = show;
+        loadShowDetailTemplate(show);
+    }
+
+    // Navegación hacia Atrás (Desapila la serie anterior)
+    public static void goBackFromDetail() {
+        if (!historyStack.isEmpty()) {
+            Show previousShow = historyStack.pop();
+            currentViewedShow = previousShow;
+            loadShowDetailTemplate(previousShow);
+        } else {
+            // Si no hay más historial, volvemos directamente al Home
+            setRoot(AppConstants.FXML_DASHBOARD);
+        }
+    }
+
+    // Método auxiliar (DRY) para no repetir la carga del FXML
+    private static void loadShowDetailTemplate(Show show) {
         try {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_SHOW_DETAIL));
             Parent root = loader.load();
@@ -56,10 +89,11 @@ public class App extends Application {
 
             scene.setRoot(root);
         } catch (IOException e) {
-            System.err.println("Error crítico al intentar cargar la vista de detalle para: " + show.name());
+            System.err.println("Error crítico al intentar cargar la vista de detalle para: " + show.name() + " | " + e.getMessage());
         }
     }
-    
+
+    // Método para la Vista de Perfil
     public static void showProfileView(UserDto user) {
         try {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_PROFILE));

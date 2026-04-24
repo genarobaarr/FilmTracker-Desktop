@@ -16,8 +16,11 @@
       <HBox alignment="CENTER_LEFT" prefHeight="60.0" spacing="20.0" style="-fx-background-color: #000000;" BorderPane.alignment="CENTER">
          <children>
             <Button mnemonicParsing="false" onAction="#handleBack" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="← VOLVER" />
+            <Button mnemonicParsing="false" onAction="#handleHome" style="-fx-background-color: #333333; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="⌂ INICIO" />
+            
             <Label fx:id="headerTitle" text="Detalle de Serie" textFill="WHITE">
                <font><Font name="System Bold" size="20.0" /></font>
+               <HBox.margin><Insets left="15.0" /></HBox.margin>
             </Label>
             
             <Region HBox.hgrow="ALWAYS" />

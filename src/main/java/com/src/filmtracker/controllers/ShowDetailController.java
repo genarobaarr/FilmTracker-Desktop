@@ -53,7 +53,14 @@ public class ShowDetailController {
     @FXML private void handleMinimize() { ((Stage)titleLabel.getScene().getWindow()).setIconified(true); }
     @FXML private void scrollIzqCast() { moverCarruselDinamico(scrollCast, -1); }
     @FXML private void scrollDerCast() { moverCarruselDinamico(scrollCast, 1); }
-    @FXML private void handleBack() { App.setRoot(AppConstants.FXML_DASHBOARD); }
+    
+    @FXML private void handleBack() { 
+        App.goBackFromDetail(); 
+    }
+    
+    @FXML private void handleHome() { 
+        App.setRoot(AppConstants.FXML_DASHBOARD); 
+    }
     
     public void initData(Show basicShow) {
         cargarDatosBasicos(basicShow);
