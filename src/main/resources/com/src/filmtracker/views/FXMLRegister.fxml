@@ -35,7 +35,7 @@
                <font><Font size="20.0" /></font>
             </Label>
             
-            <Label fx:id="errorLabel" textFill="#e50914" visible="false" managed="false" />
+            <Label fx:id="errorLabel" textFill="#e50914" visible="false" managed="false" wrapText="true" textAlignment="CENTER" />
             
             <VBox spacing="5.0">
                <Label text="Nombre" textFill="#bbbbbb" />
@@ -51,6 +51,11 @@
                <Label text="Contraseña" textFill="#bbbbbb" />
                <PasswordField fx:id="passwordField" promptText="••••••••" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-padding: 10;" />
             </VBox>
+
+            <VBox spacing="5.0">
+               <Label text="Confirmar Contraseña" textFill="#bbbbbb" />
+               <PasswordField fx:id="confirmPasswordField" promptText="••••••••" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-padding: 10;" />
+            </VBox>
             
             <Button mnemonicParsing="false" onAction="#handleRegister" prefWidth="400.0" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12; -fx-cursor: hand; -fx-background-radius: 5;" text="REGISTRARSE" />
             
@@ -62,7 +67,7 @@
             </HBox>
          </children>
          <padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
-         <BorderPane.margin><Insets bottom="60.0" top="30.0" /></BorderPane.margin>
+         <BorderPane.margin><Insets bottom="40.0" top="20.0" /></BorderPane.margin>
       </VBox>
    </center>
 </BorderPane>

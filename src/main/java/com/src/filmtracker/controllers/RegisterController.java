@@ -18,6 +18,7 @@ public class RegisterController {
     @FXML private TextField nameField;
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
+    @FXML private PasswordField confirmPasswordField;
     @FXML private Label errorLabel;
 
     private final IAuthService authService = new AuthService();
@@ -31,11 +32,20 @@ public class RegisterController {
         String name = nameField.getText().trim();
         String email = emailField.getText().trim();
         String pass = passwordField.getText().trim();
+        String confirmPass = confirmPasswordField.getText().trim();
 
         if (name.isEmpty() || email.isEmpty() || pass.isEmpty()) {
             showError(AppConstants.MESSAGE_ERROR_FIELDS);
             return;
         }
+        
+        if (!pass.equals(confirmPass)) {
+            showError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
+            return;
+        }
+        
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
 
         RegisterRequest regRequest = new RegisterRequest(name, email, pass);
         
