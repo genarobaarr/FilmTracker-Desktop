@@ -42,11 +42,11 @@ public class AuthService implements IAuthService {
                 .build();
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> {
-                    if (response.statusCode() >= 400) {
-                        throw new RuntimeException("API Error: " + response.statusCode() + " | Body: " + response.body());
-                    }
-                    return gson.fromJson(response.body(), responseClass);
-                });
+            .thenApply(response -> {
+                if (response.statusCode() >= 400) {
+                    throw new RuntimeException("Auth error: " + response.statusCode());
+                }
+                return gson.fromJson(response.body(), responseClass);
+            });
     }
 }

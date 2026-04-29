@@ -1,6 +1,6 @@
 package com.src.filmtracker.models;
 
-public record AuthResponse(
+public record ProfileResponse(
         String message, 
-        AuthData data
+        UserDto data
     ) {}

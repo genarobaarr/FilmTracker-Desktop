@@ -15,33 +15,23 @@
       </Button>
    </top>
    <center>
-      <VBox alignment="CENTER" spacing="20.0" BorderPane.alignment="CENTER">
-         <children>
-            <ImageView fx:id="avatarView" fitHeight="150.0" fitWidth="150.0" pickOnBounds="true" preserveRatio="true" style="-fx-effect: dropshadow(three-pass-box, rgba(229,9,20,0.4), 10, 0, 0, 0);" />
-            <Label fx:id="nameLabel" text="Nombre de Usuario" textFill="WHITE">
-               <font><Font name="System Bold" size="32.0" /></font>
-            </Label>
-            <VBox alignment="CENTER" spacing="5.0">
-               <children>
-                  <Label text="Correo Electrónico" textFill="#888888">
-                     <font><Font name="System Bold" size="12.0" /></font>
-                  </Label>
-                  <Label fx:id="emailLabel" text="correo@ejemplo.com" textFill="WHITE">
-                     <font><Font size="18.0" /></font>
-                  </Label>
-               </children>
-            </VBox>
-            <VBox alignment="CENTER" spacing="5.0">
-               <children>
-                  <Label text="Rol de Usuario" textFill="#888888">
-                     <font><Font name="System Bold" size="12.0" /></font>
-                  </Label>
-                  <Label fx:id="roleLabel" text="USER" textFill="WHITE">
-                     <font><Font name="System Bold" size="16.0" /></font>
-                  </Label>
-               </children>
-            </VBox>
-         </children>
-      </VBox>
-   </center>
+        <VBox alignment="CENTER" spacing="15.0" BorderPane.alignment="CENTER">
+            <children>
+                <ImageView fx:id="avatarView" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true" />
+                <VBox alignment="CENTER" spacing="5.0">
+                    <Label fx:id="nameLabel" textFill="WHITE"><font><Font name="System Bold" size="28.0" /></font></Label>
+                    <Label fx:id="usernameLabel" textFill="#e50914"><font><Font size="16.0" /></font></Label>
+                </VBox>
+                <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #1e1e1e; -fx-padding: 20; -fx-background-radius: 10;" maxWidth="400.0">
+                    <children>
+                        <Label text="Email" textFill="#888888"><font><Font name="System Bold" size="10.0" /></font></Label>
+                        <Label fx:id="emailLabel" textFill="WHITE"><font><Font size="16.0" /></font></Label>
+                        <Label text="Rol" textFill="#888888"><font><Font name="System Bold" size="10.0" /></font></Label>
+                        <Label fx:id="roleLabel" textFill="WHITE"><font><Font size="16.0" /></font></Label>
+                    </children>
+                </VBox>
+                <Label fx:id="dateLabel" textFill="#555555"><font><Font size="12.0" /></font></Label>
+            </children>
+        </VBox>
+    </center>
 </BorderPane>

@@ -17,9 +17,9 @@ public class SessionManager {
         return instance;
     }
 
-    public void login(AuthResponse authData) {
-        this.currentUser = authData.user();
-        this.token = authData.token();
+    public void login(AuthResponse authResponse) {
+        this.currentUser = authResponse.data().user();
+        this.token = authResponse.data().token();
     }
 
     public void logout() {
