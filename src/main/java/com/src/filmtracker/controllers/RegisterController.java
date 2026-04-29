@@ -15,6 +15,7 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 public class RegisterController {
+    @FXML private TextField usernameField;
     @FXML private TextField nameField;
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
@@ -23,31 +24,40 @@ public class RegisterController {
 
     private final IAuthService authService = new AuthService();
 
-    @FXML private void handleClose() { Platform.exit(); System.exit(0); }
-    @FXML private void handleMinimize() { ((Stage)nameField.getScene().getWindow()).setIconified(true); }
-    @FXML private void goToLogin() { App.setRoot(AppConstants.FXML_LOGIN); }
+    @FXML private void handleClose() { 
+        Platform.exit(); System.exit(0); 
+    }
+    @FXML private void handleMinimize() { 
+        ((Stage)nameField.getScene().getWindow()).setIconified(true); 
+    }
+    @FXML private void goToLogin() { 
+        App.setRoot(AppConstants.FXML_LOGIN); 
+    }
 
     @FXML
     private void handleRegister() {
+        String username = usernameField.getText().trim();
         String name = nameField.getText().trim();
         String email = emailField.getText().trim();
         String pass = passwordField.getText().trim();
         String confirmPass = confirmPasswordField.getText().trim();
 
-        if (name.isEmpty() || email.isEmpty() || pass.isEmpty()) {
+        if (username.isEmpty() || name.isEmpty() || email.isEmpty() || pass.isEmpty() || confirmPass.isEmpty()) {
             showError(AppConstants.MESSAGE_ERROR_FIELDS);
             return;
         }
         
+        if (!username.matches("^[a-zA-Z0-9]+$")) {
+            showError(AppConstants.MESSAGE_ERROR_USERNAME_INVALID);
+            return;
+        }
+
         if (!pass.equals(confirmPass)) {
             showError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
             return;
         }
-        
-        errorLabel.setVisible(false);
-        errorLabel.setManaged(false);
 
-        RegisterRequest regRequest = new RegisterRequest(name, email, pass);
+        RegisterRequest regRequest = new RegisterRequest(username, name, email, pass);
         
         authService.register(regRequest).thenCompose(regResponse -> {
             LoginRequest loginReq = new LoginRequest(email, pass);
@@ -58,8 +68,7 @@ public class RegisterController {
                 App.setRoot(AppConstants.FXML_DASHBOARD); 
             });
         }).exceptionally(e -> {
-            System.err.println("Fallo en Registro/Auto-Login: " + e.getMessage());
-            Platform.runLater(() -> showError("Error al crear la cuenta o cuenta existente."));
+            Platform.runLater(() -> showError(AppConstants.MESSAGE_ERROR_REG_FAILED));
             return null;
         });
     }

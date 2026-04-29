@@ -7,7 +7,6 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
@@ -35,7 +34,7 @@
                <font><Font size="20.0" /></font>
             </Label>
             
-            <Label fx:id="errorLabel" textFill="#e50914" visible="false" managed="false" />
+            <Label fx:id="errorLabel" textFill="#e50914" visible="false" managed="false" wrapText="true" textAlignment="CENTER" />
             
             <VBox spacing="5.0">
                <Label text="Correo Electrónico" textFill="#bbbbbb" />

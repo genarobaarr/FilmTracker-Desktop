@@ -7,7 +7,6 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
@@ -26,7 +25,7 @@
       </HBox>
    </top>
    <center>
-      <VBox alignment="CENTER" maxWidth="400.0" spacing="20.0" style="-fx-background-color: #1e1e1e; -fx-background-radius: 15;" BorderPane.alignment="CENTER">
+      <VBox alignment="CENTER" maxWidth="400.0" spacing="15.0" style="-fx-background-color: #1e1e1e; -fx-background-radius: 15;" BorderPane.alignment="CENTER">
          <children>
             <Label text="FilmTracker" textFill="WHITE">
                <font><Font name="System Bold" size="36.0" /></font>
@@ -37,6 +36,11 @@
             
             <Label fx:id="errorLabel" textFill="#e50914" visible="false" managed="false" wrapText="true" textAlignment="CENTER" />
             
+            <VBox spacing="5.0">
+               <Label text="Nombre de Usuario" textFill="#bbbbbb" />
+               <TextField fx:id="usernameField" promptText="usuario123" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-padding: 10;" />
+            </VBox>
+
             <VBox spacing="5.0">
                <Label text="Nombre" textFill="#bbbbbb" />
                <TextField fx:id="nameField" promptText="Tu nombre" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-padding: 10;" />
@@ -66,8 +70,8 @@
                </Button>
             </HBox>
          </children>
-         <padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
-         <BorderPane.margin><Insets bottom="40.0" top="20.0" /></BorderPane.margin>
+         <padding><Insets bottom="30.0" left="40.0" right="40.0" top="30.0" /></padding>
+         <BorderPane.margin><Insets bottom="20.0" top="10.0" /></BorderPane.margin>
       </VBox>
    </center>
 </BorderPane>

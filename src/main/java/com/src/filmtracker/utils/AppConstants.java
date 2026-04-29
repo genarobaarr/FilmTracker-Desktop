@@ -30,6 +30,8 @@ public final class AppConstants {
     public static final String MESSAGE_ERROR_SIMILAR = "No se pudieron cargar las series similares.";
     public static final String MESSAGE_INFO_NO_SIMILAR = "No hay series similares disponibles.";
     public static final String MESSAGE_ERROR_PASSWORD_MISMATCH = "Las contraseñas no coinciden.";
+    public static final String MESSAGE_ERROR_USERNAME_INVALID = "El usuario debe ser alfanumérico y sin espacios.";
+    public static final String MESSAGE_ERROR_REG_FAILED = "Error al crear la cuenta. El usuario o correo ya existen.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

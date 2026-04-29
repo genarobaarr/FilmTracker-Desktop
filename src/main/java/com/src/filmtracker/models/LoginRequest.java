@@ -1,3 +1,6 @@
 package com.src.filmtracker.models;
 
-public record LoginRequest(String email, String password) {}
+public record LoginRequest(
+    String email, 
+    String password
+) {}

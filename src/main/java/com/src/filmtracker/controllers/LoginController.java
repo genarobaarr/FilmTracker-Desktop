@@ -14,7 +14,7 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 public class LoginController {
-    @FXML private TextField emailField;
+    @FXML private TextField emailField; 
     @FXML private PasswordField passwordField;
     @FXML private Label errorLabel;
 
@@ -49,7 +49,6 @@ public class LoginController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> showError(AppConstants.MESSAGE_ERROR_AUTH));
-            System.err.println("Login Failed: " + e.getMessage());
             return null;
         });
     }
