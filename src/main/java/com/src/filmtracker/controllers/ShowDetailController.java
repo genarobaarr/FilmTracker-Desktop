@@ -15,6 +15,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -62,13 +63,17 @@ public class ShowDetailController {
     }
     
     public void initData(Show basicShow) {
-        if (basicShow == null || basicShow.tvmazeId() == null) return;
+        if (basicShow == null || basicShow.tvmazeId() == null) {
+            return;
+        }
         this.currentTvmazeId = basicShow.tvmazeId();
         cargarDatosBasicosUI(basicShow);
 
         apiService.getFullShowDetails(currentTvmazeId).thenAccept(fullData -> {
             Platform.runLater(() -> {
-                if (fullData == null) return;
+                if (fullData == null) {
+                    return;
+                }
                 cargarDatosBasicosUI(fullData.show()); 
                 actualizarCastUI(fullData.cast());
                 actualizarTemporadasUI(fullData.seasons());
@@ -79,7 +84,9 @@ public class ShowDetailController {
         }).exceptionally(e -> { return null; });
 
         apiService.getShowEpisodes(currentTvmazeId).thenAccept(episodes -> {
-            if (episodes != null) episodes.forEach(ep -> seasonEpisodesMap.computeIfAbsent(ep.season(), k -> new ArrayList<>()).add(ep));
+            if (episodes != null) {
+                episodes.forEach(ep -> seasonEpisodesMap.computeIfAbsent(ep.season(), k -> new ArrayList<>()).add(ep));
+            }
         });
 
         cargarResenas();
@@ -164,6 +171,99 @@ public class ShowDetailController {
         similarShowsSection.getChildren().add(bp);
     }
 
+    private VBox createSeasonAccordion(SeasonDto s) {
+        VBox c = new VBox();
+        HBox h = new HBox(new Label("Temp " + s.number()));
+        h.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 10; -fx-cursor: hand; -fx-text-fill: white;");
+        
+        VBox eps = new VBox(); 
+        eps.setVisible(false); eps.setManaged(false);
+        eps.setStyle("-fx-padding: 15; -fx-background-color: #151515; -fx-background-radius: 0 0 5 5;");
+        
+        h.setOnMouseClicked(e -> {
+            eps.setVisible(!eps.isVisible()); 
+            eps.setManaged(eps.isVisible());
+            if (eps.isVisible() && eps.getChildren().isEmpty()) {
+                renderEpisodes(s.number(), eps);
+            }
+        });
+        c.getChildren().addAll(h, eps);
+        return c;
+    }
+
+    private void renderEpisodes(int num, VBox container) {
+        container.getChildren().clear();
+        List<EpisodeDto> list = seasonEpisodesMap.get(num);
+        
+        if (list == null || list.isEmpty()) {
+            Label empty = new Label("No hay episodios disponibles para esta temporada.");
+            empty.setTextFill(Color.GRAY);
+            container.getChildren().add(empty);
+            return;
+        }
+
+        HBox carouselContent = new HBox(15);
+        carouselContent.setPadding(new Insets(10));
+        
+        list.forEach(ep -> carouselContent.getChildren().add(buildEpisodeCard(ep)));
+
+        ScrollPane sp = new ScrollPane(carouselContent);
+        sp.setFitToHeight(true);
+        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+        String btnStyle = "-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;";
+        Button bI = new Button("<"); bI.setStyle(btnStyle);
+        Button bD = new Button(">"); bD.setStyle(btnStyle);
+        bI.setOnAction(e -> moverCarruselDinamico(sp, -1));
+        bD.setOnAction(e -> moverCarruselDinamico(sp, 1));
+
+        BorderPane interactiveCarousel = new BorderPane(sp);
+        interactiveCarousel.setLeft(bI); interactiveCarousel.setRight(bD);
+        BorderPane.setAlignment(bI, Pos.CENTER); BorderPane.setAlignment(bD, Pos.CENTER);
+
+        container.getChildren().add(interactiveCarousel);
+    }
+
+    private VBox buildEpisodeCard(EpisodeDto ep) {
+        VBox card = new VBox(8);
+        card.setStyle("-fx-background-color: #222222; -fx-background-radius: 8; -fx-padding: 12;");
+        card.setPrefWidth(260); card.setMaxWidth(260);
+
+        ImageView iv = new ImageView();
+        iv.setFitWidth(236); iv.setFitHeight(133);
+        if (ep.image() != null && ep.image().medium() != null) {
+            iv.setImage(new Image(ep.image().medium(), true));
+        }
+
+        Label title = new Label(String.format("S%dE%d - %s", ep.season(), ep.number(), ep.name() != null ? ep.name() : "Desconocido"));
+        title.setTextFill(Color.WHITE);
+        title.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        title.setWrapText(true);
+
+        String infoText = (ep.airdate() != null ? ep.airdate() : "N/A");
+        if (ep.runtime() != null) {
+            infoText += " | " + ep.runtime() + " min";
+        }
+        Label info = new Label(infoText);
+        info.setTextFill(Color.web("#aaaaaa")); info.setStyle("-fx-font-size: 12px;");
+
+        Label summary = new Label();
+        if (ep.summary() != null) {
+            summary.setText(ep.summary().replaceAll("<[^>]*>", ""));
+        } else {
+            summary.setText("Sin descripción disponible.");
+        }
+        summary.setTextFill(Color.web("#cccccc"));
+        summary.setWrapText(true);
+        summary.setPrefHeight(60); 
+        summary.setTextAlignment(TextAlignment.JUSTIFY);
+
+        card.getChildren().addAll(iv, title, info, summary);
+        return card;
+    }
+
     private void cargarResenas() {
         reviewService.getShowReviews(currentTvmazeId).thenAccept(reviews -> {
             Platform.runLater(() -> dibujarSeccionResenas(reviews));
@@ -194,10 +294,10 @@ public class ShowDetailController {
         errLbl.setVisible(false); errLbl.setManaged(false);
         
         TextField titleIn = new TextField(); titleIn.setPromptText("Título de la reseña");
-        titleIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+        titleIn.setStyle("-fx-control-inner-background: WHITE; -fx-text-inner-color: white;");
         ComboBox<Integer> rateIn = new ComboBox<>(); rateIn.getItems().addAll(1, 2, 3, 4, 5); rateIn.setPromptText("Calificación");
         TextArea contIn = new TextArea(); contIn.setPromptText("Tu reseña..."); contIn.setPrefRowCount(3);
-        contIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+        contIn.setStyle("-fx-control-inner-background: WHITE; -fx-text-inner-color: white;");
         
         Button btn = new Button("Publicar"); btn.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-cursor: hand;");
         
@@ -437,29 +537,6 @@ public class ShowDetailController {
         }
         Label n = new Label(m.person().name()); n.setTextFill(Color.WHITE); n.setWrapText(true);
         b.getChildren().addAll(iv, n); return b;
-    }
-
-    private VBox createSeasonAccordion(SeasonDto s) {
-        VBox c = new VBox();
-        HBox h = new HBox(new Label("Temp " + s.number()));
-        h.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 10; -fx-cursor: hand; -fx-text-fill: white;");
-        VBox eps = new VBox(); eps.setVisible(false); eps.setManaged(false);
-        h.setOnMouseClicked(e -> {
-            eps.setVisible(!eps.isVisible()); eps.setManaged(eps.isVisible());
-            if (eps.isVisible()) {
-                renderEpisodes(s.number(), eps);
-            }
-        });
-        c.getChildren().addAll(h, eps); return c;
-    }
-
-    private void renderEpisodes(int num, VBox container) {
-        container.getChildren().clear();
-        List<EpisodeDto> list = seasonEpisodesMap.get(num);
-        if (list != null) list.forEach(ep -> {
-            Label l = new Label("E" + ep.number() + " - " + ep.name()); l.setTextFill(Color.LIGHTGRAY);
-            container.getChildren().add(l);
-        });
     }
 
     private void moverCarruselDinamico(ScrollPane sp, int dir) {
