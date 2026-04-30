@@ -2,34 +2,24 @@ package com.src.filmtracker.controllers;
 
 import com.src.filmtracker.App;
 import com.src.filmtracker.models.*;
-import com.src.filmtracker.services.ShowService;
-import com.src.filmtracker.services.IShowService;
+import com.src.filmtracker.services.*;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -41,19 +31,13 @@ public class ShowDetailController {
     @FXML private Label titleLabel, ratingLabel, statusLabel, genresLabel, summaryLabel;
     @FXML private ImageView posterDetail;
     @FXML private HBox castContainer;
-    @FXML private VBox episodesContainer, similarShowsSection; 
+    @FXML private VBox episodesContainer, similarShowsSection, reviewsSection; 
     @FXML private ScrollPane scrollCast; 
 
-    private IShowService apiService;
+    private final IShowService apiService = new ShowService();
+    private final IReviewService reviewService = new ReviewService();
     private final Map<Integer, List<EpisodeDto>> seasonEpisodesMap = new ConcurrentHashMap<>();
-
-    public ShowDetailController() {
-        this.apiService = new ShowService();
-    }
-
-    public ShowDetailController(IShowService apiService) {
-        this.apiService = apiService;
-    }
+    private Integer currentTvmazeId;
 
     @FXML private void handleClose() { 
         Platform.exit(); System.exit(0); 
@@ -61,86 +45,77 @@ public class ShowDetailController {
     @FXML private void handleMinimize() { 
         ((Stage)titleLabel.getScene().getWindow()).setIconified(true); 
     }
-    @FXML private void scrollIzqCast() { 
-        moverCarruselDinamico(scrollCast, -1); 
-    }
-    @FXML private void scrollDerCast() { 
-        moverCarruselDinamico(scrollCast, 1); 
-    }
     @FXML private void handleBack() { 
         App.goBackFromDetail(); 
     }
     @FXML private void handleHome() { 
         App.setRoot(AppConstants.FXML_DASHBOARD); 
     }
+    @FXML private void scrollIzqCast() { 
+        moverCarruselDinamico(scrollCast, -1); 
+    }
+    @FXML private void scrollDerCast() { 
+        moverCarruselDinamico(scrollCast, 1); 
+    }
     
     public void initData(Show basicShow) {
-        cargarDatosBasicos(basicShow);
+        if (basicShow == null || basicShow.tvmazeId() == null) return;
+        this.currentTvmazeId = basicShow.tvmazeId();
+        cargarDatosBasicosUI(basicShow);
 
-        apiService.getFullShowDetails(basicShow.tvmazeId()).thenAccept(fullData -> {
+        apiService.getFullShowDetails(currentTvmazeId).thenAccept(fullData -> {
             Platform.runLater(() -> {
-                cargarDatosBasicos(fullData.show()); 
-                
-                castContainer.getChildren().clear();
-                scrollCast.setHvalue(0.0); 
-                fullData.cast().forEach(member -> castContainer.getChildren().add(createPersonBox(member)));
-
-                episodesContainer.getChildren().clear();
-                fullData.seasons().forEach(season -> episodesContainer.getChildren().add(createSeasonAccordion(season)));
-
-                if (fullData.show().genres() != null && !fullData.show().genres().isEmpty()) {
-                    cargarSeriesSimilaresMultigenero(fullData.show().genres(), basicShow.tvmazeId());
-                } else {
-                    mostrarMensajeSimilaresVacio();
+                if (fullData == null) return;
+                cargarDatosBasicosUI(fullData.show()); 
+                actualizarCastUI(fullData.cast());
+                actualizarTemporadasUI(fullData.seasons());
+                if (fullData.show() != null && fullData.show().genres() != null) {
+                    cargarSeriesSimilaresMultigenero(fullData.show().genres());
                 }
             });
-        }).exceptionally(e -> {
-            System.err.println(AppConstants.MESSAGE_ERROR_API + " Detalles: " + e.getMessage());
-            return null;
+        }).exceptionally(e -> { System.err.println(e.getMessage()); return null; });
+
+        apiService.getShowEpisodes(currentTvmazeId).thenAccept(episodes -> {
+            if (episodes != null) episodes.forEach(ep -> seasonEpisodesMap.computeIfAbsent(ep.season(), k -> new ArrayList<>()).add(ep));
         });
 
-        apiService.getShowEpisodes(basicShow.tvmazeId()).thenAccept(episodes -> {
-            if (episodes != null) {
-                episodes.forEach(ep -> seasonEpisodesMap.computeIfAbsent(ep.season(), k -> new ArrayList<>()).add(ep));
-            }
-        }).exceptionally(e -> {
-            System.err.println(AppConstants.MESSAGE_ERROR_API + " Episodios: " + e.getMessage());
-            return null;
-        });
+        cargarResenas();
     }
 
-    private void cargarSeriesSimilaresMultigenero(List<String> genres, Integer currentShowId) {
-        List<CompletableFuture<List<Show>>> futures = genres.stream()
-                .map(apiService::getShowsByGenre)
-                .toList();
+    private void cargarDatosBasicosUI(Show show) {
+        if (show == null) return; 
+        titleLabel.setText(show.name() != null ? show.name() : "Desconocido");
+        statusLabel.setText("Status: " + (show.status() != null ? show.status() : "N/A"));
+        if (show.genres() != null) genresLabel.setText("Géneros: " + String.join(", ", show.genres()));
+        String rating = (show.rating() != null && show.rating().average() != null) ? String.valueOf(show.rating().average()) : "N/A";
+        ratingLabel.setText("⭐ " + rating);
+        if (show.summary() != null) summaryLabel.setText(show.summary().replaceAll("<[^>]*>", ""));
+        if (show.image() != null && show.image().original() != null) posterDetail.setImage(new Image(show.image().original(), true));
+    }
+
+    private void actualizarCastUI(List<CastDto> cast) {
+        castContainer.getChildren().clear();
+        scrollCast.setHvalue(0.0);
+        if (cast != null) cast.forEach(m -> castContainer.getChildren().add(buildPersonBox(m)));
+    }
+
+    private void actualizarTemporadasUI(List<SeasonDto> seasons) {
+        episodesContainer.getChildren().clear();
+        if (seasons != null) seasons.forEach(s -> episodesContainer.getChildren().add(createSeasonAccordion(s)));
+    }
+
+    private void cargarSeriesSimilaresMultigenero(List<String> genres) {
+        if (genres == null || genres.isEmpty()) return;
+        List<CompletableFuture<List<Show>>> futures = genres.stream().map(apiService::getShowsByGenre).toList();
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .thenApply(v -> futures.stream()
-                        .map(CompletableFuture::join)
-                        .flatMap(List::stream)
-                        .filter(show -> !show.tvmazeId().equals(currentShowId))
-                        .filter(distinctByKey(Show::tvmazeId))
-                        .collect(Collectors.toList())
-                )
-                .thenAccept(combinedShows -> {
-                    if (combinedShows.isEmpty()) {
-                        Platform.runLater(this::mostrarMensajeSimilaresVacio);
-                        return;
-                    }
-
-                    Collections.shuffle(combinedShows);
-                    
-                    List<Show> finalShows = combinedShows.stream()
-                            .limit(AppConstants.HOME_CAROUSEL_LIMIT)
-                            .toList();
-
-                    Platform.runLater(() -> renderSimilarShowsCarousel(finalShows));
-                })
-                .exceptionally(e -> {
-                    System.err.println(AppConstants.MESSAGE_ERROR_SIMILAR + " " + e.getMessage());
-                    Platform.runLater(this::mostrarMensajeSimilaresVacio);
-                    return null;
-                });
+            .thenApply(v -> futures.stream().map(CompletableFuture::join).flatMap(List::stream)
+                .filter(s -> s.tvmazeId() != null && !s.tvmazeId().equals(currentTvmazeId))
+                .filter(distinctByKey(Show::tvmazeId)).collect(Collectors.toList()))
+            .thenAccept(combined -> {
+                Collections.shuffle(combined);
+                Platform.runLater(() -> renderSimilarCarousel(combined.stream().limit(20).toList()));
+            });
     }
 
     private static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
@@ -148,257 +123,252 @@ public class ShowDetailController {
         return t -> seen.add(keyExtractor.apply(t));
     }
 
-    private void renderSimilarShowsCarousel(List<Show> filteredShows) {
+    private void renderSimilarCarousel(List<Show> shows) {
         similarShowsSection.getChildren().clear();
-        
-        HBox content = new HBox(15);
-        content.setPadding(new Insets(10));
-        
-        filteredShows.forEach(show -> agregarTarjetaShow(show, content));
-
-        ScrollPane scrollPane = new ScrollPane(content);
-        scrollPane.setFitToHeight(true);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
-
-        Button btnIzq = new Button("<");
-        btnIzq.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
-        btnIzq.setOnAction(e -> moverCarruselDinamico(scrollPane, -1));
-
-        Button btnDer = new Button(">");
-        btnDer.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
-        btnDer.setOnAction(e -> moverCarruselDinamico(scrollPane, 1));
-
-        BorderPane carousel = new BorderPane();
-        carousel.setLeft(btnIzq);
-        carousel.setCenter(scrollPane);
-        carousel.setRight(btnDer);
-        BorderPane.setAlignment(btnIzq, Pos.CENTER);
-        BorderPane.setAlignment(btnDer, Pos.CENTER);
-
-        similarShowsSection.getChildren().add(carousel);
-    }
-
-    private void agregarTarjetaShow(Show show, HBox contenedor) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_SHOW_CARD));
-            VBox card = loader.load();
-            ShowCardController controller = loader.getController();
-            controller.setData(show);
-            contenedor.getChildren().add(card);
-        } catch (IOException e) {
-            System.err.println(AppConstants.MESSAGE_ERROR_LOAD_CARD + " " + show.name());
-        }
-    }
-
-    private void mostrarMensajeSimilaresVacio() {
-        Label empty = new Label(AppConstants.MESSAGE_INFO_NO_SIMILAR);
-        empty.setTextFill(Color.GRAY);
-        empty.setStyle("-fx-font-size: 14px; -fx-padding: 20;");
-        similarShowsSection.getChildren().clear();
-        similarShowsSection.getChildren().add(empty);
-    }
-
-    private void cargarDatosBasicos(Show show) {
-        titleLabel.setText(show.name() != null ? show.name() : "Desconocido");
-        statusLabel.setText("Status: " + (show.status() != null ? show.status() : "N/A"));
-        
-        if (show.genres() != null) {
-            genresLabel.setText("Géneros: " + String.join(", ", show.genres()));
-        }
-        
-        String rating = (show.rating() != null && show.rating().average() != null) 
-                ? String.valueOf(show.rating().average()) : AppConstants.MESSAGE_RATING_NA;
-        ratingLabel.setText("⭐ " + rating);
-
-        if (show.summary() != null) {
-            summaryLabel.setText(show.summary().replaceAll("<[^>]*>", ""));
-        }
-
-        if (show.image() != null && show.image().original() != null) {
-            posterDetail.setImage(new Image(show.image().original(), true));
-        }
-    }
-
-    private VBox createPersonBox(CastDto member) {
-        VBox box = new VBox(5);
-        box.setAlignment(Pos.TOP_CENTER); 
-        box.setPrefWidth(120); 
-        box.setMaxWidth(120);
-
-        ImageView iv = new ImageView();
-        iv.setFitHeight(150);
-        iv.setFitWidth(110);
-        if (member.person().image() != null && member.person().image().medium() != null) {
-            iv.setImage(new Image(member.person().image().medium(), true));
-        }
-        
-        Label name = new Label(member.person().name());
-        name.setTextFill(Color.WHITE);
-        name.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
-        name.setWrapText(true); 
-        name.setTextAlignment(TextAlignment.CENTER); 
-        name.setAlignment(Pos.CENTER);
-        
-        Label character = new Label(member.character().name());
-        character.setTextFill(Color.GRAY);
-        character.setStyle("-fx-font-size: 12px;");
-        character.setWrapText(true); 
-        character.setTextAlignment(TextAlignment.CENTER); 
-        character.setAlignment(Pos.CENTER);
-        
-        box.getChildren().addAll(iv, name, character);
-        return box;
-    }
-    
-    private VBox createSeasonAccordion(SeasonDto season) {
-        VBox container = new VBox();
-        container.setStyle("-fx-background-color: transparent;");
-
-        HBox header = new HBox(15);
-        header.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 10 20; -fx-background-radius: 5; -fx-cursor: hand;");
-        header.setAlignment(Pos.CENTER_LEFT);
-        
-        Label number = new Label("Temp " + season.number());
-        number.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        number.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
-        number.setMinWidth(70);
-        
-        Label info = new Label(season.episodeOrder() + " Episodios");
-        info.setTextFill(Color.WHITE);
-        info.setStyle("-fx-font-size: 14px;");
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Label arrowIndicator = new Label("▼");
-        arrowIndicator.setTextFill(Color.GRAY);
-        arrowIndicator.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-
-        header.getChildren().addAll(number, info, spacer, arrowIndicator);
-
-        VBox episodesList = new VBox();
-        episodesList.setStyle("-fx-padding: 15; -fx-background-color: #151515; -fx-background-radius: 0 0 5 5;");
-        episodesList.setVisible(false);
-        episodesList.setManaged(false); 
-
-        header.setOnMouseClicked(e -> {
-            boolean isExpanded = episodesList.isVisible();
-            
-            episodesList.setVisible(!isExpanded);
-            episodesList.setManaged(!isExpanded);
-            arrowIndicator.setText(isExpanded ? "▼" : "▲");
-            
-            header.setStyle(isExpanded 
-                ? "-fx-background-color: #1e1e1e; -fx-padding: 10 20; -fx-background-radius: 5; -fx-cursor: hand;" 
-                : "-fx-background-color: #2a2a2a; -fx-padding: 10 20; -fx-background-radius: 5 5 0 0; -fx-cursor: hand;");
-
-            if (!isExpanded) {
-                poblarListaDeEpisodios(season.number(), episodesList);
-            }
-        });
-
-        container.getChildren().addAll(header, episodesList);
-        return container;
-    }
-
-    private void poblarListaDeEpisodios(Integer seasonNumber, VBox container) {
-        container.getChildren().clear(); 
-        
-        List<EpisodeDto> episodes = seasonEpisodesMap.get(seasonNumber);
-        
-        if (episodes == null || episodes.isEmpty()) {
-            Label empty = new Label(episodes == null ? "Cargando episodios..." : "No hay episodios disponibles.");
-            empty.setTextFill(Color.GRAY);
-            empty.setStyle("-fx-font-size: 14px; -fx-padding: 20;");
-            container.getChildren().add(empty);
+        if (shows == null || shows.isEmpty()) {
+            similarShowsSection.getChildren().add(new Label("No hay series similares disponibles."));
             return;
         }
-
-        HBox carouselContent = new HBox(15);
-        carouselContent.setPadding(new Insets(10));
+        HBox content = new HBox(15);
+        content.setPadding(new Insets(10));
+        shows.forEach(s -> injectShowCard(s, content));
         
-        for (EpisodeDto ep : episodes) {
-            carouselContent.getChildren().add(createEpisodeCard(ep));
-        }
+        ScrollPane sp = new ScrollPane(content);
+        sp.setFitToHeight(true);
+        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
-        ScrollPane scrollPane = new ScrollPane(carouselContent);
-        scrollPane.setFitToHeight(true);
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
-
-        Button btnIzq = new Button("<");
-        btnIzq.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
-        btnIzq.setOnAction(e -> moverCarruselDinamico(scrollPane, -1));
-
-        Button btnDer = new Button(">");
-        btnDer.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
-        btnDer.setOnAction(e -> moverCarruselDinamico(scrollPane, 1));
-
-        BorderPane interactiveCarousel = new BorderPane();
-        interactiveCarousel.setLeft(btnIzq);
-        interactiveCarousel.setCenter(scrollPane);
-        interactiveCarousel.setRight(btnDer);
-        BorderPane.setAlignment(btnIzq, Pos.CENTER);
-        BorderPane.setAlignment(btnDer, Pos.CENTER);
-
-        container.getChildren().add(interactiveCarousel);
+        Button bI = new Button("<"); Button bD = new Button(">");
+        bI.setOnAction(e -> moverCarruselDinamico(sp, -1));
+        bD.setOnAction(e -> moverCarruselDinamico(sp, 1));
+        
+        BorderPane bp = new BorderPane(sp);
+        bp.setLeft(bI); bp.setRight(bD);
+        similarShowsSection.getChildren().add(bp);
     }
 
-    private VBox createEpisodeCard(EpisodeDto ep) {
+    private void cargarResenas() {
+        reviewService.getShowReviews(currentTvmazeId).thenAccept(reviews -> {
+            Platform.runLater(() -> {
+                reviewsSection.getChildren().clear();
+                if (SessionManager.getInstance().isAuthenticated()) {
+                    reviewsSection.getChildren().add(buildReviewForm());
+                }
+                if (reviews == null || reviews.isEmpty()) {
+                    Label lbl = new Label("No hay reseñas aún. ¡Sé el primero!");
+                    lbl.setTextFill(Color.GRAY);
+                    reviewsSection.getChildren().add(lbl);
+                    return;
+                }
+                reviews.forEach(r -> reviewsSection.getChildren().add(buildReviewCard(r)));
+            });
+        });
+    }
+
+    private VBox buildReviewForm() {
+        VBox form = new VBox(10);
+        form.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8;");
+        
+        TextField titleIn = new TextField(); 
+        titleIn.setPromptText("Título de la reseña");
+        titleIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-fill: white; -fx-prompt-text-fill: #888888;");
+        
+        ComboBox<Integer> rateIn = new ComboBox<>(); 
+        rateIn.getItems().addAll(1, 2, 3, 4, 5);
+        rateIn.setPromptText("Calificación");
+        
+        TextArea contIn = new TextArea(); 
+        contIn.setPromptText("Tu reseña..."); 
+        contIn.setPrefRowCount(3);
+        contIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-fill: white; -fx-prompt-text-fill: #888888;");
+        
+        Button btn = new Button("Publicar");
+        btn.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-cursor: hand;");
+        
+        btn.setOnAction(e -> {
+            if (rateIn.getValue() == null || titleIn.getText().isBlank() || contIn.getText().isBlank()) return;
+            ReviewRequest req = new ReviewRequest(currentTvmazeId, rateIn.getValue(), titleIn.getText().trim(), contIn.getText().trim());
+            reviewService.createReview(req).thenRun(() -> Platform.runLater(this::cargarResenas));
+        });
+        form.getChildren().addAll(new Label("Escribe una reseña:"), titleIn, rateIn, contIn, btn);
+        return form;
+    }
+
+    private VBox buildReviewCard(ReviewDto review) {
+        String rId = review.getSafeId();
         VBox card = new VBox(8);
-        card.setStyle("-fx-background-color: #222222; -fx-background-radius: 8; -fx-padding: 12;");
-        card.setPrefWidth(260); 
-        card.setMaxWidth(260);
+        card.setStyle("-fx-background-color: #151515; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
 
-        ImageView iv = new ImageView();
-        iv.setFitWidth(236);
-        iv.setFitHeight(133);
-        if (ep.image() != null && ep.image().medium() != null) {
-            iv.setImage(new Image(ep.image().medium(), true));
-        }
-
-        Label title = new Label(String.format("S%dE%d - %s", ep.season(), ep.number(), ep.name() != null ? ep.name() : "Desconocido"));
+        Label author = new Label("@" + obtenerNombreAutor(review.getOwnerId()));
+        author.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        
+        Label title = new Label(review.title() != null ? review.title() : "Sin título");
+        title.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
         title.setTextFill(Color.WHITE);
-        title.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        title.setWrapText(true);
 
-        String infoText = (ep.airdate() != null ? ep.airdate() : "N/A");
-        if (ep.runtime() != null) infoText += " | " + ep.runtime() + " min";
-        Label info = new Label(infoText);
-        info.setTextFill(Color.web("#aaaaaa"));
-        info.setStyle("-fx-font-size: 12px;");
+        Label content = new Label(review.content() != null ? review.content() : "");
+        content.setTextFill(Color.LIGHTGRAY);
+        content.setWrapText(true);
 
-        Label summary = new Label();
-        if (ep.summary() != null) {
-            summary.setText(ep.summary().replaceAll("<[^>]*>", ""));
-        } else {
-            summary.setText("Sin descripción disponible.");
-        }
-        summary.setTextFill(Color.web("#cccccc"));
-        summary.setWrapText(true);
-        summary.setPrefHeight(60); 
-        summary.setTextAlignment(TextAlignment.JUSTIFY);
+        HBox actions = new HBox(15);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        
+        Button likeBtn = new Button("Me gusta (" + review.getLikesCount() + ")");
+        likeBtn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
+        likeBtn.setOnAction(e -> {
+            if (!rId.isEmpty()) reviewService.toggleReviewLike(rId).thenRun(() -> Platform.runLater(this::cargarResenas));
+        });
 
-        card.getChildren().addAll(iv, title, info, summary);
+        VBox commContainer = new VBox(10); 
+        commContainer.setManaged(false); commContainer.setVisible(false);
+        
+        Button commBtn = new Button("Comentarios (" + review.getCommentsCount() + ")");
+        commBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #aaaaaa; -fx-cursor: hand; -fx-underline: true;");
+        commBtn.setOnAction(e -> {
+            boolean show = !commContainer.isVisible();
+            commContainer.setVisible(show);
+            commContainer.setManaged(show);
+            if (show && !rId.isEmpty()) cargarComentariosUI(rId, commContainer);
+        });
+
+        actions.getChildren().addAll(likeBtn, commBtn);
+        injectOwnerActions(rId, review.getOwnerId(), actions);
+        
+        card.getChildren().addAll(author, title, content, actions, commContainer);
         return card;
     }
 
-    private void moverCarruselDinamico(ScrollPane scrollPane, int direccion) {
-        double viewportWidth = scrollPane.getViewportBounds().getWidth();
-        double contentWidth = scrollPane.getContent().getBoundsInLocal().getWidth();
+    private void cargarComentariosUI(String rId, VBox container) {
+        container.getChildren().clear();
+        container.setStyle("-fx-padding: 0 0 0 20; -fx-border-color: #333; -fx-border-width: 0 0 0 2;");
+        
+        if (SessionManager.getInstance().isAuthenticated()) {
+            TextField in = new TextField(); 
+            in.setPromptText("Escribe un comentario...");
+            in.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-fill: white; -fx-prompt-text-fill: #888888;");
+            
+            Button b = new Button("Enviar");
+            b.setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-cursor: hand;");
+            
+            b.setOnAction(e -> {
+                if (in.getText().isBlank()) return;
+                reviewService.createComment(rId, new CommentRequest(in.getText().trim()))
+                        .thenRun(() -> Platform.runLater(() -> cargarComentariosUI(rId, container)));
+            });
+            container.getChildren().add(new HBox(10, in, b));
+        }
+        
+        reviewService.getReviewComments(rId).thenAccept(list -> Platform.runLater(() -> {
+            if (list != null) list.forEach(c -> container.getChildren().add(buildCommentItem(c, rId, container)));
+        }));
+    }
 
-        if (contentWidth <= viewportWidth || viewportWidth == 0) return;
+    private VBox buildCommentItem(CommentDto c, String rId, VBox parent) {
+        String cId = c.getSafeId();
+        VBox box = new VBox(5); 
+        box.setStyle("-fx-background-color: #1a1a1a; -fx-padding: 8; -fx-background-radius: 5;");
+        
+        Label user = new Label("@" + obtenerNombreAutor(c.getOwnerId()));
+        user.setTextFill(Color.GRAY);
+        
+        Label txt = new Label(c.content() != null ? c.content() : ""); 
+        txt.setTextFill(Color.WHITE);
+        
+        HBox actions = new HBox(10);
+        Button lk = new Button("Me gusta (" + c.getLikesCount() + ")");
+        lk.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
+        lk.setOnAction(e -> {
+            if (!cId.isEmpty()) reviewService.toggleCommentLike(cId).thenRun(() -> Platform.runLater(() -> cargarComentariosUI(rId, parent)));
+        });
+        
+        actions.getChildren().add(lk);
+        injectCommentDelete(cId, c.getOwnerId(), actions, rId, parent);
+        
+        box.getChildren().addAll(user, txt, actions);
+        return box;
+    }
 
-        double scrollableWidth = contentWidth - viewportWidth;
-        double avanceReal = viewportWidth - 275; 
-        if (avanceReal <= 0) avanceReal = viewportWidth / 2; 
+    private String obtenerNombreAutor(String ownerId) {
+        if (!SessionManager.getInstance().isAuthenticated() || ownerId == null || ownerId.isEmpty()) return "Usuario";
+        String currId = SessionManager.getInstance().getCurrentUser().id();
+        String currAuth = SessionManager.getInstance().getCurrentUser().authId();
+        if (ownerId.equals(currId) || ownerId.equals(currAuth)) {
+            return SessionManager.getInstance().getCurrentUser().username();
+        }
+        return "Usuario";
+    }
 
-        double porcentajeSalto = avanceReal / scrollableWidth;
-        double newValue = scrollPane.getHvalue() + (porcentajeSalto * direccion);
+    private void injectOwnerActions(String rId, String ownerId, HBox actions) {
+        if (!SessionManager.getInstance().isAuthenticated() || ownerId == null || ownerId.isEmpty()) return;
+        String currId = SessionManager.getInstance().getCurrentUser().id();
+        String currAuth = SessionManager.getInstance().getCurrentUser().authId();
+        
+        if (ownerId.equals(currId) || ownerId.equals(currAuth)) {
+            Button del = new Button("Eliminar");
+            del.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand; -fx-underline: true;");
+            del.setOnAction(e -> reviewService.deleteReview(rId).thenRun(() -> Platform.runLater(this::cargarResenas)));
+            actions.getChildren().add(del);
+        }
+    }
 
-        scrollPane.setHvalue(Math.max(0.0, Math.min(newValue, 1.0)));
+    private void injectCommentDelete(String cId, String ownerId, HBox actions, String rId, VBox parent) {
+        if (!SessionManager.getInstance().isAuthenticated() || ownerId == null || ownerId.isEmpty()) return;
+        String currId = SessionManager.getInstance().getCurrentUser().id();
+        String currAuth = SessionManager.getInstance().getCurrentUser().authId();
+        
+        if (ownerId.equals(currId) || ownerId.equals(currAuth)) {
+            Button del = new Button("Eliminar");
+            del.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand; -fx-underline: true;");
+            del.setOnAction(e -> reviewService.deleteComment(cId).thenRun(() -> Platform.runLater(() -> cargarComentariosUI(rId, parent))));
+            actions.getChildren().add(del);
+        }
+    }
+
+    private void injectShowCard(Show s, HBox container) {
+        try {
+            FXMLLoader l = new FXMLLoader(getClass().getResource(AppConstants.FXML_SHOW_CARD));
+            VBox card = l.load();
+            ((ShowCardController)l.getController()).setData(s);
+            container.getChildren().add(card);
+        } catch (IOException e) { System.err.println("Error card: " + s.name()); }
+    }
+
+    private VBox buildPersonBox(CastDto m) {
+        VBox b = new VBox(5); b.setAlignment(Pos.TOP_CENTER); b.setPrefWidth(120);
+        ImageView iv = new ImageView(); iv.setFitHeight(150); iv.setFitWidth(110);
+        if (m.person().image() != null) iv.setImage(new Image(m.person().image().medium(), true));
+        Label n = new Label(m.person().name()); n.setTextFill(Color.WHITE); n.setWrapText(true);
+        b.getChildren().addAll(iv, n);
+        return b;
+    }
+
+    private VBox createSeasonAccordion(SeasonDto s) {
+        VBox c = new VBox();
+        HBox h = new HBox(new Label("Temp " + s.number()));
+        h.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 10; -fx-cursor: hand; -fx-text-fill: white;");
+        VBox eps = new VBox(); eps.setVisible(false); eps.setManaged(false);
+        h.setOnMouseClicked(e -> {
+            eps.setVisible(!eps.isVisible()); eps.setManaged(eps.isVisible());
+            if (eps.isVisible()) renderEpisodes(s.number(), eps);
+        });
+        c.getChildren().addAll(h, eps);
+        return c;
+    }
+
+    private void renderEpisodes(int num, VBox container) {
+        container.getChildren().clear();
+        List<EpisodeDto> list = seasonEpisodesMap.get(num);
+        if (list != null) {
+            list.forEach(ep -> {
+                Label l = new Label("E" + ep.number() + " - " + ep.name());
+                l.setTextFill(Color.LIGHTGRAY);
+                container.getChildren().add(l);
+            });
+        }
+    }
+
+    private void moverCarruselDinamico(ScrollPane sp, int dir) {
+        double val = sp.getHvalue() + (dir * 0.2);
+        sp.setHvalue(Math.max(0, Math.min(val, 1)));
     }
 }
