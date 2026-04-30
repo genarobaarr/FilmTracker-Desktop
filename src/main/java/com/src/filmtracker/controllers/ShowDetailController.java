@@ -26,9 +26,15 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class ShowDetailController {
 
@@ -38,26 +44,32 @@ public class ShowDetailController {
     @FXML private VBox episodesContainer, similarShowsSection; 
     @FXML private ScrollPane scrollCast; 
 
-    private IShowService showService;
+    private IShowService apiService;
     private final Map<Integer, List<EpisodeDto>> seasonEpisodesMap = new ConcurrentHashMap<>();
 
     public ShowDetailController() {
-        this.showService = new ShowService();
+        this.apiService = new ShowService();
     }
 
     public ShowDetailController(IShowService apiService) {
-        this.showService = apiService;
+        this.apiService = apiService;
     }
 
-    @FXML private void handleClose() { Platform.exit(); System.exit(0); }
-    @FXML private void handleMinimize() { ((Stage)titleLabel.getScene().getWindow()).setIconified(true); }
-    @FXML private void scrollIzqCast() { moverCarruselDinamico(scrollCast, -1); }
-    @FXML private void scrollDerCast() { moverCarruselDinamico(scrollCast, 1); }
-    
+    @FXML private void handleClose() { 
+        Platform.exit(); System.exit(0); 
+    }
+    @FXML private void handleMinimize() { 
+        ((Stage)titleLabel.getScene().getWindow()).setIconified(true); 
+    }
+    @FXML private void scrollIzqCast() { 
+        moverCarruselDinamico(scrollCast, -1); 
+    }
+    @FXML private void scrollDerCast() { 
+        moverCarruselDinamico(scrollCast, 1); 
+    }
     @FXML private void handleBack() { 
         App.goBackFromDetail(); 
     }
-    
     @FXML private void handleHome() { 
         App.setRoot(AppConstants.FXML_DASHBOARD); 
     }
@@ -65,7 +77,7 @@ public class ShowDetailController {
     public void initData(Show basicShow) {
         cargarDatosBasicos(basicShow);
 
-        showService.getFullShowDetails(basicShow.tvmazeId()).thenAccept(fullData -> {
+        apiService.getFullShowDetails(basicShow.tvmazeId()).thenAccept(fullData -> {
             Platform.runLater(() -> {
                 cargarDatosBasicos(fullData.show()); 
                 
@@ -77,7 +89,7 @@ public class ShowDetailController {
                 fullData.seasons().forEach(season -> episodesContainer.getChildren().add(createSeasonAccordion(season)));
 
                 if (fullData.show().genres() != null && !fullData.show().genres().isEmpty()) {
-                    cargarSeriesSimilares(fullData.show().genres().get(0), basicShow.tvmazeId());
+                    cargarSeriesSimilaresMultigenero(fullData.show().genres(), basicShow.tvmazeId());
                 } else {
                     mostrarMensajeSimilaresVacio();
                 }
@@ -86,8 +98,8 @@ public class ShowDetailController {
             System.err.println(AppConstants.MESSAGE_ERROR_API + " Detalles: " + e.getMessage());
             return null;
         });
-        
-        showService.getShowEpisodes(basicShow.tvmazeId()).thenAccept(episodes -> {
+
+        apiService.getShowEpisodes(basicShow.tvmazeId()).thenAccept(episodes -> {
             if (episodes != null) {
                 episodes.forEach(ep -> seasonEpisodesMap.computeIfAbsent(ep.season(), k -> new ArrayList<>()).add(ep));
             }
@@ -97,53 +109,75 @@ public class ShowDetailController {
         });
     }
 
-    private void cargarSeriesSimilares(String genre, Integer currentShowId) {
-        showService.getShowsByGenre(genre).thenAccept(shows -> {
-            Platform.runLater(() -> {
-                similarShowsSection.getChildren().clear();
-                
-                List<Show> filteredShows = shows.stream()
-                        .filter(s -> !s.tvmazeId().equals(currentShowId))
-                        .toList();
+    private void cargarSeriesSimilaresMultigenero(List<String> genres, Integer currentShowId) {
+        List<CompletableFuture<List<Show>>> futures = genres.stream()
+                .map(apiService::getShowsByGenre)
+                .toList();
 
-                if (filteredShows.isEmpty()) {
-                    mostrarMensajeSimilaresVacio();
-                    return;
-                }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApply(v -> futures.stream()
+                        .map(CompletableFuture::join)
+                        .flatMap(List::stream)
+                        .filter(show -> !show.tvmazeId().equals(currentShowId))
+                        .filter(distinctByKey(Show::tvmazeId))
+                        .collect(Collectors.toList())
+                )
+                .thenAccept(combinedShows -> {
+                    if (combinedShows.isEmpty()) {
+                        Platform.runLater(this::mostrarMensajeSimilaresVacio);
+                        return;
+                    }
 
-                HBox content = new HBox(15);
-                content.setPadding(new Insets(10));
-                
-                filteredShows.forEach(show -> agregarTarjetaShow(show, content));
+                    Collections.shuffle(combinedShows);
+                    
+                    List<Show> finalShows = combinedShows.stream()
+                            .limit(AppConstants.HOME_CAROUSEL_LIMIT)
+                            .toList();
 
-                ScrollPane scrollPane = new ScrollPane(content);
-                scrollPane.setFitToHeight(true);
-                scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-                scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-                scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+                    Platform.runLater(() -> renderSimilarShowsCarousel(finalShows));
+                })
+                .exceptionally(e -> {
+                    System.err.println(AppConstants.MESSAGE_ERROR_SIMILAR + " " + e.getMessage());
+                    Platform.runLater(this::mostrarMensajeSimilaresVacio);
+                    return null;
+                });
+    }
 
-                Button btnIzq = new Button("<");
-                btnIzq.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
-                btnIzq.setOnAction(e -> moverCarruselDinamico(scrollPane, -1));
+    private static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
+    }
 
-                Button btnDer = new Button(">");
-                btnDer.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
-                btnDer.setOnAction(e -> moverCarruselDinamico(scrollPane, 1));
+    private void renderSimilarShowsCarousel(List<Show> filteredShows) {
+        similarShowsSection.getChildren().clear();
+        
+        HBox content = new HBox(15);
+        content.setPadding(new Insets(10));
+        
+        filteredShows.forEach(show -> agregarTarjetaShow(show, content));
 
-                BorderPane carousel = new BorderPane();
-                carousel.setLeft(btnIzq);
-                carousel.setCenter(scrollPane);
-                carousel.setRight(btnDer);
-                BorderPane.setAlignment(btnIzq, Pos.CENTER);
-                BorderPane.setAlignment(btnDer, Pos.CENTER);
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToHeight(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
 
-                similarShowsSection.getChildren().add(carousel);
-            });
-        }).exceptionally(e -> {
-            System.err.println(AppConstants.MESSAGE_ERROR_SIMILAR + " " + e.getMessage());
-            Platform.runLater(this::mostrarMensajeSimilaresVacio);
-            return null;
-        });
+        Button btnIzq = new Button("<");
+        btnIzq.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
+        btnIzq.setOnAction(e -> moverCarruselDinamico(scrollPane, -1));
+
+        Button btnDer = new Button(">");
+        btnDer.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;");
+        btnDer.setOnAction(e -> moverCarruselDinamico(scrollPane, 1));
+
+        BorderPane carousel = new BorderPane();
+        carousel.setLeft(btnIzq);
+        carousel.setCenter(scrollPane);
+        carousel.setRight(btnDer);
+        BorderPane.setAlignment(btnIzq, Pos.CENTER);
+        BorderPane.setAlignment(btnDer, Pos.CENTER);
+
+        similarShowsSection.getChildren().add(carousel);
     }
 
     private void agregarTarjetaShow(Show show, HBox contenedor) {
