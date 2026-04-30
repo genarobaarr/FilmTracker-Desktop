@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -23,7 +24,8 @@ public class ReviewService implements IReviewService {
     @Override
     public CompletableFuture<List<ReviewDto>> getShowReviews(Integer tvmazeId) {
         Type type = TypeToken.getParameterized(List.class, ReviewDto.class).getType();
-        return executeGet(AppConstants.REVIEWS_URL + "/show/" + tvmazeId, type, "reviews");
+        CompletableFuture<List<ReviewDto>> future = executeGet(AppConstants.REVIEWS_URL + "/show/" + tvmazeId, type, "reviews");
+        return future.exceptionally(ex -> new ArrayList<ReviewDto>()); 
     }
 
     @Override
@@ -42,16 +44,33 @@ public class ReviewService implements IReviewService {
     }
 
     @Override
-    public CompletableFuture<Void> toggleReviewLike(String id) {
+    public CompletableFuture<Void> toggleReviewLike(String id, boolean isCurrentlyLiked) {
         String url = AppConstants.REVIEWS_URL + "/" + id + "/like";
-        return executePostPutVoid(url, null, "POST")
-                .exceptionallyCompose(ex -> executeDelete(url));
+        return isCurrentlyLiked ? executeDelete(url) : executePostPutVoid(url, null, "POST");
+    }
+
+    @Override
+    public CompletableFuture<Boolean> isReviewLikedByMe(String reviewId) {
+        if (!SessionManager.getInstance().isAuthenticated()) 
+        {
+            return CompletableFuture.completedFuture(false);
+        }
+        HttpRequest req = buildRequestBuilder(AppConstants.REVIEWS_URL + "/" + reviewId + "/likes").GET().build();
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString()).thenApply(res -> {
+            if (res.statusCode() >= 400) 
+            {
+                return false;
+            }
+            String authId = SessionManager.getInstance().getCurrentUser().authId();
+            return res.body().contains(authId != null ? authId : SessionManager.getInstance().getCurrentUser().id());
+        });
     }
 
     @Override
     public CompletableFuture<List<CommentDto>> getReviewComments(String reviewId) {
         Type type = TypeToken.getParameterized(List.class, CommentDto.class).getType();
-        return executeGet(AppConstants.REVIEWS_URL + "/" + reviewId + "/comments", type, "comments");
+        CompletableFuture<List<CommentDto>> future = executeGet(AppConstants.REVIEWS_URL + "/" + reviewId + "/comments", type, "comments");
+        return future.exceptionally(ex -> new ArrayList<CommentDto>());
     }
 
     @Override
@@ -61,19 +80,35 @@ public class ReviewService implements IReviewService {
 
     @Override
     public CompletableFuture<CommentDto> updateComment(String id, CommentRequest req) {
-        return executePostPut(AppConstants.COMMENTS_URL + id, req, "PUT", CommentDto.class, "comment");
+        return executePostPut(AppConstants.COMMENTS_URL + "/" + id, req, "PUT", CommentDto.class, "comment");
     }
 
     @Override
     public CompletableFuture<Void> deleteComment(String id) {
-        return executeDelete(AppConstants.COMMENTS_URL + id);
+        return executeDelete(AppConstants.COMMENTS_URL + "/" + id);
     }
 
     @Override
-    public CompletableFuture<Void> toggleCommentLike(String id) {
-        String url = AppConstants.COMMENTS_URL + id + "/like";
-        return executePostPutVoid(url, null, "POST")
-                .exceptionallyCompose(ex -> executeDelete(url));
+    public CompletableFuture<Void> toggleCommentLike(String id, boolean isCurrentlyLiked) {
+        String url = AppConstants.COMMENTS_URL + "/" + id + "/like";
+        return isCurrentlyLiked ? executeDelete(url) : executePostPutVoid(url, null, "POST");
+    }
+
+    @Override
+    public CompletableFuture<Boolean> isCommentLikedByMe(String commentId) {
+        if (!SessionManager.getInstance().isAuthenticated()) 
+        {
+            return CompletableFuture.completedFuture(false);
+        }
+        HttpRequest req = buildRequestBuilder(AppConstants.COMMENTS_URL + "/" + commentId + "/likes").GET().build();
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString()).thenApply(res -> {
+            if (res.statusCode() >= 400) 
+            {
+                return false;
+            }
+            String authId = SessionManager.getInstance().getCurrentUser().authId();
+            return res.body().contains(authId != null ? authId : SessionManager.getInstance().getCurrentUser().id());
+        });
     }
 
     private <T> CompletableFuture<T> executeGet(String url, Type type, String key) {
@@ -108,17 +143,29 @@ public class ReviewService implements IReviewService {
 
     private CompletableFuture<Void> sendAndIgnore(HttpRequest request) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(res -> {
-            if (res.statusCode() >= 400) throw new RuntimeException("API Error");
+            if (res.statusCode() >= 400) 
+            {
+                throw new RuntimeException("API Error: " + res.statusCode());
+            }
             return null;
         });
     }
 
     private <T> CompletableFuture<T> sendAndParse(HttpRequest request, Type responseType, String extractionKey) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
-            if (response.statusCode() >= 400) throw new RuntimeException("API Error");
+            if (response.statusCode() >= 400) 
+            {
+                throw new RuntimeException("API Error: " + response.statusCode());
+            }
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-            if (extractionKey != null && json.has(extractionKey)) return gson.fromJson(json.get(extractionKey), responseType);
-            if (json.has("data")) return gson.fromJson(json.get("data"), responseType);
+            if (extractionKey != null && json.has(extractionKey)) 
+            {
+                return gson.fromJson(json.get(extractionKey), responseType);
+            }
+            if (json.has("data")) 
+            {
+                return gson.fromJson(json.get("data"), responseType);
+            }
             return gson.fromJson(json, responseType);
         });
     }

@@ -5,4 +5,5 @@ import java.util.concurrent.CompletableFuture;
 
 public interface IUserService {
     CompletableFuture<UserDto> getProfile();
+    CompletableFuture<UserDto> getUserById(String authId);
 }

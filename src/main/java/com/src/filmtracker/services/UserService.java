@@ -35,4 +35,27 @@ public class UserService implements IUserService {
                     return res.data(); 
                 });
     }
+    
+    @Override
+    public CompletableFuture<UserDto> getUserById(String authId) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(AppConstants.USERS_SERVICE_URL + "/" + authId))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() >= 400) 
+                    {
+                        return null;
+                    }
+                    com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
+                    if (json.has("data")) 
+                    {
+                        return gson.fromJson(json.get("data"), UserDto.class);
+                    }
+                    return gson.fromJson(json, UserDto.class);
+                });
+    }
 }

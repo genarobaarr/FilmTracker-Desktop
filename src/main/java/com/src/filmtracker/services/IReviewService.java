@@ -9,11 +9,13 @@ public interface IReviewService {
     CompletableFuture<ReviewDto> createReview(ReviewRequest request);
     CompletableFuture<ReviewDto> updateReview(String reviewId, ReviewRequest request);
     CompletableFuture<Void> deleteReview(String reviewId);
-    CompletableFuture<Void> toggleReviewLike(String reviewId);
+    CompletableFuture<Void> toggleReviewLike(String reviewId, boolean isCurrentlyLiked);
+    CompletableFuture<Boolean> isReviewLikedByMe(String reviewId);
     
     CompletableFuture<List<CommentDto>> getReviewComments(String reviewId);
     CompletableFuture<CommentDto> createComment(String reviewId, CommentRequest request);
     CompletableFuture<CommentDto> updateComment(String commentId, CommentRequest request);
     CompletableFuture<Void> deleteComment(String commentId);
-    CompletableFuture<Void> toggleCommentLike(String commentId);
+    CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked);
+    CompletableFuture<Boolean> isCommentLikedByMe(String commentId);
 }
