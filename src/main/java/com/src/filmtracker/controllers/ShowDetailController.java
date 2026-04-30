@@ -526,17 +526,41 @@ public class ShowDetailController {
             VBox card = l.load();
             ((ShowCardController)l.getController()).setData(s);
             container.getChildren().add(card);
-        } catch (IOException e) { System.err.println("Error card"); }
+        } catch (IOException e) { 
+            System.err.println("Error card"); 
+        }
     }
 
     private VBox buildPersonBox(CastDto m) {
-        VBox b = new VBox(5); b.setAlignment(Pos.TOP_CENTER); b.setPrefWidth(120);
-        ImageView iv = new ImageView(); iv.setFitHeight(150); iv.setFitWidth(110);
-        if (m.person().image() != null) {
+        VBox b = new VBox(5); 
+        b.setAlignment(Pos.TOP_CENTER); 
+        b.setPrefWidth(120); 
+        b.setMaxWidth(120);
+
+        ImageView iv = new ImageView(); 
+        iv.setFitHeight(150); 
+        iv.setFitWidth(110);
+        
+        if (m.person() != null && m.person().image() != null) {
             iv.setImage(new Image(m.person().image().medium(), true));
         }
-        Label n = new Label(m.person().name()); n.setTextFill(Color.WHITE); n.setWrapText(true);
-        b.getChildren().addAll(iv, n); return b;
+
+        String actorName = (m.person() != null && m.person().name() != null) ? m.person().name() : "Desconocido";
+        Label n = new Label(actorName); 
+        n.setTextFill(Color.WHITE); 
+        n.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+        n.setWrapText(true); 
+        n.setTextAlignment(TextAlignment.CENTER);
+
+        String charName = (m.character() != null && m.character().name() != null) ? m.character().name() : "";
+        Label c = new Label(charName);
+        c.setTextFill(Color.GRAY);
+        c.setStyle("-fx-font-size: 12px;");
+        c.setWrapText(true);
+        c.setTextAlignment(TextAlignment.CENTER);
+
+        b.getChildren().addAll(iv, n, c); 
+        return b;
     }
 
     private void moverCarruselDinamico(ScrollPane sp, int dir) {
