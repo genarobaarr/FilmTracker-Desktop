@@ -139,6 +139,26 @@ public class ReviewService implements IReviewService {
             return liked;
         });
     }
+    
+    @Override
+    public CompletableFuture<List<ReviewDto>> getUserReviews(String authId) {
+        Type type = TypeToken.getParameterized(List.class, ReviewDto.class).getType();
+        String url = AppConstants.REVIEWS_URL + "/user/" + authId;
+        CompletableFuture<List<ReviewDto>> future = executeGet(url, type, "reviews");
+        return future.exceptionally(ex -> {
+            return new ArrayList<ReviewDto>();
+        });
+    }
+    
+    @Override
+    public CompletableFuture<ReviewPaginationResponse> getUserReviews(String authId, int page) {
+        Type type = TypeToken.getParameterized(ReviewPaginationResponse.class).getType();
+        String url = AppConstants.REVIEWS_URL + "/user/" + authId + "?page=" + page;
+        CompletableFuture<ReviewPaginationResponse> future = executeGet(url, type, null);
+        return future.exceptionally(ex -> {
+            return new ReviewPaginationResponse(new ArrayList<>(), null);
+        });
+    }
 
     private <T> CompletableFuture<T> executeGet(String url, Type type, String key) {
         HttpRequest req = buildRequestBuilder(url).GET().build();
@@ -192,16 +212,6 @@ public class ReviewService implements IReviewService {
                 return gson.fromJson(json.get("data"), responseType);
             }
             return gson.fromJson(json, responseType);
-        });
-    }
-    
-    @Override
-    public CompletableFuture<List<ReviewDto>> getUserReviews(String authId) {
-        Type type = TypeToken.getParameterized(List.class, ReviewDto.class).getType();
-        String url = AppConstants.REVIEWS_URL + "/user/" + authId;
-        CompletableFuture<List<ReviewDto>> future = executeGet(url, type, "reviews");
-        return future.exceptionally(ex -> {
-            return new ArrayList<ReviewDto>();
         });
     }
 }

@@ -24,7 +24,11 @@ import javafx.scene.image.ImageView;
 public class ProfileController {
     
     @FXML private ImageView avatarView;
-    @FXML private Label nameLabel, usernameLabel, emailLabel, roleLabel, dateLabel;
+    @FXML private Label nameLabel;
+    @FXML private Label usernameLabel;
+    @FXML private Label emailLabel;
+    @FXML private Label roleLabel;
+    @FXML private Label dateLabel;
     
     @FXML private VBox favoritesSection;
     @FXML private VBox watchlistSection;
@@ -33,11 +37,16 @@ public class ProfileController {
     private final ILibraryService libraryService = new LibraryService();
     private final IShowService showService = new ShowService();
     private final IReviewService reviewService = new ReviewService();
+    
+    private int currentReviewPage = 1;
+    private UserDto currentUserProfile;
 
     public void initData(UserDto user) {
         if (user == null) {
             return;
         }
+        
+        this.currentUserProfile = user;
         
         nameLabel.setText(user.name());
         usernameLabel.setText("@" + user.username());
@@ -59,7 +68,9 @@ public class ProfileController {
 
         cargarFavoritos();
         cargarWatchlist();
-        cargarResenasPropias(user);
+        
+        reviewsSection.getChildren().clear();
+        cargarResenasPropias(1);
     }
 
     private void cargarFavoritos() {
@@ -114,34 +125,83 @@ public class ProfileController {
         });
     }
 
-    private void cargarResenasPropias(UserDto user) {
-        String authId = user.id();
-        if (user.authId() != null) {
-            authId = user.authId();
+    private void cargarResenasPropias(int page) {
+        String authId = currentUserProfile.id();
+        if (currentUserProfile.authId() != null) {
+            authId = currentUserProfile.authId();
         }
         
-        reviewService.getUserReviews(authId).thenAccept(reviews -> {
+        reviewService.getUserReviews(authId, page).thenAccept(res -> {
             Platform.runLater(() -> {
-                if (reviews == null) {
-                    mostrarVacio(reviewsSection, "No has escrito ninguna reseña.");
-                    return;
-                }
-                if (reviews.isEmpty()) {
-                    mostrarVacio(reviewsSection, "No has escrito ninguna reseña.");
-                    return;
-                }
-                
-                reviewsSection.getChildren().clear();
-                for (ReviewDto r : reviews) {
-                    reviewsSection.getChildren().add(buildReviewCard(r, user));
-                }
+                procesarPaginacionResenas(res);
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarVacio(reviewsSection, AppConstants.MESSAGE_ERROR_API);
+                if (page == 1) {
+                    mostrarVacio(reviewsSection, AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
+    }
+
+    private void procesarPaginacionResenas(ReviewPaginationResponse response) {
+        if (response == null) {
+            if (currentReviewPage == 1) {
+                mostrarVacio(reviewsSection, "No has escrito ninguna reseña.");
+            }
+            return;
+        }
+        
+        List<ReviewDto> reviews = response.reviews();
+        if (reviews == null) {
+            if (currentReviewPage == 1) {
+                mostrarVacio(reviewsSection, "No has escrito ninguna reseña.");
+            }
+            return;
+        }
+        if (reviews.isEmpty()) {
+            if (currentReviewPage == 1) {
+                mostrarVacio(reviewsSection, "No has escrito ninguna reseña.");
+            }
+            return;
+        }
+        
+        if (reviewsSection.getChildren().size() > 0) {
+            int lastIndex = reviewsSection.getChildren().size() - 1;
+            if (reviewsSection.getChildren().get(lastIndex) instanceof Button) {
+                reviewsSection.getChildren().remove(lastIndex);
+            }
+        }
+        
+        for (ReviewDto r : reviews) {
+            VBox cardBox = buildReviewCard(r);
+            reviewsSection.getChildren().add(cardBox);
+        }
+        
+        if (response.pagination() != null) {
+            if (response.pagination().hasNextPage() != null) {
+                if (response.pagination().hasNextPage()) {
+                    agregarBotonCargarMas();
+                }
+            }
+        }
+    }
+
+    private void agregarBotonCargarMas() {
+        Button btnMore = new Button("Cargar más reseñas");
+        btnMore.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 8 15;");
+        
+        btnMore.setOnAction(e -> {
+            currentReviewPage++;
+            cargarResenasPropias(currentReviewPage);
+        });
+        
+        HBox centerBox = new HBox(btnMore);
+        centerBox.setAlignment(Pos.CENTER);
+        centerBox.setPadding(new Insets(10, 0, 10, 0));
+        
+        reviewsSection.getChildren().add(centerBox);
     }
 
     private void cargarSeriesEnCarrusel(List<Integer> ids, VBox container) {
@@ -232,7 +292,7 @@ public class ProfileController {
             VBox card = l.load();
             ((ShowCardController) l.getController()).setData(s);
             container.getChildren().add(card);
-        } catch (IOException e) {
+        } catch (IOException e) { 
             
         }
     }
@@ -241,12 +301,26 @@ public class ProfileController {
         sp.setHvalue(Math.max(0, Math.min(sp.getHvalue() + (dir * 0.2), 1)));
     }
 
-    private VBox buildReviewCard(ReviewDto review, UserDto user) {
+    private VBox buildReviewCard(ReviewDto review) {
         VBox card = new VBox(8);
         card.setStyle("-fx-background-color: #151515; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
 
-        Label author = new Label("@" + user.username());
-        author.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        Label seriesLabel = new Label("Cargando Serie...");
+        seriesLabel.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        
+        if (review.tvmaze_id() != null) {
+            showService.getFullShowDetails(review.tvmaze_id()).thenAccept(res -> {
+                if (res != null) {
+                    if (res.show() != null) {
+                        if (res.show().name() != null) {
+                            Platform.runLater(() -> {
+                                seriesLabel.setText("Serie: " + res.show().name());
+                            });
+                        }
+                    }
+                }
+            });
+        }
         
         String tText = "Sin título";
         if (review.title() != null) {
@@ -264,7 +338,7 @@ public class ProfileController {
         content.setTextFill(Color.LIGHTGRAY); 
         content.setWrapText(true);
 
-        card.getChildren().addAll(author, title, content);
+        card.getChildren().addAll(seriesLabel, title, content);
         return card;
     }
 

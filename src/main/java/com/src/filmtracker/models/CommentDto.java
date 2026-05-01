@@ -10,18 +10,34 @@ public record CommentDto(
     String updated_at
 ) {
     public String getSafeId() { 
-        return id != null ? String.valueOf(id) : ""; 
+        if (id == null) {
+            return "";
+        }
+        String strId = String.valueOf(id);
+        if (strId.endsWith(".0")) {
+            return strId.substring(0, strId.length() - 2);
+        }
+        return strId;
     }
     
     public String getOwnerId() { 
-        return auth_id != null ? String.valueOf(auth_id) : ""; 
+        if (auth_id == null) {
+            return "";
+        }
+        return String.valueOf(auth_id);
     }
     
     public int getLikesCount() {
         try { 
-            return likes_count != null ? Integer.parseInt(String.valueOf(likes_count)) : 0; 
-        }
-        catch (Exception e) { 
+            if (likes_count == null) {
+                return 0;
+            }
+            String val = String.valueOf(likes_count);
+            if (val.endsWith(".0")) {
+                val = val.substring(0, val.length() - 2);
+            }
+            return Integer.parseInt(val); 
+        } catch (Exception e) { 
             return 0; 
         }
     }

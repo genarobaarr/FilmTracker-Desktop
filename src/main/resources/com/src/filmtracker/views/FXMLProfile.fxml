@@ -4,9 +4,9 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane stylesheets="@../css/styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.ProfileController">
+<BorderPane style="-fx-background-color: #121212;" stylesheets="@../css/styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.ProfileController">
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-padding: 15; -fx-background-color: #1e1e1e;">
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-padding: 15; -fx-background-color: #1e1e1e; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;">
             <children>
                 <Button mnemonicParsing="false" onAction="#handleBack" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;" text="← Volver">
                     <font>
@@ -17,9 +17,9 @@
         </HBox>
     </top>
     <center>
-        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" hbarPolicy="NEVER">
+        <ScrollPane fitToWidth="true" style="-fx-background-color: #121212; -fx-background: #121212;" hbarPolicy="NEVER">
             <content>
-                <VBox alignment="CENTER" spacing="30.0" style="-fx-padding: 20;">
+                <VBox alignment="CENTER" spacing="30.0" style="-fx-padding: 20; -fx-background-color: #121212;">
                     <children>
                         <ImageView fx:id="avatarView" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true" />
                         <VBox alignment="CENTER" spacing="5.0">
