@@ -50,7 +50,7 @@ public class ReviewService implements IReviewService {
 
     @Override
     public CompletableFuture<Void> toggleReviewLike(String id, boolean isCurrentlyLiked) {
-        String url = AppConstants.REVIEWS_URL + "/" + id + "/like";
+        String url = AppConstants.REVIEWS_URL + "/" + Integer.parseInt(id) + "/like";
         if (isCurrentlyLiked) {
             localLikedReviews.remove(id);
             return executeDelete(url).exceptionally(ex -> { localLikedReviews.add(id); return null; });
@@ -192,6 +192,16 @@ public class ReviewService implements IReviewService {
                 return gson.fromJson(json.get("data"), responseType);
             }
             return gson.fromJson(json, responseType);
+        });
+    }
+    
+    @Override
+    public CompletableFuture<List<ReviewDto>> getUserReviews(String authId) {
+        Type type = TypeToken.getParameterized(List.class, ReviewDto.class).getType();
+        String url = AppConstants.REVIEWS_URL + "/user/" + authId;
+        CompletableFuture<List<ReviewDto>> future = executeGet(url, type, "reviews");
+        return future.exceptionally(ex -> {
+            return new ArrayList<ReviewDto>();
         });
     }
 }

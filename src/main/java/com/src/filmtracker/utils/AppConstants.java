@@ -12,6 +12,8 @@ public final class AppConstants {
     public static final String AUTH_LOGIN_URL = AUTH_SERVICE_URL + "/login";
     public static final String AUTH_REGISTER_URL = AUTH_SERVICE_URL + "/register";
     public static final String LIBRARY_SERVICE_URL = "http://localhost:3004/api";
+    public static final String FAVORITES_URL = LIBRARY_SERVICE_URL + "/favorites";
+    public static final String WATCHLIST_URL = LIBRARY_SERVICE_URL + "/watchlist";
     public static final String REVIEWS_SERVICE_URL = "http://localhost:3005/api";
     public static final String REVIEWS_URL = REVIEWS_SERVICE_URL + "/reviews";
     public static final String COMMENTS_URL = REVIEWS_SERVICE_URL + "/comments";
@@ -38,7 +40,8 @@ public final class AppConstants {
     public static final String MESSAGE_ERROR_REG_FAILED = "Error al crear la cuenta. El usuario o correo ya existen.";
     public static final String MESSAGE_ERROR_REVIEWS = "No se pudieron cargar las reseñas.";
     public static final String MESSAGE_ERROR_REVIEW_ACTION = "Error al procesar tu reseña o comentario.";
-    public static final String MESSAGE_ERROR_DUPLICATE_REVIEW = "Ya has publicado una reseña para esta serie."; // NUEVO
+    public static final String MESSAGE_ERROR_DUPLICATE_REVIEW = "Ya has publicado una reseña para esta serie.";
+    public static final String MESSAGE_ERROR_DUPLICATE_LIB = "Esta serie ya se encuentra en tu lista.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

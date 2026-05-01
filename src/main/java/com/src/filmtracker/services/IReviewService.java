@@ -18,4 +18,5 @@ public interface IReviewService {
     CompletableFuture<Void> deleteComment(String commentId);
     CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked);
     CompletableFuture<Boolean> isCommentLikedByMe(String commentId);
+    CompletableFuture<List<ReviewDto>> getUserReviews(String authId);
 }
