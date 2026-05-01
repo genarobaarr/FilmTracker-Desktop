@@ -1,27 +1,29 @@
 package com.src.filmtracker.models;
 
 public record ReviewDto(
-    String id, 
-    String auth_id,
+    Object id, 
+    Object auth_id,
     Integer tvmaze_id, 
     Integer rating, 
     String title, 
     String content, 
-    String likes_count,
-    String comments_count,
+    Object likes_count,
+    Object comments_count,
     String created_at, 
     String updated_at
 ) {
     public String getSafeId() { 
-        return id != null ? id : ""; 
+        return id != null ? String.valueOf(id) : ""; 
     }
     
     public String getOwnerId() { 
-        return auth_id != null ? auth_id : ""; 
+        return auth_id != null ? String.valueOf(auth_id) : ""; 
     }
     
     public int getLikesCount() {
-        try { return likes_count != null ? Integer.parseInt(likes_count) : 0; }
+        try { 
+            return likes_count != null ? Integer.parseInt(String.valueOf(likes_count)) : 0; 
+        }
         catch (Exception e) { 
             return 0; 
         }
@@ -29,7 +31,7 @@ public record ReviewDto(
     
     public int getCommentsCount() {
         try { 
-            return comments_count != null ? Integer.parseInt(comments_count) : 0; 
+            return comments_count != null ? Integer.parseInt(String.valueOf(comments_count)) : 0; 
         }
         catch (Exception e) { 
             return 0; 

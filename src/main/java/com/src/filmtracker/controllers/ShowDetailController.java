@@ -153,21 +153,25 @@ public class ShowDetailController {
             similarShowsSection.getChildren().add(new Label(AppConstants.MESSAGE_INFO_NO_SIMILAR));
             return;
         }
-        HBox content = new HBox(15); content.setPadding(new Insets(10));
+        HBox content = new HBox(15); 
+        content.setPadding(new Insets(10));
         shows.forEach(s -> injectShowCard(s, content));
         
         ScrollPane sp = new ScrollPane(content);
-        sp.setFitToHeight(true); sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        sp.setFitToHeight(true); 
+        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
-        String btnStyle = "-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand; -fx-background-radius: 3;";
+        String btnStyle = "-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;";
         Button bI = new Button("<"); bI.setStyle(btnStyle);
         Button bD = new Button(">"); bD.setStyle(btnStyle);
         bI.setOnAction(e -> moverCarruselDinamico(sp, -1)); 
         bD.setOnAction(e -> moverCarruselDinamico(sp, 1));
         
-        BorderPane bp = new BorderPane(sp); bp.setLeft(bI); bp.setRight(bD);
-        BorderPane.setAlignment(bI, Pos.CENTER); BorderPane.setAlignment(bD, Pos.CENTER);
+        BorderPane bp = new BorderPane(sp); 
+        bp.setLeft(bI); bp.setRight(bD);
+        BorderPane.setAlignment(bI, Pos.CENTER); 
+        BorderPane.setAlignment(bD, Pos.CENTER);
         similarShowsSection.getChildren().add(bp);
     }
 
@@ -196,32 +200,34 @@ public class ShowDetailController {
         List<EpisodeDto> list = seasonEpisodesMap.get(num);
         
         if (list == null || list.isEmpty()) {
-            Label empty = new Label("No hay episodios disponibles para esta temporada.");
-            empty.setTextFill(Color.GRAY);
+            Label empty = new Label("No hay episodios disponibles para esta temporada."); empty.setTextFill(Color.GRAY);
             container.getChildren().add(empty);
             return;
         }
 
-        HBox carouselContent = new HBox(15);
+        HBox carouselContent = new HBox(15); 
         carouselContent.setPadding(new Insets(10));
-        
         list.forEach(ep -> carouselContent.getChildren().add(buildEpisodeCard(ep)));
 
         ScrollPane sp = new ScrollPane(carouselContent);
-        sp.setFitToHeight(true);
-        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        sp.setFitToHeight(true); 
+        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); 
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
 
         String btnStyle = "-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand;";
-        Button bI = new Button("<"); bI.setStyle(btnStyle);
-        Button bD = new Button(">"); bD.setStyle(btnStyle);
-        bI.setOnAction(e -> moverCarruselDinamico(sp, -1));
+        Button bI = new Button("<"); 
+        bI.setStyle(btnStyle);
+        Button bD = new Button(">"); 
+        bD.setStyle(btnStyle);
+        bI.setOnAction(e -> moverCarruselDinamico(sp, -1)); 
         bD.setOnAction(e -> moverCarruselDinamico(sp, 1));
 
         BorderPane interactiveCarousel = new BorderPane(sp);
-        interactiveCarousel.setLeft(bI); interactiveCarousel.setRight(bD);
-        BorderPane.setAlignment(bI, Pos.CENTER); BorderPane.setAlignment(bD, Pos.CENTER);
+        interactiveCarousel.setLeft(bI); 
+        interactiveCarousel.setRight(bD);
+        BorderPane.setAlignment(bI, Pos.CENTER); 
+        BorderPane.setAlignment(bD, Pos.CENTER);
 
         container.getChildren().add(interactiveCarousel);
     }
@@ -231,32 +237,30 @@ public class ShowDetailController {
         card.setStyle("-fx-background-color: #222222; -fx-background-radius: 8; -fx-padding: 12;");
         card.setPrefWidth(260); card.setMaxWidth(260);
 
-        ImageView iv = new ImageView();
-        iv.setFitWidth(236); iv.setFitHeight(133);
+        ImageView iv = new ImageView(); 
+        iv.setFitWidth(236); 
+        iv.setFitHeight(133);
+        
         if (ep.image() != null && ep.image().medium() != null) {
             iv.setImage(new Image(ep.image().medium(), true));
         }
 
         Label title = new Label(String.format("S%dE%d - %s", ep.season(), ep.number(), ep.name() != null ? ep.name() : "Desconocido"));
-        title.setTextFill(Color.WHITE);
-        title.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        title.setWrapText(true);
+        title.setTextFill(Color.WHITE); 
+        title.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;"); title.setWrapText(true);
 
         String infoText = (ep.airdate() != null ? ep.airdate() : "N/A");
         if (ep.runtime() != null) {
             infoText += " | " + ep.runtime() + " min";
         }
-        Label info = new Label(infoText);
-        info.setTextFill(Color.web("#aaaaaa")); info.setStyle("-fx-font-size: 12px;");
+        Label info = new Label(infoText); 
+        info.setTextFill(Color.web("#aaaaaa")); 
+        info.setStyle("-fx-font-size: 12px;");
 
         Label summary = new Label();
-        if (ep.summary() != null) {
-            summary.setText(ep.summary().replaceAll("<[^>]*>", ""));
-        } else {
-            summary.setText("Sin descripción disponible.");
-        }
-        summary.setTextFill(Color.web("#cccccc"));
-        summary.setWrapText(true);
+        summary.setText(ep.summary() != null ? ep.summary().replaceAll("<[^>]*>", "") : "Sin descripción disponible.");
+        summary.setTextFill(Color.web("#cccccc")); 
+        summary.setWrapText(true); 
         summary.setPrefHeight(60); 
         summary.setTextAlignment(TextAlignment.JUSTIFY);
 
@@ -266,20 +270,29 @@ public class ShowDetailController {
 
     private void cargarResenas() {
         reviewService.getShowReviews(currentTvmazeId).thenAccept(reviews -> {
-            Platform.runLater(() -> dibujarSeccionResenas(reviews));
+            Platform.runLater(() -> dibujarSeccionResenas(reviews, false));
         }).exceptionally(e -> {
-            Platform.runLater(() -> dibujarSeccionResenas(new ArrayList<>()));
+            Platform.runLater(() -> dibujarSeccionResenas(new ArrayList<>(), true));
             return null;
         });
     }
 
-    private void dibujarSeccionResenas(List<ReviewDto> reviews) {
+    private void dibujarSeccionResenas(List<ReviewDto> reviews, boolean isServerError) {
         reviewsSection.getChildren().clear();
         if (SessionManager.getInstance().isAuthenticated()) {
             reviewsSection.getChildren().add(buildReviewForm());
         }
+        
+        if (isServerError) {
+            Label lbl = new Label("Las reseñas no se pudieron cargar debido a un error del servidor (Error 500).");
+            lbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+            reviewsSection.getChildren().add(lbl);
+            return;
+        }
+        
         if (reviews == null || reviews.isEmpty()) {
-            Label lbl = new Label("No hay reseñas aún. ¡Sé el primero!"); lbl.setTextFill(Color.GRAY);
+            Label lbl = new Label("No hay reseñas aún. ¡Sé el primero!"); 
+            lbl.setTextFill(Color.GRAY);
             reviewsSection.getChildren().add(lbl);
             return;
         }
@@ -290,36 +303,43 @@ public class ShowDetailController {
         VBox form = new VBox(10);
         form.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8;");
         
-        Label errLbl = new Label(); errLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT)); 
-        errLbl.setVisible(false); errLbl.setManaged(false);
+        TextField titleIn = new TextField(); 
+        titleIn.setPromptText("Título de la reseña");
+        titleIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+        ComboBox<Integer> rateIn = new ComboBox<>(); 
+        rateIn.getItems().addAll(1, 2, 3, 4, 5); 
+        rateIn.setPromptText("Calificación");
+        TextArea contIn = new TextArea(); 
+        contIn.setPromptText("Tu reseña..."); 
+        contIn.setPrefRowCount(3);
+        contIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
         
-        TextField titleIn = new TextField(); titleIn.setPromptText("Título de la reseña");
-        titleIn.setStyle("-fx-control-inner-background: WHITE; -fx-text-inner-color: white;");
-        ComboBox<Integer> rateIn = new ComboBox<>(); rateIn.getItems().addAll(1, 2, 3, 4, 5); rateIn.setPromptText("Calificación");
-        TextArea contIn = new TextArea(); contIn.setPromptText("Tu reseña..."); contIn.setPrefRowCount(3);
-        contIn.setStyle("-fx-control-inner-background: WHITE; -fx-text-inner-color: white;");
-        
-        Button btn = new Button("Publicar"); btn.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-cursor: hand;");
+        Button btn = new Button("Publicar");
+        btn.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-cursor: hand;");
         
         btn.setOnAction(e -> {
             if (rateIn.getValue() == null || titleIn.getText().isBlank() || contIn.getText().isBlank()) {
                 return;
             }
-            errLbl.setVisible(false); errLbl.setManaged(false);
-            
+           
             ReviewRequest req = new ReviewRequest(currentTvmazeId, rateIn.getValue(), titleIn.getText().trim(), contIn.getText().trim());
             reviewService.createReview(req).thenRun(() -> Platform.runLater(this::cargarResenas))
                 .exceptionally(err -> {
-                    Platform.runLater(() -> {
-                        errLbl.setText(err.getMessage().contains("409") ? AppConstants.MESSAGE_ERROR_DUPLICATE_REVIEW : AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
-                        errLbl.setVisible(true); errLbl.setManaged(true);
-                    });
+                    Platform.runLater(() -> mostrarAlertaError(err.toString().contains("409") ? AppConstants.MESSAGE_ERROR_DUPLICATE_REVIEW : AppConstants.MESSAGE_ERROR_REVIEW_ACTION));
                     return null;
                 });
         });
         
-        form.getChildren().addAll(new Label("Escribe una reseña:"), errLbl, titleIn, rateIn, contIn, btn);
+        form.getChildren().addAll(new Label("Escribe una reseña:"), titleIn, rateIn, contIn, btn);
         return form;
+    }
+
+    private void mostrarAlertaError(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error al Publicar");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
     }
 
     private VBox buildReviewCard(ReviewDto review) {
@@ -327,7 +347,8 @@ public class ShowDetailController {
         VBox card = new VBox(8);
         card.setStyle("-fx-background-color: #151515; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
 
-        Label author = new Label("@Cargando..."); author.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        Label author = new Label("@Cargando..."); 
+        author.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         resolverNombreAutor(review.getOwnerId(), author);
         
         Label title = new Label(review.title() != null ? review.title() : "Sin título");
@@ -481,7 +502,8 @@ public class ShowDetailController {
         }
         
         if (usernameCache.containsKey(ownerId)) {
-            label.setText("@" + usernameCache.get(ownerId)); return;
+            label.setText("@" + usernameCache.get(ownerId)); 
+            return;
         }
         
         userService.getUserById(ownerId).thenAccept(user -> {
@@ -508,9 +530,7 @@ public class ShowDetailController {
     }
 
     private void injectCommentDelete(String cId, String ownerId, HBox actions, String rId, VBox parent) {
-        if (!SessionManager.getInstance().isAuthenticated() || ownerId == null || ownerId.isEmpty()) {
-            return;
-        }
+        if (!SessionManager.getInstance().isAuthenticated() || ownerId == null || ownerId.isEmpty()) return;
         String currAuth = SessionManager.getInstance().getCurrentUser().authId();
         if (ownerId.equals(currAuth) || ownerId.equals(SessionManager.getInstance().getCurrentUser().id())) {
             Button del = new Button("Eliminar");
@@ -536,29 +556,27 @@ public class ShowDetailController {
         b.setAlignment(Pos.TOP_CENTER); 
         b.setPrefWidth(120); 
         b.setMaxWidth(120);
-
+        
         ImageView iv = new ImageView(); 
         iv.setFitHeight(150); 
         iv.setFitWidth(110);
         
-        if (m.person() != null && m.person().image() != null) {
+        if (m.person().image() != null) {
             iv.setImage(new Image(m.person().image().medium(), true));
         }
-
-        String actorName = (m.person() != null && m.person().name() != null) ? m.person().name() : "Desconocido";
-        Label n = new Label(actorName); 
+        
+        Label n = new Label(m.person().name()); 
         n.setTextFill(Color.WHITE); 
         n.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
         n.setWrapText(true); 
         n.setTextAlignment(TextAlignment.CENTER);
-
-        String charName = (m.character() != null && m.character().name() != null) ? m.character().name() : "";
-        Label c = new Label(charName);
-        c.setTextFill(Color.GRAY);
+        
+        Label c = new Label(m.character() != null && m.character().name() != null ? m.character().name() : "");
+        c.setTextFill(Color.GRAY); 
         c.setStyle("-fx-font-size: 12px;");
-        c.setWrapText(true);
+        c.setWrapText(true); 
         c.setTextAlignment(TextAlignment.CENTER);
-
+        
         b.getChildren().addAll(iv, n, c); 
         return b;
     }
