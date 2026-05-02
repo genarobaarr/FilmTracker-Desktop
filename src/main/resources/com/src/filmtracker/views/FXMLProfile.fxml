@@ -8,11 +8,7 @@
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-padding: 15; -fx-background-color: #1e1e1e; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;">
             <children>
-                <Button mnemonicParsing="false" onAction="#handleBack" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;" text="← Volver">
-                    <font>
-                        <Font name="System Bold" size="14.0" />
-                    </font>
-                </Button>
+                <Button mnemonicParsing="false" onAction="#handleBack" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="← VOLVER" />
             </children>
         </HBox>
     </top>

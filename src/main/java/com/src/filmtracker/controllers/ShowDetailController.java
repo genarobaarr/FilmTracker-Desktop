@@ -854,15 +854,15 @@ public class ShowDetailController {
         
         if (SessionManager.getInstance().isAuthenticated()) {
             String currAuth = SessionManager.getInstance().getCurrentUser().authId();
-            if (ownerId.equals(currAuth)) {
-                label.setText("@" + SessionManager.getInstance().getCurrentUser().username()); 
-                return;
-            }
+                    if (ownerId.equals(currAuth)) {
+                        label.setText("@" + SessionManager.getInstance().getCurrentUser().username()); 
+                        return;
+                    }
             if (ownerId.equals(SessionManager.getInstance().getCurrentUser().id())) {
-                label.setText("@" + SessionManager.getInstance().getCurrentUser().username()); 
-                return;
-            }
-        }
+                        label.setText("@" + SessionManager.getInstance().getCurrentUser().username()); 
+                        return;
+                    }
+                }
         
         if (usernameCache.containsKey(ownerId)) {
             label.setText("@" + usernameCache.get(ownerId)); 
@@ -898,12 +898,12 @@ public class ShowDetailController {
         
         String currAuth = SessionManager.getInstance().getCurrentUser().authId();
         boolean isOwner = false;
-        if (ownerId.equals(currAuth)) {
-            isOwner = true;
-        }
+            if (ownerId.equals(currAuth)) {
+                isOwner = true;
+            }
         if (ownerId.equals(SessionManager.getInstance().getCurrentUser().id())) {
-            isOwner = true;
-        }
+                isOwner = true;
+            }
         
         if (isOwner) {
             Button del = new Button("Eliminar");
