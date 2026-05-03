@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox fx:id="cardContainer" onMouseClicked="#onCardClicked" alignment="TOP_CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="260.0" prefWidth="150.0" spacing="10.0" style="-fx-background-color: #1e1e1e; -fx-background-radius: 10; -fx-cursor: hand;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.UserCardController">
+   <children>
+      <ImageView fx:id="avatarImageView" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true">
+         <VBox.margin>
+            <Insets top="15.0" />
+         </VBox.margin>
+      </ImageView>
+      <Label fx:id="nameLabel" text="Nombre Usuario" textFill="WHITE" wrapText="true" textAlignment="CENTER">
+         <font>
+            <Font name="System Bold" size="14.0" />
+         </font>
+      </Label>
+      <Label fx:id="usernameLabel" text="@usuario" textFill="#e50914">
+         <font>
+            <Font size="12.0" />
+         </font>
+      </Label>
+   </children>
+</VBox>

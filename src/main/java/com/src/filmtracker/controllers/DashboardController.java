@@ -2,6 +2,7 @@ package com.src.filmtracker.controllers;
 
 import com.src.filmtracker.App;
 import com.src.filmtracker.models.Show;
+import com.src.filmtracker.models.UserDto;
 import com.src.filmtracker.services.IShowService;
 import com.src.filmtracker.services.IUserService;
 import com.src.filmtracker.services.ShowService;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
 
 public class DashboardController implements Initializable {
 
@@ -45,11 +47,12 @@ public class DashboardController implements Initializable {
     @FXML private ScrollPane scrollTerminadas;
 
     private final IShowService showService;
-    private final IUserService userService = new UserService();
+    private final IUserService userService;
     private static final double SCROLL_STEP = 0.3;
 
     public DashboardController() {
         this.showService = new ShowService();
+        this.userService = new UserService();
     }
 
     @Override
@@ -67,25 +70,63 @@ public class DashboardController implements Initializable {
             return;
         }
 
-        showService.searchShows(query).thenAccept(shows -> {
+        CompletableFuture<List<Show>> showsFuture = showService.searchShows(query);
+        CompletableFuture<UserDto> userFuture = userService.getUserByUsername(query);
+
+        CompletableFuture.allOf(showsFuture, userFuture).thenAccept(v -> {
             Platform.runLater(() -> {
-                carruselResultados.getChildren().clear();
-                scrollResultados.setHvalue(0.0);
-
-                if (shows.isEmpty()) {
-                    labelResultados.setText("No se encontraron resultados para: " + query);
-                } else {
-                    labelResultados.setText("Resultados para: " + query);
-                    shows.forEach(show -> agregarTarjeta(show, carruselResultados));
-                }
-
-                resultadosContainer.setVisible(true);
-                resultadosContainer.setManaged(true);
+                procesarResultadosBusqueda(query, showsFuture, userFuture);
             });
         }).exceptionally(e -> {
-            Platform.runLater(() -> mostrarErrorDeRed(e));
+            Platform.runLater(() -> {
+                mostrarErrorDeRed(e);
+            });
             return null;
         });
+    }
+
+    private void procesarResultadosBusqueda(String query, CompletableFuture<List<Show>> showsFuture, CompletableFuture<UserDto> userFuture) {
+        carruselResultados.getChildren().clear();
+        scrollResultados.setHvalue(0.0);
+
+        UserDto user = null;
+        try {
+            user = userFuture.join();
+        } catch (Exception ex) {
+        }
+
+        List<Show> shows = null;
+        try {
+            shows = showsFuture.join();
+        } catch (Exception ex) {
+        }
+
+        boolean foundAnything = false;
+
+        if (user != null) {
+            if (user.id() != null) {
+                agregarTarjetaUsuario(user, carruselResultados);
+                foundAnything = true;
+            }
+        }
+
+        if (shows != null) {
+            if (!shows.isEmpty()) {
+                for (Show show : shows) {
+                    agregarTarjeta(show, carruselResultados);
+                }
+                foundAnything = true;
+            }
+        }
+
+        if (!foundAnything) {
+            labelResultados.setText("No se encontraron resultados para: " + query);
+        } else {
+            labelResultados.setText("Resultados para: " + query);
+        }
+
+        resultadosContainer.setVisible(true);
+        resultadosContainer.setManaged(true);
     }
     
     @FXML
@@ -95,7 +136,6 @@ public class DashboardController implements Initializable {
                 App.showProfileView(user);
             });
         }).exceptionally(e -> {
-            System.err.println("Error: " + e.getMessage());
             return null;
         });
     }
@@ -143,13 +183,17 @@ public class DashboardController implements Initializable {
                 poblarCarrusel(homeResponse.ended(), carruselTerminadas);
             });
         }).exceptionally(e -> {
-            Platform.runLater(() -> mostrarErrorDeRed(e));
+            Platform.runLater(() -> {
+                mostrarErrorDeRed(e);
+            });
             return null;
         });
     }
 
     private void poblarCarrusel(List<Show> shows, HBox contenedor) {
-        if (shows == null) return;
+        if (shows == null) {
+            return;
+        }
         
         for (Show show : shows) {
             agregarTarjeta(show, contenedor);
@@ -166,7 +210,19 @@ public class DashboardController implements Initializable {
             
             contenedor.getChildren().add(card);
         } catch (IOException e) {
-            System.err.println("Error al cargar la vista de la tarjeta para: " + show.name());
+        }
+    }
+
+    private void agregarTarjetaUsuario(UserDto user, HBox contenedor) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_USER_CARD));
+            VBox card = loader.load();
+
+            UserCardController controller = loader.getController();
+            controller.setData(user);
+
+            contenedor.getChildren().add(card);
+        } catch (IOException e) {
         }
     }
 
