@@ -24,6 +24,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
@@ -70,18 +71,22 @@ public class DashboardController implements Initializable {
             return;
         }
 
-        CompletableFuture<List<Show>> showsFuture = showService.searchShows(query);
-        CompletableFuture<UserDto> userFuture = userService.getUserByUsername(query);
+        String userQuery = query.replace(" ", "_");
+
+        CompletableFuture<List<Show>> showsFuture = showService.searchShows(query)
+            .exceptionally(e -> {
+                return new ArrayList<>();
+            });
+
+        CompletableFuture<UserDto> userFuture = userService.getUserByUsername(userQuery)
+            .exceptionally(e -> {
+                return null;
+            });
 
         CompletableFuture.allOf(showsFuture, userFuture).thenAccept(v -> {
             Platform.runLater(() -> {
                 procesarResultadosBusqueda(query, showsFuture, userFuture);
             });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                mostrarErrorDeRed(e);
-            });
-            return null;
         });
     }
 
@@ -101,23 +106,7 @@ public class DashboardController implements Initializable {
         } catch (Exception ex) {
         }
 
-        boolean foundAnything = false;
-
-        if (user != null) {
-            if (user.id() != null) {
-                agregarTarjetaUsuario(user, carruselResultados);
-                foundAnything = true;
-            }
-        }
-
-        if (shows != null) {
-            if (!shows.isEmpty()) {
-                for (Show show : shows) {
-                    agregarTarjeta(show, carruselResultados);
-                }
-                foundAnything = true;
-            }
-        }
+        boolean foundAnything = iterarResultados(user, shows);
 
         if (!foundAnything) {
             labelResultados.setText("No se encontraron resultados para: " + query);
@@ -128,7 +117,29 @@ public class DashboardController implements Initializable {
         resultadosContainer.setVisible(true);
         resultadosContainer.setManaged(true);
     }
-    
+
+    private boolean iterarResultados(UserDto user, List<Show> shows) {
+        boolean found = false;
+
+        if (user != null) {
+            if (user.id() != null) {
+                agregarTarjetaUsuario(user, carruselResultados);
+                found = true;
+            }
+        }
+
+        if (shows != null) {
+            if (!shows.isEmpty()) {
+                for (Show show : shows) {
+                    agregarTarjeta(show, carruselResultados);
+                }
+                found = true;
+            }
+        }
+
+        return found;
+    }
+
     @FXML
     private void handleVerPerfil() {
         userService.getProfile().thenAccept(user -> {
@@ -159,20 +170,55 @@ public class DashboardController implements Initializable {
         stage.setIconified(true);
     }
     
-    @FXML private void scrollIzqResultados() { moverCarrusel(scrollResultados, -SCROLL_STEP); }
-    @FXML private void scrollDerResultados() { moverCarrusel(scrollResultados, SCROLL_STEP); }
+    @FXML
+    private void scrollIzqResultados() {
+        moverCarrusel(scrollResultados, -SCROLL_STEP);
+    }
+
+    @FXML
+    private void scrollDerResultados() {
+        moverCarrusel(scrollResultados, SCROLL_STEP);
+    }
     
-    @FXML private void scrollIzqDestacados() { moverCarrusel(scrollDestacados, -SCROLL_STEP); }
-    @FXML private void scrollDerDestacados() { moverCarrusel(scrollDestacados, SCROLL_STEP); }
+    @FXML
+    private void scrollIzqDestacados() {
+        moverCarrusel(scrollDestacados, -SCROLL_STEP);
+    }
 
-    @FXML private void scrollIzqMejorPuntuadas() { moverCarrusel(scrollMejorPuntuadas, -SCROLL_STEP); }
-    @FXML private void scrollDerMejorPuntuadas() { moverCarrusel(scrollMejorPuntuadas, SCROLL_STEP); }
+    @FXML
+    private void scrollDerDestacados() {
+        moverCarrusel(scrollDestacados, SCROLL_STEP);
+    }
 
-    @FXML private void scrollIzqRecientes() { moverCarrusel(scrollRecientes, -SCROLL_STEP); }
-    @FXML private void scrollDerRecientes() { moverCarrusel(scrollRecientes, SCROLL_STEP); }
+    @FXML
+    private void scrollIzqMejorPuntuadas() {
+        moverCarrusel(scrollMejorPuntuadas, -SCROLL_STEP);
+    }
 
-    @FXML private void scrollIzqTerminadas() { moverCarrusel(scrollTerminadas, -SCROLL_STEP); }
-    @FXML private void scrollDerTerminadas() { moverCarrusel(scrollTerminadas, SCROLL_STEP); }
+    @FXML
+    private void scrollDerMejorPuntuadas() {
+        moverCarrusel(scrollMejorPuntuadas, SCROLL_STEP);
+    }
+
+    @FXML
+    private void scrollIzqRecientes() {
+        moverCarrusel(scrollRecientes, -SCROLL_STEP);
+    }
+
+    @FXML
+    private void scrollDerRecientes() {
+        moverCarrusel(scrollRecientes, SCROLL_STEP);
+    }
+
+    @FXML
+    private void scrollIzqTerminadas() {
+        moverCarrusel(scrollTerminadas, -SCROLL_STEP);
+    }
+
+    @FXML
+    private void scrollDerTerminadas() {
+        moverCarrusel(scrollTerminadas, SCROLL_STEP);
+    }
 
     private void cargarDatosHome() {
         showService.getHomeData().thenAccept(homeResponse -> {
