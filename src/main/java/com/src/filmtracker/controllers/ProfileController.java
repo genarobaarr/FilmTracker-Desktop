@@ -4,6 +4,7 @@ import com.src.filmtracker.App;
 import com.src.filmtracker.models.*;
 import com.src.filmtracker.services.*;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -30,9 +31,12 @@ public class ProfileController {
     @FXML private Label roleLabel;
     @FXML private Label dateLabel;
     
+    @FXML private VBox favoritesContainer;
     @FXML private VBox favoritesSection;
+    @FXML private VBox watchlistContainer;
     @FXML private VBox watchlistSection;
     @FXML private VBox reviewsSection;
+    @FXML private Label reviewsTitleLabel;
 
     private final ILibraryService libraryService = new LibraryService();
     private final IShowService showService = new ShowService();
@@ -66,37 +70,99 @@ public class ProfileController {
         }
         avatarView.setImage(new Image(imageUrl, true));
 
-        cargarFavoritos();
-        cargarWatchlist();
+        boolean isCurrentUser = esUsuarioActual(user);
+        configurarVisibilidadPublica(isCurrentUser, user);
         
         reviewsSection.getChildren().clear();
-        cargarResenasPropias(1);
+        cargarResenasPropias(1, isCurrentUser);
     }
 
-    private void cargarFavoritos() {
-        libraryService.getFavorites().thenAccept(list -> {
-            Platform.runLater(() -> {
-                if (list == null) {
-                    mostrarVacio(favoritesSection, "No tienes series en favoritos.");
-                    return;
+    private boolean esUsuarioActual(UserDto user) {
+        UserDto loggedInUser = SessionManager.getInstance().getCurrentUser();
+        
+        if (loggedInUser != null) {
+            if (loggedInUser.username() != null) {
+                if (loggedInUser.username().equals(user.username())) {
+                    return true;
                 }
-                if (list.isEmpty()) {
-                    mostrarVacio(favoritesSection, "No tienes series en favoritos.");
-                    return;
-                }
-                
-                List<Integer> ids = new ArrayList<>();
-                for (LibraryItemDto item : list) {
-                    ids.add(item.tvmaze_id());
-                }
-                cargarSeriesEnCarrusel(ids, favoritesSection);
+            }
+        }
+        
+        return false;
+    }
+
+    private void configurarVisibilidadPublica(boolean isCurrentUser, UserDto user) {
+        if (isCurrentUser) {
+            watchlistContainer.setVisible(true);
+            watchlistContainer.setManaged(true);
+            favoritesContainer.setVisible(true);
+            favoritesContainer.setManaged(true);
+            reviewsTitleLabel.setText("Mis Reseñas Publicadas");
+            
+            cargarFavoritos(true);
+            cargarWatchlist();
+        } else {
+            watchlistContainer.setVisible(false);
+            watchlistContainer.setManaged(false);
+            favoritesContainer.setVisible(true);
+            favoritesContainer.setManaged(true);
+            reviewsTitleLabel.setText("Reseñas de @" + user.username());
+            
+            cargarFavoritos(false);
+        }
+    }
+
+    private void cargarFavoritos(boolean isCurrentUser) {
+        if (isCurrentUser) {
+            libraryService.getFavorites().thenAccept(list -> {
+                Platform.runLater(() -> {
+                    procesarListaFavoritos(list);
+                });
+            }).exceptionally(e -> {
+                Platform.runLater(() -> {
+                    mostrarVacio(favoritesSection, AppConstants.MESSAGE_ERROR_API);
+                });
+                return null;
             });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                mostrarVacio(favoritesSection, AppConstants.MESSAGE_ERROR_API);
+        } else {
+            String authId = currentUserProfile.authId();
+            
+            if (authId == null || authId.isEmpty()) {
+                Platform.runLater(() -> {
+                    mostrarVacio(favoritesSection, "Privacidad: Favoritos ocultos (Falta authId público desde el servidor).");
+                });
+                return;
+            }
+            
+            libraryService.getFavoritesByUser(authId).thenAccept(list -> {
+                Platform.runLater(() -> {
+                    procesarListaFavoritos(list);
+                });
+            }).exceptionally(e -> {
+                Platform.runLater(() -> {
+                    mostrarVacio(favoritesSection, AppConstants.MESSAGE_ERROR_API);
+                });
+                return null;
             });
-            return null;
-        });
+        }
+    }
+
+    private void procesarListaFavoritos(List<LibraryItemDto> list) {
+        if (list == null) {
+            mostrarVacio(favoritesSection, "No hay series en favoritos.");
+            return;
+        }
+        if (list.isEmpty()) {
+            mostrarVacio(favoritesSection, "No hay series en favoritos.");
+            return;
+        }
+        
+        List<Integer> ids = new ArrayList<>();
+        for (LibraryItemDto item : list) {
+            ids.add(item.tvmaze_id());
+        }
+        
+        cargarSeriesEnCarrusel(ids, favoritesSection);
     }
 
     private void cargarWatchlist() {
@@ -125,15 +191,27 @@ public class ProfileController {
         });
     }
 
-    private void cargarResenasPropias(int page) {
-        String authId = currentUserProfile.id();
-        if (currentUserProfile.authId() != null) {
-            authId = currentUserProfile.authId();
+    private void cargarResenasPropias(int page, boolean isCurrentUser) {
+        String authId = currentUserProfile.authId();
+        
+        if (!isCurrentUser) {
+            if (authId == null || authId.isEmpty()) {
+                Platform.runLater(() -> {
+                    if (page == 1) {
+                        mostrarVacio(reviewsSection, "Privacidad: Reseñas ocultas (Falta authId público desde el servidor).");
+                    }
+                });
+                return;
+            }
+        } else {
+            if (authId == null || authId.isEmpty()) {
+                authId = currentUserProfile.id();
+            }
         }
         
         reviewService.getUserReviews(authId, page).thenAccept(res -> {
             Platform.runLater(() -> {
-                procesarPaginacionResenas(res);
+                procesarPaginacionResenas(res, isCurrentUser);
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
@@ -145,10 +223,10 @@ public class ProfileController {
         });
     }
 
-    private void procesarPaginacionResenas(ReviewPaginationResponse response) {
+    private void procesarPaginacionResenas(ReviewPaginationResponse response, boolean isCurrentUser) {
         if (response == null) {
             if (currentReviewPage == 1) {
-                mostrarVacio(reviewsSection, "No has escrito ninguna reseña.");
+                mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
             }
             return;
         }
@@ -156,13 +234,13 @@ public class ProfileController {
         List<ReviewDto> reviews = response.reviews();
         if (reviews == null) {
             if (currentReviewPage == 1) {
-                mostrarVacio(reviewsSection, "No has escrito ninguna reseña.");
+                mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
             }
             return;
         }
         if (reviews.isEmpty()) {
             if (currentReviewPage == 1) {
-                mostrarVacio(reviewsSection, "No has escrito ninguna reseña.");
+                mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
             }
             return;
         }
@@ -182,19 +260,19 @@ public class ProfileController {
         if (response.pagination() != null) {
             if (response.pagination().hasNextPage() != null) {
                 if (response.pagination().hasNextPage()) {
-                    agregarBotonCargarMas();
+                    agregarBotonCargarMas(isCurrentUser);
                 }
             }
         }
     }
 
-    private void agregarBotonCargarMas() {
+    private void agregarBotonCargarMas(boolean isCurrentUser) {
         Button btnMore = new Button("Cargar más reseñas");
         btnMore.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 8 15;");
         
         btnMore.setOnAction(e -> {
             currentReviewPage++;
-            cargarResenasPropias(currentReviewPage);
+            cargarResenasPropias(currentReviewPage, isCurrentUser);
         });
         
         HBox centerBox = new HBox(btnMore);
@@ -232,7 +310,6 @@ public class ProfileController {
                     }
                 }
             } catch (Exception e) {
-                
             }
         }
         return shows;
@@ -293,7 +370,6 @@ public class ProfileController {
             ((ShowCardController) l.getController()).setData(s);
             container.getChildren().add(card);
         } catch (IOException e) { 
-            
         }
     }
 

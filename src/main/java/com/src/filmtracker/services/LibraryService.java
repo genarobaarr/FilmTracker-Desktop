@@ -33,6 +33,16 @@ public class LibraryService implements ILibraryService {
     }
 
     @Override
+    public CompletableFuture<List<LibraryItemDto>> getFavoritesByUser(String authId) {
+        Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
+        String url = AppConstants.FAVORITES_URL + "/user/" + authId;
+        CompletableFuture<List<LibraryItemDto>> future = executeGet(url, type, "data");
+        return future.exceptionally(ex -> {
+            return new ArrayList<LibraryItemDto>();
+        });
+    }
+
+    @Override
     public CompletableFuture<Void> addFavorite(Integer tvmazeId) {
         LibraryRequest req = new LibraryRequest(tvmazeId);
         return executePostPutVoid(AppConstants.FAVORITES_URL, req, "POST");

@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 
 public interface ILibraryService {
     CompletableFuture<List<LibraryItemDto>> getFavorites();
+    CompletableFuture<List<LibraryItemDto>> getFavoritesByUser(String authId);
     CompletableFuture<Void> addFavorite(Integer tvmazeId);
     CompletableFuture<Void> removeFavorite(Integer tvmazeId);
     
