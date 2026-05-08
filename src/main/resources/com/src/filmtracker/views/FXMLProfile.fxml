@@ -18,23 +18,54 @@
                 <VBox alignment="CENTER" spacing="30.0" style="-fx-padding: 20; -fx-background-color: #121212;">
                     <children>
                         <ImageView fx:id="avatarView" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true" />
+                
                         <VBox alignment="CENTER" spacing="5.0">
-                            <Label fx:id="nameLabel" textFill="WHITE"><font><Font name="System Bold" size="28.0" /></font></Label>
-                            <Label fx:id="usernameLabel" textFill="#e50914"><font><Font size="16.0" /></font></Label>
+                            <Label fx:id="nameLabel" textFill="WHITE">
+                                <font>
+                                    <Font name="System Bold" size="28.0" />
+                                </font>
+                            </Label>
+                            <Label fx:id="usernameLabel" textFill="#e50914">
+                                <font>
+                                    <Font size="16.0" />
+                                </font>
+                            </Label>
                         </VBox>
-                        <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #1e1e1e; -fx-padding: 20; -fx-background-radius: 10;" maxWidth="400.0">
+                        
+                        <VBox fx:id="privateInfoContainer" alignment="CENTER" spacing="10.0" style="-fx-background-color: #1e1e1e; -fx-padding: 20; -fx-background-radius: 10;" maxWidth="400.0">
                             <children>
-                                <Label text="EMAIL" textFill="#888888"><font><Font name="System Bold" size="10.0" /></font></Label>
-                                <Label fx:id="emailLabel" textFill="WHITE"><font><Font size="16.0" /></font></Label>
-                                <Label text="ROL" textFill="#888888"><font><Font name="System Bold" size="10.0" /></font></Label>
-                                <Label fx:id="roleLabel" textFill="WHITE"><font><Font size="16.0" /></font></Label>
+                                <Label text="EMAIL" textFill="#888888">
+                                    <font>
+                                        <Font name="System Bold" size="10.0" />
+                                    </font>
+                                </Label>
+                                <Label fx:id="emailLabel" textFill="WHITE">
+                                    <font>
+                                        <Font size="16.0" />
+                                    </font>
+                                </Label>
+                                <Label text="ROL" textFill="#888888">
+                                    <font>
+                                        <Font name="System Bold" size="10.0" />
+                                    </font>
+                                </Label>
+                                <Label fx:id="roleLabel" textFill="WHITE">
+                                    <font>
+                                        <Font size="16.0" />
+                                    </font>
+                                </Label>
                             </children>
                         </VBox>
-                        <Label fx:id="dateLabel" textFill="#555555"><font><Font size="12.0" /></font></Label>
+                        
+                        <Label fx:id="dateLabel" textFill="#555555">
+                            <font>
+                                <Font size="12.0" />
+                            </font>
+                        </Label>
 
                         <VBox fx:id="favoritesContainer" spacing="10.0" maxWidth="1000">
                             <children>
-                                <Label text="Mis Series Favoritas" textFill="WHITE">
+                                <Label fx:id="favoritesTitleLabel" text="Mis Series Favoritas" textFill="WHITE">
                                     <font>
                                         <Font name="System Bold" size="22.0" />
                                     </font>

@@ -197,7 +197,7 @@ public class ShowDetailController {
         libraryService.getFavorites().thenAccept(list -> {
             boolean isFav = false;
             for (LibraryItemDto item : list) {
-                if (item.tvmaze_id().equals(currentTvmazeId)) {
+                if (item.tvmazeId().equals(currentTvmazeId)) {
                     isFav = true;
                     break;
                 }
@@ -253,7 +253,7 @@ public class ShowDetailController {
         libraryService.getWatchlist().thenAccept(list -> {
             boolean isWatch = false;
             for (LibraryItemDto item : list) {
-                if (item.tvmaze_id().equals(currentTvmazeId)) {
+                if (item.tvmazeId().equals(currentTvmazeId)) {
                     isWatch = true;
                     break;
                 }

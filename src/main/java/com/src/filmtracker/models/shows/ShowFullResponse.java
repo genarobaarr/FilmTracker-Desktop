@@ -1,12 +1,15 @@
 package com.src.filmtracker.models.shows;
 
-import com.src.filmtracker.models.shows.CastDto;
-import com.src.filmtracker.models.shows.SeasonDto;
-import com.src.filmtracker.models.shows.Show;
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 public record ShowFullResponse(
+    @SerializedName("show") 
     Show show,
-    List<SeasonDto> seasons,
-    List<CastDto> cast
+    
+    @SerializedName("cast") 
+    List<CastDto> cast,
+    
+    @SerializedName("seasons") 
+    List<SeasonDto> seasons
 ) {}

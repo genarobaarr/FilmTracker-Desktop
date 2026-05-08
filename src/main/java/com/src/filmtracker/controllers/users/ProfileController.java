@@ -1,19 +1,18 @@
 package com.src.filmtracker.controllers.users;
 
-import com.src.filmtracker.models.shows.ShowFullResponse;
-import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
-import com.src.filmtracker.models.library.LibraryItemDto;
-import com.src.filmtracker.services.shows.ShowService;
-import com.src.filmtracker.services.shows.IShowService;
-import com.src.filmtracker.services.reviews.ReviewService;
-import com.src.filmtracker.services.reviews.IReviewService;
-import com.src.filmtracker.services.library.LibraryService;
-import com.src.filmtracker.services.library.ILibraryService;
-import com.src.filmtracker.models.users.UserDto;
-import com.src.filmtracker.models.shows.Show;
-import com.src.filmtracker.models.reviews.ReviewDto;
-import com.src.filmtracker.controllers.shows.ShowCardController;
 import com.src.filmtracker.App;
+import com.src.filmtracker.models.library.LibraryItemDto;
+import com.src.filmtracker.models.reviews.ReviewDto;
+import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
+import com.src.filmtracker.models.shows.Show;
+import com.src.filmtracker.models.shows.ShowFullResponse;
+import com.src.filmtracker.models.users.UserDto;
+import com.src.filmtracker.services.library.ILibraryService;
+import com.src.filmtracker.services.library.LibraryService;
+import com.src.filmtracker.services.reviews.IReviewService;
+import com.src.filmtracker.services.reviews.ReviewService;
+import com.src.filmtracker.services.shows.IShowService;
+import com.src.filmtracker.services.shows.ShowService;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
@@ -42,10 +41,15 @@ public class ProfileController {
     @FXML private Label roleLabel;
     @FXML private Label dateLabel;
     
+    @FXML private VBox privateInfoContainer;
+    
     @FXML private VBox favoritesContainer;
     @FXML private VBox favoritesSection;
+    @FXML private Label favoritesTitleLabel;
+    
     @FXML private VBox watchlistContainer;
     @FXML private VBox watchlistSection;
+    
     @FXML private VBox reviewsSection;
     @FXML private Label reviewsTitleLabel;
 
@@ -65,8 +69,14 @@ public class ProfileController {
         
         nameLabel.setText(user.name());
         usernameLabel.setText("@" + user.username());
-        emailLabel.setText(user.email());
-        roleLabel.setText(user.role());
+        
+        if (user.email() != null) {
+            emailLabel.setText(user.email());
+        }
+        
+        if (user.role() != null) {
+            roleLabel.setText(user.role());
+        }
         
         if (user.createdAt() != null) {
             ZonedDateTime dt = ZonedDateTime.parse(user.createdAt());
@@ -74,11 +84,13 @@ public class ProfileController {
         }
 
         String imageUrl = "https://ui-avatars.com/api/?name=" + user.username() + "&background=e50914&color=fff";
+        
         if (user.profileImage() != null) {
             if (!user.profileImage().isEmpty()) {
                 imageUrl = user.profileImage();
             }
         }
+        
         avatarView.setImage(new Image(imageUrl, true));
 
         boolean isCurrentUser = esUsuarioActual(user);
@@ -104,23 +116,43 @@ public class ProfileController {
 
     private void configurarVisibilidadPublica(boolean isCurrentUser, UserDto user) {
         if (isCurrentUser) {
-            watchlistContainer.setVisible(true);
-            watchlistContainer.setManaged(true);
-            favoritesContainer.setVisible(true);
-            favoritesContainer.setManaged(true);
-            reviewsTitleLabel.setText("Mis Reseñas Publicadas");
-            
-            cargarFavoritos(true);
-            cargarWatchlist();
+            configurarVistaPropia();
         } else {
-            watchlistContainer.setVisible(false);
-            watchlistContainer.setManaged(false);
-            favoritesContainer.setVisible(true);
-            favoritesContainer.setManaged(true);
-            reviewsTitleLabel.setText("Reseñas de @" + user.username());
-            
-            cargarFavoritos(false);
+            configurarVistaTercero(user);
         }
+    }
+
+    private void configurarVistaPropia() {
+        watchlistContainer.setVisible(true);
+        watchlistContainer.setManaged(true);
+        
+        favoritesContainer.setVisible(true);
+        favoritesContainer.setManaged(true);
+        
+        privateInfoContainer.setVisible(true);
+        privateInfoContainer.setManaged(true);
+        
+        reviewsTitleLabel.setText("Mis Reseñas Publicadas");
+        favoritesTitleLabel.setText("Mis Series Favoritas");
+        
+        cargarFavoritos(true);
+        cargarWatchlist();
+    }
+
+    private void configurarVistaTercero(UserDto user) {
+        watchlistContainer.setVisible(false);
+        watchlistContainer.setManaged(false);
+        
+        favoritesContainer.setVisible(true);
+        favoritesContainer.setManaged(true);
+        
+        privateInfoContainer.setVisible(false);
+        privateInfoContainer.setManaged(false);
+        
+        reviewsTitleLabel.setText("Reseñas de @" + user.username());
+        favoritesTitleLabel.setText("Favoritos de @" + user.username());
+        
+        cargarFavoritos(false);
     }
 
     private void cargarFavoritos(boolean isCurrentUser) {
@@ -163,14 +195,18 @@ public class ProfileController {
             mostrarVacio(favoritesSection, "No hay series en favoritos.");
             return;
         }
+        
         if (list.isEmpty()) {
             mostrarVacio(favoritesSection, "No hay series en favoritos.");
             return;
         }
         
         List<Integer> ids = new ArrayList<>();
+        
         for (LibraryItemDto item : list) {
-            ids.add(item.tvmaze_id());
+            if (item.tvmazeId() != null) {
+                ids.add(item.tvmazeId());
+            }
         }
         
         cargarSeriesEnCarrusel(ids, favoritesSection);
@@ -183,15 +219,20 @@ public class ProfileController {
                     mostrarVacio(watchlistSection, "No tienes series en tu Watchlist.");
                     return;
                 }
+                
                 if (list.isEmpty()) {
                     mostrarVacio(watchlistSection, "No tienes series en tu Watchlist.");
                     return;
                 }
                 
                 List<Integer> ids = new ArrayList<>();
+                
                 for (LibraryItemDto item : list) {
-                    ids.add(item.tvmaze_id());
+                    if (item.tvmazeId() != null) {
+                        ids.add(item.tvmazeId());
+                    }
                 }
+                
                 cargarSeriesEnCarrusel(ids, watchlistSection);
             });
         }).exceptionally(e -> {
@@ -243,12 +284,14 @@ public class ProfileController {
         }
         
         List<ReviewDto> reviews = response.reviews();
+        
         if (reviews == null) {
             if (currentReviewPage == 1) {
                 mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
             }
             return;
         }
+        
         if (reviews.isEmpty()) {
             if (currentReviewPage == 1) {
                 mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
@@ -258,6 +301,7 @@ public class ProfileController {
         
         if (reviewsSection.getChildren().size() > 0) {
             int lastIndex = reviewsSection.getChildren().size() - 1;
+            
             if (reviewsSection.getChildren().get(lastIndex) instanceof Button) {
                 reviewsSection.getChildren().remove(lastIndex);
             }
@@ -295,6 +339,7 @@ public class ProfileController {
 
     private void cargarSeriesEnCarrusel(List<Integer> ids, VBox container) {
         List<CompletableFuture<ShowFullResponse>> futures = new ArrayList<>();
+        
         for (Integer id : ids) {
             futures.add(showService.getFullShowDetails(id));
         }
@@ -312,9 +357,11 @@ public class ProfileController {
 
     private List<Show> mapearResultadosShows(List<CompletableFuture<ShowFullResponse>> futures) {
         List<Show> shows = new ArrayList<>();
+        
         for (CompletableFuture<ShowFullResponse> f : futures) {
             try {
                 ShowFullResponse res = f.join();
+                
                 if (res != null) {
                     if (res.show() != null) {
                         shows.add(res.show());
@@ -323,11 +370,13 @@ public class ProfileController {
             } catch (Exception e) {
             }
         }
+        
         return shows;
     }
 
     private void dibujarCarrusel(List<Show> shows, VBox container) {
         container.getChildren().clear();
+        
         if (shows.isEmpty()) {
             mostrarVacio(container, "Hubo un error al cargar las portadas de las series.");
             return;
@@ -346,14 +395,17 @@ public class ProfileController {
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
         String btnStyle = "-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand; -fx-background-radius: 3;";
+        
         Button bI = new Button("<"); 
         bI.setStyle(btnStyle);
+        
         Button bD = new Button(">"); 
         bD.setStyle(btnStyle);
         
         bI.setOnAction(e -> {
             moverCarruselDinamico(sp, -1);
         }); 
+        
         bD.setOnAction(e -> {
             moverCarruselDinamico(sp, 1);
         });
@@ -361,6 +413,7 @@ public class ProfileController {
         BorderPane bp = new BorderPane(sp); 
         bp.setLeft(bI); 
         bp.setRight(bD);
+        
         BorderPane.setAlignment(bI, Pos.CENTER); 
         BorderPane.setAlignment(bD, Pos.CENTER);
         
@@ -370,6 +423,7 @@ public class ProfileController {
     private void mostrarVacio(VBox section, String msj) {
         Label lbl = new Label(msj);
         lbl.setTextFill(Color.GRAY);
+        
         section.getChildren().clear();
         section.getChildren().add(lbl);
     }
@@ -378,7 +432,7 @@ public class ProfileController {
         try {
             FXMLLoader l = new FXMLLoader(getClass().getResource(AppConstants.FXML_SHOW_CARD));
             VBox card = l.load();
-            ((ShowCardController) l.getController()).setData(s);
+            ((com.src.filmtracker.controllers.shows.ShowCardController) l.getController()).setData(s);
             container.getChildren().add(card);
         } catch (IOException e) { 
         }
@@ -413,6 +467,7 @@ public class ProfileController {
         if (review.title() != null) {
             tText = review.title();
         }
+        
         Label title = new Label(tText);
         title.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;"); 
         title.setTextFill(Color.WHITE);
@@ -421,11 +476,15 @@ public class ProfileController {
         if (review.content() != null) {
             cText = review.content();
         }
+        
         Label content = new Label(cText);
         content.setTextFill(Color.LIGHTGRAY); 
         content.setWrapText(true);
 
-        card.getChildren().addAll(seriesLabel, title, content);
+        card.getChildren().add(seriesLabel);
+        card.getChildren().add(title);
+        card.getChildren().add(content);
+        
         return card;
     }
 
