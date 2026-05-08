@@ -1,6 +1,7 @@
 package com.src.filmtracker.controllers;
 
 import com.src.filmtracker.App;
+import com.src.filmtracker.models.AuthResponse;
 import com.src.filmtracker.models.ResendVerificationRequest;
 import com.src.filmtracker.models.VerifyEmailRequest;
 import com.src.filmtracker.services.AuthService;
@@ -70,17 +71,17 @@ public class VerifyEmailController {
         });
     }
     
-    private void procesarExitoVerificacion(com.src.filmtracker.models.ProfileResponse response) {
+    private void procesarExitoVerificacion(AuthResponse response) {
         if (response != null) {
             if (response.data() != null) {
-                SessionManager.getInstance().updateUser(response.data());
-                mostrarExito(AppConstants.MESSAGE_SUCCESS_VERIFIED);
+                SessionManager.getInstance().logout();
+                mostrarExito(AppConstants.MESSAGE_SUCCESS_VERIFIED + " Redirigiendo al Login...");
                 
                 new Thread(() -> {
                     try {
-                        Thread.sleep(2000);
+                        Thread.sleep(2500);
                         Platform.runLater(() -> {
-                            App.setRoot(AppConstants.FXML_DASHBOARD);
+                            App.setRoot(AppConstants.FXML_LOGIN);
                         });
                     } catch (InterruptedException ex) {
                     }

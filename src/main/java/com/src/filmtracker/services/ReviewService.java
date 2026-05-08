@@ -14,26 +14,22 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ReviewService implements IReviewService {
     
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
-    
-    private final Set<String> localLikedReviews = ConcurrentHashMap.newKeySet();
-    private final Set<String> localLikedComments = ConcurrentHashMap.newKeySet();
 
     @Override
-    public CompletableFuture<List<ReviewDto>> getShowReviews(Integer tvmazeId) {
-        Type type = TypeToken.getParameterized(List.class, ReviewDto.class).getType();
-        String url = AppConstants.REVIEWS_URL + "/show/" + tvmazeId;
-        CompletableFuture<List<ReviewDto>> future = executeGet(url, type, "reviews");
+    public CompletableFuture<ReviewPaginationResponse> getShowReviews(Integer tvmazeId, int page) {
+        Type type = TypeToken.getParameterized(ReviewPaginationResponse.class).getType();
+        String url = AppConstants.REVIEWS_URL + "/show/" + tvmazeId + "?page=" + page;
+        CompletableFuture<ReviewPaginationResponse> future = executeGet(url, type, null);
         
-        return future;
+        return future.exceptionally(ex -> {
+            return new ReviewPaginationResponse(new ArrayList<>(), null);
+        });
     }
 
     @Override
@@ -57,78 +53,20 @@ public class ReviewService implements IReviewService {
     public CompletableFuture<Void> toggleReviewLike(String id, boolean isCurrentlyLiked) {
         String url = AppConstants.REVIEWS_URL + "/" + id + "/like";
         if (isCurrentlyLiked) {
-            localLikedReviews.remove(id);
-            return executeDelete(url).exceptionally(ex -> {
-                localLikedReviews.add(id);
-                return null;
-            });
+            return executeDelete(url);
         } else {
-            localLikedReviews.add(id);
-            return executePostPutVoid(url, null, "POST").exceptionally(ex -> {
-                localLikedReviews.remove(id);
-                return null;
-            });
+            return executePostPutVoid(url, null, "POST");
         }
     }
 
     @Override
-    public CompletableFuture<Boolean> isReviewLikedByMe(String reviewId) {
-        if (localLikedReviews.contains(reviewId)) {
-            return CompletableFuture.completedFuture(true);
-        }
-        if (!SessionManager.getInstance().isAuthenticated()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        
-        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/likes";
-        HttpRequest req = buildRequestBuilder(url).GET().build();
-        
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString()).thenApply(res -> {
-            if (res.statusCode() >= 400) {
-                return false;
-            }
-            
-            String authId = SessionManager.getInstance().getCurrentUser().authId();
-            String id = SessionManager.getInstance().getCurrentUser().id();
-            String body = res.body();
-            boolean liked = false;
-            
-            if (authId != null) {
-                if (!authId.isBlank()) {
-                    String match = "\"" + authId + "\"";
-                    if (body.contains(match)) {
-                        liked = true;
-                    }
-                }
-            }
-            
-            if (!liked) {
-                if (id != null) {
-                    if (!id.isBlank()) {
-                        String match = "\"" + id + "\"";
-                        if (body.contains(match)) {
-                            liked = true;
-                        }
-                    }
-                }
-            }
-            
-            if (liked) {
-                localLikedReviews.add(reviewId);
-            }
-            
-            return liked;
-        });
-    }
-
-    @Override
-    public CompletableFuture<List<CommentDto>> getReviewComments(String reviewId) {
-        Type type = TypeToken.getParameterized(List.class, CommentDto.class).getType();
-        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/comments";
-        CompletableFuture<List<CommentDto>> future = executeGet(url, type, "comments");
+    public CompletableFuture<CommentPaginationResponse> getReviewComments(String reviewId, int page) {
+        Type type = TypeToken.getParameterized(CommentPaginationResponse.class).getType();
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/comments?page=" + page;
+        CompletableFuture<CommentPaginationResponse> future = executeGet(url, type, null);
         
         return future.exceptionally(ex -> {
-            return new ArrayList<CommentDto>();
+            return new CommentPaginationResponse(new ArrayList<>(), null);
         });
     }
 
@@ -152,68 +90,10 @@ public class ReviewService implements IReviewService {
     public CompletableFuture<Void> toggleCommentLike(String id, boolean isCurrentlyLiked) {
         String url = AppConstants.COMMENTS_URL + "/" + id + "/like";
         if (isCurrentlyLiked) {
-            localLikedComments.remove(id);
-            return executeDelete(url).exceptionally(ex -> {
-                localLikedComments.add(id);
-                return null;
-            });
+            return executeDelete(url);
         } else {
-            localLikedComments.add(id);
-            return executePostPutVoid(url, null, "POST").exceptionally(ex -> {
-                localLikedComments.remove(id);
-                return null;
-            });
+            return executePostPutVoid(url, null, "POST");
         }
-    }
-
-    @Override
-    public CompletableFuture<Boolean> isCommentLikedByMe(String commentId) {
-        if (localLikedComments.contains(commentId)) {
-            return CompletableFuture.completedFuture(true);
-        }
-        if (!SessionManager.getInstance().isAuthenticated()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        
-        String url = AppConstants.COMMENTS_URL + "/" + commentId + "/likes";
-        HttpRequest req = buildRequestBuilder(url).GET().build();
-        
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString()).thenApply(res -> {
-            if (res.statusCode() >= 400) {
-                return false;
-            }
-            
-            String authId = SessionManager.getInstance().getCurrentUser().authId();
-            String id = SessionManager.getInstance().getCurrentUser().id();
-            String body = res.body();
-            boolean liked = false;
-            
-            if (authId != null) {
-                if (!authId.isBlank()) {
-                    String match = "\"" + authId + "\"";
-                    if (body.contains(match)) {
-                        liked = true;
-                    }
-                }
-            }
-            
-            if (!liked) {
-                if (id != null) {
-                    if (!id.isBlank()) {
-                        String match = "\"" + id + "\"";
-                        if (body.contains(match)) {
-                            liked = true;
-                        }
-                    }
-                }
-            }
-            
-            if (liked) {
-                localLikedComments.add(commentId);
-            }
-            
-            return liked;
-        });
     }
     
     @Override

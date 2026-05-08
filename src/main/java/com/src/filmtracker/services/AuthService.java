@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.src.filmtracker.models.ApiResponse;
 import com.src.filmtracker.models.AuthResponse;
 import com.src.filmtracker.models.LoginRequest;
-import com.src.filmtracker.models.ProfileResponse;
 import com.src.filmtracker.models.RegisterRequest;
 import com.src.filmtracker.models.RegisterResponse;
 import com.src.filmtracker.models.ResendVerificationRequest;
@@ -37,8 +36,8 @@ public class AuthService implements IAuthService {
     }
 
     @Override
-    public CompletableFuture<ProfileResponse> verifyEmail(VerifyEmailRequest request) {
-        return executePost(AppConstants.AUTH_VERIFY_EMAIL_URL, request, ProfileResponse.class);
+    public CompletableFuture<AuthResponse> verifyEmail(VerifyEmailRequest request) {
+        return executePost(AppConstants.AUTH_VERIFY_EMAIL_URL, request, AuthResponse.class);
     }
 
     @Override

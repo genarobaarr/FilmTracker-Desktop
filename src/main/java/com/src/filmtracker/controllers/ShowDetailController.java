@@ -19,6 +19,8 @@ import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,6 +48,7 @@ public class ShowDetailController {
     private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
     
     private Integer currentTvmazeId;
+    private int currentReviewPage = 1;
 
     @FXML private void handleClose() {
         Platform.exit(); 
@@ -111,7 +114,8 @@ public class ShowDetailController {
             }
         });
 
-        cargarResenas();
+        this.currentReviewPage = 1;
+        cargarResenas(this.currentReviewPage);
     }
 
     private void cargarDatosBasicosUI(Show show) {
@@ -520,24 +524,27 @@ public class ShowDetailController {
         return card;
     }
 
-    private void cargarResenas() {
-        reviewService.getShowReviews(currentTvmazeId).thenAccept(reviews -> {
+    private void cargarResenas(int page) {
+        reviewService.getShowReviews(currentTvmazeId, page).thenAccept(res -> {
             Platform.runLater(() -> {
-                dibujarSeccionResenas(reviews, false);
+                dibujarSeccionResenas(res, page, false);
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                dibujarSeccionResenas(new ArrayList<>(), true);
+                dibujarSeccionResenas(null, page, true);
             });
             return null;
         });
     }
 
-    private void dibujarSeccionResenas(List<ReviewDto> reviews, boolean isServerError) {
-        reviewsSection.getChildren().clear();
-        
-        if (SessionManager.getInstance().isAuthenticated()) {
-            reviewsSection.getChildren().add(buildReviewForm());
+    private void dibujarSeccionResenas(ReviewPaginationResponse res, int page, boolean isServerError) {
+        if (page == 1) {
+            reviewsSection.getChildren().clear();
+            if (SessionManager.getInstance().isAuthenticated()) {
+                reviewsSection.getChildren().add(buildReviewForm());
+            }
+        } else {
+            removerBotonCargarMasResenas();
         }
         
         if (isServerError) {
@@ -547,17 +554,53 @@ public class ShowDetailController {
             return;
         }
         
-        if (reviews == null) {
-            mostrarVacio(reviewsSection, "No hay reseñas aún. ¡Sé el primero!");
-            return;
-        }
-        if (reviews.isEmpty()) {
-            mostrarVacio(reviewsSection, "No hay reseñas aún. ¡Sé el primero!");
+        if (res == null || res.reviews() == null || res.reviews().isEmpty()) {
+            if (page == 1) {
+                mostrarVacio(reviewsSection, "No hay reseñas aún. ¡Sé el primero!");
+            }
             return;
         }
         
-        for (ReviewDto r : reviews) {
+        for (ReviewDto r : res.reviews()) {
             reviewsSection.getChildren().add(buildReviewCard(r));
+        }
+        
+        evaluarBotonCargarMasResenas(res.pagination());
+    }
+
+    private void removerBotonCargarMasResenas() {
+        if (reviewsSection.getChildren().size() > 0) {
+            int lastIndex = reviewsSection.getChildren().size() - 1;
+            
+            if (reviewsSection.getChildren().get(lastIndex) instanceof HBox) {
+                HBox box = (HBox) reviewsSection.getChildren().get(lastIndex);
+                
+                if (box.getChildren().size() > 0 && box.getChildren().get(0) instanceof Button) {
+                    Button btn = (Button) box.getChildren().get(0);
+                    
+                    if (btn.getText().contains("Cargar más reseñas")) {
+                        reviewsSection.getChildren().remove(lastIndex);
+                    }
+                }
+            }
+        }
+    }
+
+    private void evaluarBotonCargarMasResenas(PaginationDto pag) {
+        if (pag != null && pag.hasNextPage() != null && pag.hasNextPage()) {
+            Button btnMore = new Button("Cargar más reseñas");
+            btnMore.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 8 15;");
+            
+            btnMore.setOnAction(e -> {
+                currentReviewPage++;
+                cargarResenas(currentReviewPage);
+            });
+            
+            HBox centerBox = new HBox(btnMore);
+            centerBox.setAlignment(Pos.CENTER);
+            centerBox.setPadding(new Insets(10, 0, 10, 0));
+            
+            reviewsSection.getChildren().add(centerBox);
         }
     }
 
@@ -626,7 +669,8 @@ public class ShowDetailController {
         ReviewRequest req = new ReviewRequest(currentTvmazeId, rateIn.getValue(), titleIn.getText().trim(), contIn.getText().trim());
         reviewService.createReview(req).thenRun(() -> {
             Platform.runLater(() -> {
-                cargarResenas();
+                this.currentReviewPage = 1;
+                cargarResenas(this.currentReviewPage);
             });
         }).exceptionally(err -> {
             Platform.runLater(() -> {
@@ -670,6 +714,54 @@ public class ShowDetailController {
         }
     }
 
+    private String parsearIsoFormato(String isoString) {
+        if (isoString == null) {
+            return "";
+        }
+        
+        if (isoString.isEmpty()) {
+            return "";
+        }
+        
+        try {
+            ZonedDateTime zdt = ZonedDateTime.parse(isoString);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm");
+            return zdt.format(formatter);
+        } catch (Exception e) {
+            return isoString;
+        }
+    }
+
+    private String formatearFechaVisual(String createdAt, String updatedAt) {
+        String created = parsearIsoFormato(createdAt);
+        String updated = parsearIsoFormato(updatedAt);
+        
+        if (created.isEmpty()) {
+            return "";
+        }
+        
+        if (!created.equals(updated)) {
+            if (!updated.isEmpty()) {
+                return created + " (editado " + updated + ")";
+            }
+        }
+        
+        return created;
+    }
+
+    private HBox buildHeaderWithDate(Label authorLabel, String createdAt, String updatedAt) {
+        Label dateLabel = new Label(formatearFechaVisual(createdAt, updatedAt));
+        dateLabel.setTextFill(Color.web("#888888"));
+        dateLabel.setStyle("-fx-font-size: 11px;");
+        
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getChildren().add(authorLabel);
+        header.getChildren().add(dateLabel);
+        
+        return header;
+    }
+
     private VBox buildReviewCard(ReviewDto review) {
         String rId = review.getSafeId();
         VBox card = new VBox(8);
@@ -678,6 +770,8 @@ public class ShowDetailController {
         Label author = new Label("@Cargando..."); 
         author.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         resolverNombreAutor(review.getOwnerId(), author);
+        
+        HBox header = buildHeaderWithDate(author, review.created_at(), review.updated_at());
         
         String tText = "Sin título";
         if (review.title() != null) {
@@ -714,7 +808,7 @@ public class ShowDetailController {
             commContainer.setManaged(show);
             if (show) {
                 if (!rId.isEmpty()) {
-                    cargarComentariosUI(rId, commContainer);
+                    cargarComentariosUI(rId, commContainer, 1);
                 }
             }
         });
@@ -724,7 +818,7 @@ public class ShowDetailController {
         
         injectOwnerActions(rId, review.getOwnerId(), actions);
         
-        card.getChildren().add(author);
+        card.getChildren().add(header);
         card.getChildren().add(title);
         card.getChildren().add(content);
         card.getChildren().add(actions);
@@ -733,38 +827,79 @@ public class ShowDetailController {
         return card;
     }
 
-    private void cargarComentariosUI(String rId, VBox container) {
-        container.getChildren().clear();
-        container.setStyle("-fx-padding: 0 0 0 20; -fx-border-color: #333; -fx-border-width: 0 0 0 2;");
-        
-        if (SessionManager.getInstance().isAuthenticated()) {
-            TextField in = new TextField(); 
-            in.setPromptText("Escribe un comentario...");
-            in.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+    private void cargarComentariosUI(String rId, VBox container, int page) {
+        if (page == 1) {
+            container.getChildren().clear();
+            container.setStyle("-fx-padding: 0 0 0 20; -fx-border-color: #333; -fx-border-width: 0 0 0 2;");
             
-            Button b = new Button("Enviar"); 
-            b.setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-cursor: hand;");
-            
-            b.setOnAction(e -> {
-                procesarEnvioComentario(in, rId, container);
-            });
-            
-            HBox box = new HBox(10);
-            box.getChildren().add(in);
-            box.getChildren().add(b);
-            
-            container.getChildren().add(box);
+            if (SessionManager.getInstance().isAuthenticated()) {
+                agregarFormularioComentario(rId, container);
+            }
+        } else {
+            removerBotonCargarMasComentarios(container);
         }
         
-        reviewService.getReviewComments(rId).thenAccept(list -> {
+        reviewService.getReviewComments(rId, page).thenAccept(res -> {
             Platform.runLater(() -> {
-                if (list != null) {
-                    for (CommentDto c : list) {
-                        container.getChildren().add(buildCommentItem(c, rId, container));
-                    }
-                }
+                procesarComentariosObtenidos(res, rId, container, page);
             });
         });
+    }
+
+    private void procesarComentariosObtenidos(CommentPaginationResponse res, String rId, VBox container, int page) {
+        if (res != null) {
+            if (res.comments() != null) {
+                for (CommentDto c : res.comments()) {
+                    container.getChildren().add(buildCommentItem(c, rId, container));
+                }
+                
+                evaluarBotonCargarMasComentarios(rId, container, res.pagination(), page);
+            }
+        }
+    }
+
+    private void removerBotonCargarMasComentarios(VBox container) {
+        if (container.getChildren().size() > 0) {
+            int lastIndex = container.getChildren().size() - 1;
+            
+            if (container.getChildren().get(lastIndex) instanceof HBox) {
+                container.getChildren().remove(lastIndex);
+            }
+        }
+    }
+
+    private void evaluarBotonCargarMasComentarios(String rId, VBox container, PaginationDto pag, int currentPage) {
+        if (pag != null && pag.hasNextPage() != null && pag.hasNextPage()) {
+            Button btnMore = new Button("Cargar más comentarios");
+            btnMore.setStyle("-fx-background-color: transparent; -fx-text-fill: #aaaaaa; -fx-cursor: hand; -fx-underline: true;");
+            
+            btnMore.setOnAction(e -> {
+                cargarComentariosUI(rId, container, currentPage + 1);
+            });
+            
+            HBox centerBox = new HBox(btnMore);
+            centerBox.setAlignment(Pos.CENTER_LEFT);
+            container.getChildren().add(centerBox);
+        }
+    }
+
+    private void agregarFormularioComentario(String rId, VBox container) {
+        TextField in = new TextField(); 
+        in.setPromptText("Escribe un comentario...");
+        in.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+        
+        Button b = new Button("Enviar"); 
+        b.setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-cursor: hand;");
+        
+        b.setOnAction(e -> {
+            procesarEnvioComentario(in, rId, container);
+        });
+        
+        HBox box = new HBox(10);
+        box.getChildren().add(in);
+        box.getChildren().add(b);
+        
+        container.getChildren().add(box);
     }
     
     private void procesarEnvioComentario(TextField in, String rId, VBox container) {
@@ -785,7 +920,7 @@ public class ShowDetailController {
         
         reviewService.createComment(rId, req).thenRun(() -> {
             Platform.runLater(() -> {
-                cargarComentariosUI(rId, container);
+                cargarComentariosUI(rId, container, 1);
             });
         });
     }
@@ -798,6 +933,8 @@ public class ShowDetailController {
         Label user = new Label("@Cargando..."); 
         user.setTextFill(Color.GRAY);
         resolverNombreAutor(c.getOwnerId(), user);
+        
+        HBox header = buildHeaderWithDate(user, c.created_at(), c.updated_at());
         
         String tText = "";
         if (c.content() != null) {
@@ -814,7 +951,7 @@ public class ShowDetailController {
         actions.getChildren().add(lk);
         injectCommentDelete(cId, c.getOwnerId(), actions, rId, parent);
         
-        box.getChildren().add(user);
+        box.getChildren().add(header);
         box.getChildren().add(txt);
         box.getChildren().add(actions);
         
@@ -972,7 +1109,8 @@ public class ShowDetailController {
             del.setOnAction(e -> {
                 reviewService.deleteReview(rId).thenRun(() -> {
                     Platform.runLater(() -> {
-                        cargarResenas();
+                        this.currentReviewPage = 1;
+                        cargarResenas(this.currentReviewPage);
                     });
                 });
             });
@@ -1004,7 +1142,7 @@ public class ShowDetailController {
             del.setOnAction(e -> {
                 reviewService.deleteComment(cId).thenRun(() -> {
                     Platform.runLater(() -> {
-                        cargarComentariosUI(rId, parent);
+                        cargarComentariosUI(rId, parent, 1);
                     });
                 });
             });
