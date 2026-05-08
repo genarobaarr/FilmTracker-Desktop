@@ -1,6 +1,11 @@
 package com.src.filmtracker.models;
 
+import com.google.gson.annotations.SerializedName;
+
 public record AuthResponse(
-        String message, 
-        AuthData data
-    ) {}
+    @SerializedName("message")
+    String message, 
+    
+    @SerializedName("data")
+    AuthData data
+) {}

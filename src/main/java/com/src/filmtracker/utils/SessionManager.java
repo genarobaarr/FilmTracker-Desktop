@@ -4,22 +4,29 @@ import com.src.filmtracker.models.AuthResponse;
 import com.src.filmtracker.models.UserDto;
 
 public class SessionManager {
+    
     private static SessionManager instance;
     private UserDto currentUser;
     private String token;
 
-    private SessionManager() {}
+    private SessionManager() {
+    }
 
     public static SessionManager getInstance() {
         if (instance == null) {
             instance = new SessionManager();
         }
+        
         return instance;
     }
 
     public void login(AuthResponse authResponse) {
-        this.currentUser = authResponse.data().user();
-        this.token = authResponse.data().token();
+        if (authResponse != null) {
+            if (authResponse.data() != null) {
+                this.currentUser = authResponse.data().user();
+                this.token = authResponse.data().token();
+            }
+        }
     }
 
     public void logout() {
@@ -36,6 +43,12 @@ public class SessionManager {
     }
     
     public boolean isAuthenticated() { 
-        return token != null && !token.isEmpty(); 
+        if (token != null) {
+            if (!token.isEmpty()) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

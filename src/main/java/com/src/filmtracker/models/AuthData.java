@@ -1,6 +1,11 @@
 package com.src.filmtracker.models;
 
+import com.google.gson.annotations.SerializedName;
+
 public record AuthData(
-        UserDto user, 
-        String token
-    ) {}
+    @SerializedName("user")
+    UserDto user, 
+    
+    @SerializedName("token")
+    String token
+) {}
