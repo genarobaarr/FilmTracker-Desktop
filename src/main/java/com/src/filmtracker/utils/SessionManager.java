@@ -28,6 +28,12 @@ public class SessionManager {
             }
         }
     }
+    
+    public void updateUser(UserDto updatedUser) {
+        if (updatedUser != null) {
+            this.currentUser = updatedUser;
+        }
+    }
 
     public void logout() {
         this.currentUser = null;

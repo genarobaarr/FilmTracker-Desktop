@@ -1,10 +1,14 @@
 package com.src.filmtracker.services;
 
 import com.google.gson.Gson;
+import com.src.filmtracker.models.ApiResponse;
 import com.src.filmtracker.models.AuthResponse;
 import com.src.filmtracker.models.LoginRequest;
+import com.src.filmtracker.models.ProfileResponse;
 import com.src.filmtracker.models.RegisterRequest;
 import com.src.filmtracker.models.RegisterResponse;
+import com.src.filmtracker.models.ResendVerificationRequest;
+import com.src.filmtracker.models.VerifyEmailRequest;
 import com.src.filmtracker.utils.AppConstants;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,6 +17,7 @@ import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
 
 public class AuthService implements IAuthService {
+    
     private final HttpClient client;
     private final Gson gson;
 
@@ -31,6 +36,16 @@ public class AuthService implements IAuthService {
         return executePost(AppConstants.AUTH_REGISTER_URL, request, RegisterResponse.class);
     }
 
+    @Override
+    public CompletableFuture<ProfileResponse> verifyEmail(VerifyEmailRequest request) {
+        return executePost(AppConstants.AUTH_VERIFY_EMAIL_URL, request, ProfileResponse.class);
+    }
+
+    @Override
+    public CompletableFuture<ApiResponse> resendVerification(ResendVerificationRequest request) {
+        return executePost(AppConstants.AUTH_RESEND_VERIFICATION_URL, request, ApiResponse.class);
+    }
+
     private <T> CompletableFuture<T> executePost(String url, Object bodyData, Class<T> responseClass) {
         String jsonBody = gson.toJson(bodyData);
 
@@ -46,6 +61,7 @@ public class AuthService implements IAuthService {
                 if (response.statusCode() >= 400) {
                     throw new RuntimeException("Auth error: " + response.statusCode());
                 }
+                
                 return gson.fromJson(response.body(), responseClass);
             });
     }

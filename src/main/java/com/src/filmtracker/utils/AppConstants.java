@@ -2,7 +2,8 @@ package com.src.filmtracker.utils;
 
 public final class AppConstants {
     
-    private AppConstants() {}
+    private AppConstants() {
+    }
 
     public static final String SHOWS_SERVICE_URL = "http://localhost:3001/api/shows";
     public static final String SHOWS_BY_GENRE_URL = SHOWS_SERVICE_URL + "/by-genre/";
@@ -11,6 +12,8 @@ public final class AppConstants {
     public static final String AUTH_SERVICE_URL = "http://localhost:3003/api/auth";
     public static final String AUTH_LOGIN_URL = AUTH_SERVICE_URL + "/login";
     public static final String AUTH_REGISTER_URL = AUTH_SERVICE_URL + "/register";
+    public static final String AUTH_VERIFY_EMAIL_URL = AUTH_SERVICE_URL + "/verify-email";
+    public static final String AUTH_RESEND_VERIFICATION_URL = AUTH_SERVICE_URL + "/resend-verification";
     public static final String LIBRARY_SERVICE_URL = "http://localhost:3004/api";
     public static final String FAVORITES_URL = LIBRARY_SERVICE_URL + "/favorites";
     public static final String WATCHLIST_URL = LIBRARY_SERVICE_URL + "/watchlist";
@@ -27,6 +30,7 @@ public final class AppConstants {
     public static final String FXML_SHOW_CARD = "/com/src/filmtracker/views/FXMLShowCard.fxml";
     public static final String FXML_SHOW_DETAIL = "/com/src/filmtracker/views/FXMLShowDetail.fxml";
     public static final String FXML_USER_CARD = "/com/src/filmtracker/views/FXMLUserCard.fxml";
+    public static final String FXML_VERIFY_EMAIL = "/com/src/filmtracker/views/FXMLVerifyEmail.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";
@@ -43,6 +47,10 @@ public final class AppConstants {
     public static final String MESSAGE_ERROR_REVIEW_ACTION = "Error al procesar tu reseña o comentario.";
     public static final String MESSAGE_ERROR_DUPLICATE_REVIEW = "Ya has publicado una reseña para esta serie.";
     public static final String MESSAGE_ERROR_DUPLICATE_LIB = "Esta serie ya se encuentra en tu lista.";
+    public static final String MESSAGE_ERROR_UNVERIFIED = "Debes verificar tu correo electrónico para poder publicar.";
+    public static final String MESSAGE_ERROR_CODE_EMPTY = "Por favor, ingresa el código de verificación de 6 dígitos.";
+    public static final String MESSAGE_SUCCESS_VERIFIED = "¡Correo verificado con éxito!";
+    public static final String MESSAGE_SUCCESS_RESEND = "Se ha reenviado el código a tu correo.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

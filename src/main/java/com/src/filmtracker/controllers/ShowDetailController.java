@@ -159,7 +159,8 @@ public class ShowDetailController {
         Button watchBtn = new Button("Cargando...");
         watchBtn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
         
-        libBox.getChildren().addAll(favBtn, watchBtn);
+        libBox.getChildren().add(favBtn);
+        libBox.getChildren().add(watchBtn);
         
         VBox infoPadre = (VBox) titleLabel.getParent();
         infoPadre.getChildren().add(libBox);
@@ -414,7 +415,8 @@ public class ShowDetailController {
                 }
             }
         });
-        c.getChildren().addAll(h, eps);
+        c.getChildren().add(h);
+        c.getChildren().add(eps);
         return c;
     }
 
@@ -511,7 +513,10 @@ public class ShowDetailController {
         summary.setPrefHeight(60); 
         summary.setTextAlignment(TextAlignment.JUSTIFY);
 
-        card.getChildren().addAll(iv, title, info, summary);
+        card.getChildren().add(iv);
+        card.getChildren().add(title);
+        card.getChildren().add(info);
+        card.getChildren().add(summary);
         return card;
     }
 
@@ -585,11 +590,26 @@ public class ShowDetailController {
             enviarResena(rateIn, titleIn, contIn, errLbl);
         });
         
-        form.getChildren().addAll(new Label("Escribe una reseña:"), errLbl, titleIn, rateIn, contIn, btn);
+        form.getChildren().add(new Label("Escribe una reseña:"));
+        form.getChildren().add(errLbl);
+        form.getChildren().add(titleIn);
+        form.getChildren().add(rateIn);
+        form.getChildren().add(contIn);
+        form.getChildren().add(btn);
+        
         return form;
     }
 
     private void enviarResena(ComboBox<Integer> rateIn, TextField titleIn, TextArea contIn, Label errLbl) {
+        UserDto currentUser = SessionManager.getInstance().getCurrentUser();
+        
+        if (currentUser != null) {
+            if (!currentUser.isVerified()) {
+                mostrarAlertaPrecaucion(AppConstants.MESSAGE_ERROR_UNVERIFIED);
+                return;
+            }
+        }
+        
         if (rateIn.getValue() == null) {
             return;
         }
@@ -627,6 +647,28 @@ public class ShowDetailController {
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
+    
+    private void mostrarAlertaPrecaucion(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("Atención");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        
+        ButtonType btnVerify = new ButtonType("Verificar ahora");
+        ButtonType btnCancel = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        
+        alert.getButtonTypes().clear();
+        alert.getButtonTypes().add(btnVerify);
+        alert.getButtonTypes().add(btnCancel);
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        
+        if (result.isPresent()) {
+            if (result.get() == btnVerify) {
+                App.setRoot(AppConstants.FXML_VERIFY_EMAIL);
+            }
+        }
+    }
 
     private VBox buildReviewCard(ReviewDto review) {
         String rId = review.getSafeId();
@@ -658,8 +700,7 @@ public class ShowDetailController {
         
         Button likeBtn = new Button("Me gusta (" + review.getLikesCount() + ")");
         likeBtn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
-        likeBtn.setDisable(true);
-        configurarBotonLikeResena(rId, likeBtn, review.getLikesCount());
+        configurarBotonLikeResena(rId, likeBtn, review.getLikesCount(), review.getIsLikedValue());
 
         VBox commContainer = new VBox(10); 
         commContainer.setManaged(false); 
@@ -678,9 +719,17 @@ public class ShowDetailController {
             }
         });
 
-        actions.getChildren().addAll(likeBtn, commBtn);
+        actions.getChildren().add(likeBtn);
+        actions.getChildren().add(commBtn);
+        
         injectOwnerActions(rId, review.getOwnerId(), actions);
-        card.getChildren().addAll(author, title, content, actions, commContainer);
+        
+        card.getChildren().add(author);
+        card.getChildren().add(title);
+        card.getChildren().add(content);
+        card.getChildren().add(actions);
+        card.getChildren().add(commContainer);
+        
         return card;
     }
 
@@ -692,20 +741,19 @@ public class ShowDetailController {
             TextField in = new TextField(); 
             in.setPromptText("Escribe un comentario...");
             in.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+            
             Button b = new Button("Enviar"); 
             b.setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-cursor: hand;");
+            
             b.setOnAction(e -> {
-                if (in.getText().isBlank()) {
-                    return;
-                }
-                reviewService.createComment(rId, new CommentRequest(in.getText().trim()))
-                        .thenRun(() -> {
-                            Platform.runLater(() -> {
-                                cargarComentariosUI(rId, container);
-                            });
-                        });
+                procesarEnvioComentario(in, rId, container);
             });
-            container.getChildren().add(new HBox(10, in, b));
+            
+            HBox box = new HBox(10);
+            box.getChildren().add(in);
+            box.getChildren().add(b);
+            
+            container.getChildren().add(box);
         }
         
         reviewService.getReviewComments(rId).thenAccept(list -> {
@@ -715,6 +763,29 @@ public class ShowDetailController {
                         container.getChildren().add(buildCommentItem(c, rId, container));
                     }
                 }
+            });
+        });
+    }
+    
+    private void procesarEnvioComentario(TextField in, String rId, VBox container) {
+        UserDto currentUser = SessionManager.getInstance().getCurrentUser();
+        
+        if (currentUser != null) {
+            if (!currentUser.isVerified()) {
+                mostrarAlertaPrecaucion(AppConstants.MESSAGE_ERROR_UNVERIFIED);
+                return;
+            }
+        }
+
+        if (in.getText().isBlank()) {
+            return;
+        }
+        
+        CommentRequest req = new CommentRequest(in.getText().trim());
+        
+        reviewService.createComment(rId, req).thenRun(() -> {
+            Platform.runLater(() -> {
+                cargarComentariosUI(rId, container);
             });
         });
     }
@@ -738,34 +809,33 @@ public class ShowDetailController {
         HBox actions = new HBox(10);
         Button lk = new Button("Me gusta (" + c.getLikesCount() + ")");
         lk.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
-        lk.setDisable(true);
-        configurarBotonLikeComentario(cId, lk, c.getLikesCount(), rId, parent);
+        configurarBotonLikeComentario(cId, lk, c.getLikesCount(), c.getIsLikedValue(), rId, parent);
         
         actions.getChildren().add(lk);
         injectCommentDelete(cId, c.getOwnerId(), actions, rId, parent);
         
-        box.getChildren().addAll(user, txt, actions);
+        box.getChildren().add(user);
+        box.getChildren().add(txt);
+        box.getChildren().add(actions);
+        
         return box;
     }
 
-    private void configurarBotonLikeResena(String rId, Button likeBtn, int initialCount) {
+    private void configurarBotonLikeResena(String rId, Button likeBtn, int initialCount, boolean isLiked) {
         if (!SessionManager.getInstance().isAuthenticated()) {
-            likeBtn.setDisable(false); 
+            likeBtn.setDisable(true); 
             return;
         }
         if (rId.isEmpty()) {
-            likeBtn.setDisable(false); 
+            likeBtn.setDisable(true); 
             return;
         }
         
-        reviewService.isReviewLikedByMe(rId).thenAccept(isLiked -> {
-            Platform.runLater(() -> {
-                likeBtn.setDisable(false);
-                actualizarAparienciaLike(likeBtn, isLiked, initialCount);
-                likeBtn.setOnAction(e -> {
-                    handleLikeToggleResena(rId, likeBtn);
-                });
-            });
+        likeBtn.setDisable(false);
+        actualizarAparienciaLike(likeBtn, isLiked, initialCount);
+        
+        likeBtn.setOnAction(e -> {
+            handleLikeToggleResena(rId, likeBtn);
         });
     }
 
@@ -786,24 +856,21 @@ public class ShowDetailController {
         });
     }
 
-    private void configurarBotonLikeComentario(String cId, Button lk, int initialCount, String rId, VBox parent) {
+    private void configurarBotonLikeComentario(String cId, Button lk, int initialCount, boolean isLiked, String rId, VBox parent) {
         if (!SessionManager.getInstance().isAuthenticated()) {
-            lk.setDisable(false); 
+            lk.setDisable(true); 
             return;
         }
         if (cId.isEmpty()) {
-            lk.setDisable(false); 
+            lk.setDisable(true); 
             return;
         }
         
-        reviewService.isCommentLikedByMe(cId).thenAccept(isLiked -> {
-            Platform.runLater(() -> {
-                lk.setDisable(false);
-                actualizarAparienciaLike(lk, isLiked, initialCount);
-                lk.setOnAction(e -> {
-                    handleLikeToggleComentario(cId, lk, rId, parent);
-                });
-            });
+        lk.setDisable(false);
+        actualizarAparienciaLike(lk, isLiked, initialCount);
+        
+        lk.setOnAction(e -> {
+            handleLikeToggleComentario(cId, lk, rId, parent);
         });
     }
 
@@ -853,16 +920,12 @@ public class ShowDetailController {
         }
         
         if (SessionManager.getInstance().isAuthenticated()) {
-            String currAuth = SessionManager.getInstance().getCurrentUser().authId();
-                    if (ownerId.equals(currAuth)) {
-                        label.setText("@" + SessionManager.getInstance().getCurrentUser().username()); 
-                        return;
-                    }
-            if (ownerId.equals(SessionManager.getInstance().getCurrentUser().id())) {
-                        label.setText("@" + SessionManager.getInstance().getCurrentUser().username()); 
-                        return;
-                    }
-                }
+            String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
+            if (ownerId.equals(currAuth)) {
+                label.setText("@" + SessionManager.getInstance().getCurrentUser().username()); 
+                return;
+            }
+        }
         
         if (usernameCache.containsKey(ownerId)) {
             label.setText("@" + usernameCache.get(ownerId)); 
@@ -896,14 +959,12 @@ public class ShowDetailController {
             return;
         }
         
-        String currAuth = SessionManager.getInstance().getCurrentUser().authId();
+        String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
         boolean isOwner = false;
-            if (ownerId.equals(currAuth)) {
-                isOwner = true;
-            }
-        if (ownerId.equals(SessionManager.getInstance().getCurrentUser().id())) {
-                isOwner = true;
-            }
+        
+        if (ownerId.equals(currAuth)) {
+            isOwner = true;
+        }
         
         if (isOwner) {
             Button del = new Button("Eliminar");
@@ -930,13 +991,10 @@ public class ShowDetailController {
             return;
         }
         
-        String currAuth = SessionManager.getInstance().getCurrentUser().authId();
+        String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
         boolean isOwner = false;
         
         if (ownerId.equals(currAuth)) {
-            isOwner = true;
-        }
-        if (ownerId.equals(SessionManager.getInstance().getCurrentUser().id())) {
             isOwner = true;
         }
         
@@ -961,7 +1019,6 @@ public class ShowDetailController {
             ((ShowCardController)l.getController()).setData(s);
             container.getChildren().add(card);
         } catch (IOException e) { 
-            System.err.println("Error card"); 
         }
     }
 
@@ -1005,7 +1062,9 @@ public class ShowDetailController {
         c.setWrapText(true); 
         c.setTextAlignment(TextAlignment.CENTER);
         
-        b.getChildren().addAll(iv, n, c); 
+        b.getChildren().add(iv);
+        b.getChildren().add(n);
+        b.getChildren().add(c); 
         return b;
     }
 

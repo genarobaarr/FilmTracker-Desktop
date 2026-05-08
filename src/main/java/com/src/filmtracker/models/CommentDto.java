@@ -1,5 +1,7 @@
 package com.src.filmtracker.models;
 
+import com.google.gson.annotations.SerializedName;
+
 public record CommentDto(
     Object id, 
     Object review_id, 
@@ -7,7 +9,10 @@ public record CommentDto(
     String content, 
     Object likes_count, 
     String created_at, 
-    String updated_at
+    String updated_at,
+    
+    @SerializedName(value = "liked_by_me", alternate = {"is_liked", "isLiked", "liked"})
+    Object likedByMe
 ) {
     public String getSafeId() { 
         if (id == null) {
@@ -40,5 +45,29 @@ public record CommentDto(
         } catch (Exception e) { 
             return 0; 
         }
+    }
+
+    public boolean getIsLikedValue() {
+        if (likedByMe == null) {
+            return false;
+        }
+        
+        if (likedByMe instanceof Boolean) {
+            return (Boolean) likedByMe;
+        }
+        
+        String s = likedByMe.toString().trim().toLowerCase();
+        
+        if (s.equals("true")) {
+            return true;
+        }
+        if (s.equals("1")) {
+            return true;
+        }
+        if (s.equals("1.0")) {
+            return true;
+        }
+        
+        return false;
     }
 }
