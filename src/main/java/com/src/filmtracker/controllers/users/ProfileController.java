@@ -1,12 +1,16 @@
 package com.src.filmtracker.controllers.users;
 
 import com.src.filmtracker.App;
+import com.src.filmtracker.models.friends.FriendsSummaryDto;
 import com.src.filmtracker.models.library.LibraryItemDto;
 import com.src.filmtracker.models.reviews.ReviewDto;
 import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
+import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import com.src.filmtracker.models.shows.Show;
 import com.src.filmtracker.models.shows.ShowFullResponse;
 import com.src.filmtracker.models.users.UserDto;
+import com.src.filmtracker.services.friends.FriendsService;
+import com.src.filmtracker.services.friends.IFriendsService;
 import com.src.filmtracker.services.library.ILibraryService;
 import com.src.filmtracker.services.library.LibraryService;
 import com.src.filmtracker.services.reviews.IReviewService;
@@ -41,6 +45,10 @@ public class ProfileController {
     @FXML private Label roleLabel;
     @FXML private Label dateLabel;
     
+    @FXML private Label reviewsCountLabel;
+    @FXML private Label likesReceivedLabel;
+    @FXML private Label friendsCountLabel;
+    
     @FXML private VBox privateInfoContainer;
     
     @FXML private VBox favoritesContainer;
@@ -56,6 +64,7 @@ public class ProfileController {
     private final ILibraryService libraryService = new LibraryService();
     private final IShowService showService = new ShowService();
     private final IReviewService reviewService = new ReviewService();
+    private final IFriendsService friendsService = new FriendsService();
     
     private int currentReviewPage = 1;
     private UserDto currentUserProfile;
@@ -92,6 +101,8 @@ public class ProfileController {
         }
         
         avatarView.setImage(new Image(imageUrl, true));
+        
+        cargarEstadisticas(user.getSafeAuthId());
 
         boolean isCurrentUser = esUsuarioActual(user);
         configurarVisibilidadPublica(isCurrentUser, user);
@@ -153,6 +164,33 @@ public class ProfileController {
         favoritesTitleLabel.setText("Favoritos de @" + user.username());
         
         cargarFavoritos(false);
+    }
+    
+    private void cargarEstadisticas(String authId) {
+        if (authId == null) {
+            return;
+        }
+        
+        if (authId.isEmpty()) {
+            return;
+        }
+
+        reviewService.getUserSummary(authId).thenAccept(summary -> {
+            Platform.runLater(() -> {
+                if (summary != null) {
+                    reviewsCountLabel.setText(String.valueOf(summary.reviewsCount()));
+                    likesReceivedLabel.setText(String.valueOf(summary.totalLikesReceived()));
+                }
+            });
+        });
+
+        friendsService.getUserSummary(authId).thenAccept(summary -> {
+            Platform.runLater(() -> {
+                if (summary != null) {
+                    friendsCountLabel.setText(String.valueOf(summary.friendsCount()));
+                }
+            });
+        });
     }
 
     private void cargarFavoritos(boolean isCurrentUser) {

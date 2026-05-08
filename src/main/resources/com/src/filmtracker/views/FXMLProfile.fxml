@@ -62,6 +62,41 @@
                                 <Font size="12.0" />
                             </font>
                         </Label>
+                        
+                        <HBox alignment="CENTER" spacing="40.0" style="-fx-padding: 10 0 10 0;">
+                            <children>
+                                <VBox alignment="CENTER" spacing="5.0">
+                                    <children>
+                                        <Label fx:id="reviewsCountLabel" text="0" textFill="WHITE">
+                                            <font><Font name="System Bold" size="20.0" /></font>
+                                        </Label>
+                                        <Label text="Reseñas" textFill="#888888">
+                                            <font><Font size="12.0" /></font>
+                                        </Label>
+                                    </children>
+                                </VBox>
+                                <VBox alignment="CENTER" spacing="5.0">
+                                    <children>
+                                        <Label fx:id="likesReceivedLabel" text="0" textFill="WHITE">
+                                            <font><Font name="System Bold" size="20.0" /></font>
+                                        </Label>
+                                        <Label text="Likes" textFill="#888888">
+                                            <font><Font size="12.0" /></font>
+                                        </Label>
+                                    </children>
+                                </VBox>
+                                <VBox alignment="CENTER" spacing="5.0">
+                                    <children>
+                                        <Label fx:id="friendsCountLabel" text="0" textFill="WHITE">
+                                            <font><Font name="System Bold" size="20.0" /></font>
+                                        </Label>
+                                        <Label text="Amigos" textFill="#888888">
+                                            <font><Font size="12.0" /></font>
+                                        </Label>
+                                    </children>
+                                </VBox>
+                            </children>
+                        </HBox>
 
                         <VBox fx:id="favoritesContainer" spacing="10.0" maxWidth="1000">
                             <children>

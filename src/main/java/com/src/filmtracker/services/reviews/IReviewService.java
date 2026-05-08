@@ -6,6 +6,7 @@ import com.src.filmtracker.models.reviews.CommentRequest;
 import com.src.filmtracker.models.reviews.ReviewRequest;
 import com.src.filmtracker.models.reviews.CommentDto;
 import com.src.filmtracker.models.reviews.ReviewDto;
+import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import java.util.concurrent.CompletableFuture;
 
 public interface IReviewService {
@@ -21,4 +22,5 @@ public interface IReviewService {
     CompletableFuture<Void> deleteComment(String commentId);
     CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked);
     CompletableFuture<ReviewPaginationResponse> getUserReviews(String authId, int page);
+    CompletableFuture<ReviewSummaryDto> getUserSummary(String authId);
 }

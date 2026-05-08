@@ -11,6 +11,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
+import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
 
@@ -111,6 +112,12 @@ public class ReviewService implements IReviewService {
         return future.exceptionally(ex -> {
             return new ReviewPaginationResponse(new ArrayList<>(), null);
         });
+    }
+    
+    @Override
+    public CompletableFuture<ReviewSummaryDto> getUserSummary(String authId) {
+        String url = AppConstants.REVIEWS_URL + "/user/" + authId + "/summary";
+        return executeGet(url, ReviewSummaryDto.class, "data");
     }
 
     private <T> CompletableFuture<T> executeGet(String url, Type type, String key) {

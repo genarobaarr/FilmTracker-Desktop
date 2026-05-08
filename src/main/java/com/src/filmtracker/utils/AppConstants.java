@@ -26,6 +26,8 @@ public final class AppConstants {
     public static final String REVIEWS_SERVICE_URL = CONFIG.getProperty("api.reviews.url", "http://localhost:3005/api");
     public static final String REVIEWS_URL = REVIEWS_SERVICE_URL + "/reviews";
     public static final String COMMENTS_URL = REVIEWS_SERVICE_URL + "/comments";
+    
+    public static final String FRIENDS_SERVICE_URL = CONFIG.getProperty("api.friends.url", "http://localhost:3006/api/friends");
 
     public static final int HOME_CAROUSEL_LIMIT = 20;
 
