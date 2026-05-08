@@ -1,6 +1,8 @@
 package com.src.filmtracker.services;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.src.filmtracker.models.UserDto;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
@@ -31,7 +33,8 @@ public class UserService implements IUserService {
                         throw new RuntimeException("Error: " + response.statusCode());
                     }
                     
-                    com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
+                    JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
@@ -42,7 +45,7 @@ public class UserService implements IUserService {
 
     @Override
     public CompletableFuture<UserDto> getUserById(String authId) {
-        String url = AppConstants.USERS_SERVICE_URL + "/auth/" + authId;
+        String url = AppConstants.USERS_SERVICE_URL + "/id/" + authId;
         
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -56,7 +59,8 @@ public class UserService implements IUserService {
                         return null;
                     }
                     
-                    com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
+                    JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
@@ -81,7 +85,8 @@ public class UserService implements IUserService {
                         return null;
                     }
 
-                    com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
+                    JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
