@@ -1,7 +1,7 @@
 package com.src.filmtracker.utils;
 
-import com.src.filmtracker.models.AuthResponse;
-import com.src.filmtracker.models.UserDto;
+import com.src.filmtracker.models.auth.AuthResponse;
+import com.src.filmtracker.models.users.UserDto;
 
 public class SessionManager {
     

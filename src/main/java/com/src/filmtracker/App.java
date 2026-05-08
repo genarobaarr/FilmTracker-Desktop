@@ -1,9 +1,9 @@
 package com.src.filmtracker;
 
-import com.src.filmtracker.controllers.ProfileController;
-import com.src.filmtracker.controllers.ShowDetailController;
-import com.src.filmtracker.models.Show;
-import com.src.filmtracker.models.UserDto;
+import com.src.filmtracker.controllers.users.ProfileController;
+import com.src.filmtracker.controllers.shows.ShowDetailController;
+import com.src.filmtracker.models.shows.Show;
+import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.utils.AppConstants;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;

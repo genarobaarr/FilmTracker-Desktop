@@ -5,19 +5,25 @@ public final class AppConstants {
     private AppConstants() {
     }
 
-    public static final String SHOWS_SERVICE_URL = "http://localhost:3001/api/shows";
+    private static final ConfigManager CONFIG = ConfigManager.getInstance();
+
+    public static final String SHOWS_SERVICE_URL = CONFIG.getProperty("api.shows.url", "http://localhost:3001/api/shows");
     public static final String SHOWS_BY_GENRE_URL = SHOWS_SERVICE_URL + "/by-genre/";
-    public static final String USERS_SERVICE_URL = "http://localhost:3002/api/users";
+    
+    public static final String USERS_SERVICE_URL = CONFIG.getProperty("api.users.url", "http://localhost:3002/api/users");
     public static final String USERS_PROFILE_URL = USERS_SERVICE_URL + "/profile";
-    public static final String AUTH_SERVICE_URL = "http://localhost:3003/api/auth";
+    
+    public static final String AUTH_SERVICE_URL = CONFIG.getProperty("api.auth.url", "http://localhost:3003/api/auth");
     public static final String AUTH_LOGIN_URL = AUTH_SERVICE_URL + "/login";
     public static final String AUTH_REGISTER_URL = AUTH_SERVICE_URL + "/register";
     public static final String AUTH_VERIFY_EMAIL_URL = AUTH_SERVICE_URL + "/verify-email";
     public static final String AUTH_RESEND_VERIFICATION_URL = AUTH_SERVICE_URL + "/resend-verification";
-    public static final String LIBRARY_SERVICE_URL = "http://localhost:3004/api";
+    
+    public static final String LIBRARY_SERVICE_URL = CONFIG.getProperty("api.library.url", "http://localhost:3004/api");
     public static final String FAVORITES_URL = LIBRARY_SERVICE_URL + "/favorites";
     public static final String WATCHLIST_URL = LIBRARY_SERVICE_URL + "/watchlist";
-    public static final String REVIEWS_SERVICE_URL = "http://localhost:3005/api";
+    
+    public static final String REVIEWS_SERVICE_URL = CONFIG.getProperty("api.reviews.url", "http://localhost:3005/api");
     public static final String REVIEWS_URL = REVIEWS_SERVICE_URL + "/reviews";
     public static final String COMMENTS_URL = REVIEWS_SERVICE_URL + "/comments";
 
