@@ -4,6 +4,9 @@ target/
 *.ear
 *.class
 
+# Archivos de configuración locales
+src/main/resources/application.properties
+
 nbproject/private/
 nbproject/project.properties
 nbproject/project.xml
