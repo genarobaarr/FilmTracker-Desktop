@@ -1,13 +1,12 @@
 package com.src.filmtracker.services.users;
 
-import com.src.filmtracker.services.users.IUserService;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.src.filmtracker.models.users.UserDto;
+import com.src.filmtracker.models.users.UpdateProfileRequest;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -33,13 +32,10 @@ public class UserService implements IUserService {
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + response.statusCode());
                     }
-                    
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
-                    
                     return gson.fromJson(json, UserDto.class);
                 });
     }
@@ -47,7 +43,6 @@ public class UserService implements IUserService {
     @Override
     public CompletableFuture<UserDto> getUserById(String authId) {
         String url = AppConstants.USERS_SERVICE_URL + "/id/" + authId;
-        
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
@@ -59,13 +54,10 @@ public class UserService implements IUserService {
                     if (response.statusCode() >= 400) {
                         return null;
                     }
-                    
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
-                    
                     return gson.fromJson(json, UserDto.class);
                 });
     }
@@ -73,7 +65,6 @@ public class UserService implements IUserService {
     @Override
     public CompletableFuture<UserDto> getUserByUsername(String username) {
         String url = AppConstants.USERS_SERVICE_URL + "/" + username;
-
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
@@ -85,14 +76,34 @@ public class UserService implements IUserService {
                     if (response.statusCode() >= 400) {
                         return null;
                     }
-
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
-
                     return gson.fromJson(json, UserDto.class);
+                });
+    }
+
+    @Override
+    public CompletableFuture<UserDto> updateProfile(UpdateProfileRequest request) {
+        String jsonBody = gson.toJson(request);
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(AppConstants.USERS_PROFILE_URL))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() >= 400) {
+                        throw new RuntimeException("Update Error: " + response.statusCode());
+                    }
+                    JsonObject obj = JsonParser.parseString(response.body()).getAsJsonObject();
+                    if (obj.has("data")) {
+                        return gson.fromJson(obj.get("data"), UserDto.class);
+                    }
+                    return gson.fromJson(obj, UserDto.class);
                 });
     }
 }

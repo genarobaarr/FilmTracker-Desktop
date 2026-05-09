@@ -3,129 +3,109 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
+<?import javafx.geometry.Insets?>
 
 <BorderPane style="-fx-background-color: #121212;" stylesheets="@../css/styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.users.ProfileController">
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-padding: 15; -fx-background-color: #1e1e1e; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;">
+        <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 15; -fx-background-color: #1e1e1e; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;">
             <children>
                 <Button mnemonicParsing="false" onAction="#handleBack" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="← VOLVER" />
+                <HBox HBox.hgrow="ALWAYS" />
+                <Button mnemonicParsing="false" onAction="#handleMinimize" style="-fx-background-color: transparent; -fx-cursor: hand;" text="—" textFill="WHITE">
+                    <font><Font name="System Bold" size="16.0" /></font>
+                </Button>
+                <Button mnemonicParsing="false" onAction="#handleClose" style="-fx-background-color: transparent; -fx-cursor: hand;" text="X" textFill="WHITE">
+                    <font><Font name="System Bold" size="16.0" /></font>
+                </Button>
             </children>
         </HBox>
     </top>
     <center>
-        <ScrollPane fitToWidth="true" style="-fx-background-color: #121212; -fx-background: #121212;" hbarPolicy="NEVER">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: #121212; -fx-background: #121212;">
             <content>
-                <VBox alignment="CENTER" spacing="30.0" style="-fx-padding: 20; -fx-background-color: #121212;">
+                <VBox alignment="CENTER" spacing="25.0" style="-fx-padding: 20; -fx-background-color: #121212;">
                     <children>
                         <ImageView fx:id="avatarView" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true" />
                 
-                        <VBox alignment="CENTER" spacing="5.0">
-                            <Label fx:id="nameLabel" textFill="WHITE">
-                                <font>
-                                    <Font name="System Bold" size="28.0" />
-                                </font>
-                            </Label>
-                            <Label fx:id="usernameLabel" textFill="#e50914">
-                                <font>
-                                    <Font size="16.0" />
-                                </font>
-                            </Label>
+                        <VBox alignment="CENTER" spacing="10.0">
+                            <StackPane>
+                                <HBox fx:id="nameDisplayBox" alignment="CENTER" spacing="10.0">
+                                    <Label fx:id="nameLabel" textFill="WHITE">
+                                        <font><Font name="System Bold" size="28.0" /></font>
+                                    </Label>
+                                    <Button fx:id="editNameBtn" onAction="#handleEditName" style="-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand;" text="✎" />
+                                </HBox>
+                                <HBox fx:id="nameEditBox" alignment="CENTER" managed="false" spacing="10.0" visible="false">
+                                    <TextField fx:id="nameField" promptText="Nuevo nombre" style="-fx-control-inner-background: #2a2a2a; -fx-text-fill: white;" />
+                                    <Button onAction="#handleSaveName" style="-fx-background-color: #2a2a2a; -fx-text-fill: #4caf50; -fx-cursor: hand;" text="✓" />
+                                    <Button onAction="#handleCancelName" style="-fx-background-color: #2a2a2a; -fx-text-fill: #e50914; -fx-cursor: hand;" text="✕" />
+                                </HBox>
+                            </StackPane>
+                            <StackPane>
+                                <HBox fx:id="usernameDisplayBox" alignment="CENTER" spacing="10.0">
+                                    <Label fx:id="usernameLabel" textFill="#e50914">
+                                        <font><Font size="16.0" /></font>
+                                    </Label>
+                                    <Button fx:id="editUsernameBtn" onAction="#handleEditUsername" style="-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand;" text="✎" />
+                                </HBox>
+                                <HBox fx:id="usernameEditBox" alignment="CENTER" managed="false" spacing="10.0" visible="false">
+                                    <TextField fx:id="usernameField" promptText="Nuevo usuario" style="-fx-control-inner-background: #2a2a2a; -fx-text-fill: white;" />
+                                    <Button onAction="#handleSaveUsername" style="-fx-background-color: #2a2a2a; -fx-text-fill: #4caf50; -fx-cursor: hand;" text="✓" />
+                                    <Button onAction="#handleCancelUsername" style="-fx-background-color: #2a2a2a; -fx-text-fill: #e50914; -fx-cursor: hand;" text="✕" />
+                                </HBox>
+                            </StackPane>
                         </VBox>
-                        
-                        <VBox fx:id="privateInfoContainer" alignment="CENTER" spacing="10.0" style="-fx-background-color: #1e1e1e; -fx-padding: 20; -fx-background-radius: 10;" maxWidth="400.0">
-                            <children>
-                                <Label text="EMAIL" textFill="#888888">
-                                    <font>
-                                        <Font name="System Bold" size="10.0" />
-                                    </font>
-                                </Label>
-                                <Label fx:id="emailLabel" textFill="WHITE">
-                                    <font>
-                                        <Font size="16.0" />
-                                    </font>
-                                </Label>
-                                <Label text="ROL" textFill="#888888">
-                                    <font>
-                                        <Font name="System Bold" size="10.0" />
-                                    </font>
-                                </Label>
-                                <Label fx:id="roleLabel" textFill="WHITE">
-                                    <font>
-                                        <Font size="16.0" />
-                                    </font>
-                                </Label>
-                            </children>
-                        </VBox>
-                        
-                        <Label fx:id="dateLabel" textFill="#555555">
-                            <font>
-                                <Font size="12.0" />
-                            </font>
-                        </Label>
-                        
+
                         <HBox alignment="CENTER" spacing="40.0" style="-fx-padding: 10 0 10 0;">
                             <children>
                                 <VBox alignment="CENTER" spacing="5.0">
-                                    <children>
-                                        <Label fx:id="reviewsCountLabel" text="0" textFill="WHITE">
-                                            <font><Font name="System Bold" size="20.0" /></font>
-                                        </Label>
-                                        <Label text="Reseñas" textFill="#888888">
-                                            <font><Font size="12.0" /></font>
-                                        </Label>
-                                    </children>
+                                    <Label fx:id="reviewsCountLabel" text="0" textFill="WHITE"><font><Font name="System Bold" size="20.0" /></font></Label>
+                                    <Label text="Reseñas" textFill="#888888"><font><Font size="12.0" /></font></Label>
                                 </VBox>
                                 <VBox alignment="CENTER" spacing="5.0">
-                                    <children>
-                                        <Label fx:id="likesReceivedLabel" text="0" textFill="WHITE">
-                                            <font><Font name="System Bold" size="20.0" /></font>
-                                        </Label>
-                                        <Label text="Likes" textFill="#888888">
-                                            <font><Font size="12.0" /></font>
-                                        </Label>
-                                    </children>
+                                    <Label fx:id="likesReceivedLabel" text="0" textFill="WHITE"><font><Font name="System Bold" size="20.0" /></font></Label>
+                                    <Label text="Likes" textFill="#888888"><font><Font size="12.0" /></font></Label>
                                 </VBox>
                                 <VBox alignment="CENTER" spacing="5.0">
-                                    <children>
-                                        <Label fx:id="friendsCountLabel" text="0" textFill="WHITE">
-                                            <font><Font name="System Bold" size="20.0" /></font>
-                                        </Label>
-                                        <Label text="Amigos" textFill="#888888">
-                                            <font><Font size="12.0" /></font>
-                                        </Label>
-                                    </children>
+                                    <Label fx:id="friendsCountLabel" text="0" textFill="WHITE"><font><Font name="System Bold" size="20.0" /></font></Label>
+                                    <Label text="Amigos" textFill="#888888"><font><Font size="12.0" /></font></Label>
                                 </VBox>
                             </children>
                         </HBox>
 
-                        <VBox fx:id="favoritesContainer" spacing="10.0" maxWidth="1000">
+                        <VBox fx:id="privateInfoContainer" alignment="CENTER" maxWidth="400.0" spacing="10.0" style="-fx-background-color: #1e1e1e; -fx-padding: 20; -fx-background-radius: 10;">
+                            <children>
+                                <Label text="EMAIL" textFill="#888888"><font><Font name="System Bold" size="10.0" /></font></Label>
+                                <Label fx:id="emailLabel" textFill="WHITE"><font><Font size="16.0" /></font></Label>
+                                <Label text="ROL" textFill="#888888"><font><Font name="System Bold" size="10.0" /></font></Label>
+                                <Label fx:id="roleLabel" textFill="WHITE"><font><Font size="16.0" /></font></Label>
+                            </children>
+                        </VBox>
+                        
+                        <Label fx:id="dateLabel" textFill="#555555"><font><Font size="12.0" /></font></Label>
+
+                        <VBox fx:id="favoritesContainer" maxWidth="1000" spacing="10.0">
                             <children>
                                 <Label fx:id="favoritesTitleLabel" text="Mis Series Favoritas" textFill="WHITE">
-                                    <font>
-                                        <Font name="System Bold" size="22.0" />
-                                    </font>
+                                    <font><Font name="System Bold" size="22.0" /></font>
                                 </Label>
                                 <VBox fx:id="favoritesSection" spacing="15.0" />
                             </children>
                         </VBox>
                         
-                        <VBox fx:id="watchlistContainer" spacing="10.0" maxWidth="1000">
+                        <VBox fx:id="watchlistContainer" maxWidth="1000" spacing="10.0">
                             <children>
                                 <Label text="Mi Watchlist" textFill="WHITE">
-                                    <font>
-                                        <Font name="System Bold" size="22.0" />
-                                    </font>
+                                    <font><Font name="System Bold" size="22.0" /></font>
                                 </Label>
                                 <VBox fx:id="watchlistSection" spacing="15.0" />
                             </children>
                         </VBox>
 
-                        <VBox spacing="10.0" maxWidth="1000">
+                        <VBox maxWidth="1000" spacing="10.0">
                             <children>
                                 <Label fx:id="reviewsTitleLabel" text="Mis Reseñas Publicadas" textFill="WHITE">
-                                    <font>
-                                        <Font name="System Bold" size="22.0" />
-                                    </font>
+                                    <font><Font name="System Bold" size="22.0" /></font>
                                 </Label>
                                 <VBox fx:id="reviewsSection" spacing="15.0" />
                             </children>
