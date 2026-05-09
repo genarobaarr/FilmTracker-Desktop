@@ -5,7 +5,7 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.geometry.Insets?>
 
-<BorderPane style="-fx-background-color: #121212;" stylesheets="@../css/styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.users.ProfileController">
+<BorderPane style="-fx-background-color: #121212;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.users.ProfileController">
     <top>
         <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 15; -fx-background-color: #1e1e1e; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;">
             <children>
@@ -79,6 +79,11 @@
                                 <Label fx:id="emailLabel" textFill="WHITE"><font><Font size="16.0" /></font></Label>
                                 <Label text="ROL" textFill="#888888"><font><Font name="System Bold" size="10.0" /></font></Label>
                                 <Label fx:id="roleLabel" textFill="WHITE"><font><Font size="16.0" /></font></Label>
+                                <Button mnemonicParsing="false" onAction="#handleChangePassword" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8 15;" text="CAMBIAR CONTRASEÑA">
+                                    <VBox.margin>
+                                        <Insets top="10.0" />
+                                    </VBox.margin>
+                                </Button>
                             </children>
                         </VBox>
                         

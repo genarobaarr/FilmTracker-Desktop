@@ -9,7 +9,6 @@ import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import com.src.filmtracker.models.shows.Show;
 import com.src.filmtracker.models.shows.ShowFullResponse;
 import com.src.filmtracker.models.users.UpdateProfileRequest;
-import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.services.library.ILibraryService;
 import com.src.filmtracker.services.library.LibraryService;
 import com.src.filmtracker.services.reviews.IReviewService;
@@ -74,7 +73,6 @@ public class ProfileController {
     private int currentReviewPage = 1;
     private UserDto currentUserProfile;
     
-    
     @FXML private void handleEditName() { 
         toggleNameEdit(true); 
     }
@@ -91,6 +89,10 @@ public class ProfileController {
         toggleUsernameEdit(false); 
     }
     
+    @FXML private void handleChangePassword() {
+        App.setRoot(AppConstants.FXML_CHANGE_PASSWORD);
+    }
+    
     @FXML private void handleBack() { 
         App.setRoot(AppConstants.FXML_DASHBOARD); 
     }
@@ -100,13 +102,15 @@ public class ProfileController {
     }
     
     @FXML private void handleClose() { 
-        Platform.exit(); System.exit(0); 
+        Platform.exit(); 
+        System.exit(0); 
     }
 
     public void initData(UserDto user) {
         if (user == null) {
             return;
         }
+        
         this.currentUserProfile = user;
         
         actualizarEtiquetasBasicas(user);
@@ -136,8 +140,10 @@ public class ProfileController {
         
         String imageUrl = "https://ui-avatars.com/api/?name=" + user.username() + "&background=e50914&color=fff";
         
-        if (user.profileImage() != null && !user.profileImage().isEmpty()) {
-            imageUrl = user.profileImage();
+        if (user.profileImage() != null) {
+            if (!user.profileImage().isEmpty()) {
+                imageUrl = user.profileImage();
+            }
         }
         
         avatarView.setImage(new Image(imageUrl, true));
@@ -145,16 +151,65 @@ public class ProfileController {
 
     private boolean esUsuarioActual(UserDto user) {
         UserDto loggedInUser = SessionManager.getInstance().getCurrentUser();
-        return loggedInUser != null && user.username() != null && user.username().equals(loggedInUser.username());
+        
+        if (loggedInUser == null) {
+            return false;
+        }
+        
+        if (user == null) {
+            return false;
+        }
+        
+        if (compararUsernameExacto(user, loggedInUser)) {
+            return true;
+        }
+        
+        if (compararAuthIdExacto(user, loggedInUser)) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    private boolean compararUsernameExacto(UserDto user, UserDto loggedInUser) {
+        if (user.username() != null) {
+            if (loggedInUser.username() != null) {
+                if (user.username().trim().equalsIgnoreCase(loggedInUser.username().trim())) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    private boolean compararAuthIdExacto(UserDto user, UserDto loggedInUser) {
+        String currentAuthId = loggedInUser.getSafeAuthId();
+        String profileAuthId = user.getSafeAuthId();
+        
+        if (currentAuthId != null) {
+            if (profileAuthId != null) {
+                if (!currentAuthId.isEmpty()) {
+                    if (currentAuthId.equals(profileAuthId)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
     }
 
     private void configurarVisibilidadPublica(boolean isCurrentUser, UserDto user) {
         watchlistContainer.setVisible(isCurrentUser);
         watchlistContainer.setManaged(isCurrentUser);
+        
         privateInfoContainer.setVisible(isCurrentUser);
         privateInfoContainer.setManaged(isCurrentUser);
+        
         editNameBtn.setVisible(isCurrentUser);
         editNameBtn.setManaged(isCurrentUser);
+        
         editUsernameBtn.setVisible(isCurrentUser);
         editUsernameBtn.setManaged(isCurrentUser);
         
@@ -171,9 +226,14 @@ public class ProfileController {
     }
 
     private void cargarEstadisticas(String authId) {
-        if (authId == null || authId.isEmpty()) {
+        if (authId == null) {
             return;
         }
+        
+        if (authId.isEmpty()) {
+            return;
+        }
+        
         reviewService.getUserSummary(authId).thenAccept(summary -> {
             Platform.runLater(() -> {
                 if (summary != null) {
@@ -189,6 +249,7 @@ public class ProfileController {
         nameDisplayBox.setManaged(!editing);
         nameEditBox.setVisible(editing);
         nameEditBox.setManaged(editing);
+        
         if (editing) {
             nameField.setText(currentUserProfile.name());
         }
@@ -199,6 +260,7 @@ public class ProfileController {
         usernameDisplayBox.setManaged(!editing);
         usernameEditBox.setVisible(editing);
         usernameEditBox.setManaged(editing);
+        
         if (editing) {
             usernameField.setText(currentUserProfile.username());
         }
@@ -206,9 +268,11 @@ public class ProfileController {
 
     @FXML private void handleSaveName() {
         String newName = nameField.getText().trim();
+        
         if (newName.isEmpty()) {
             return;
         }
+        
         UpdateProfileRequest req = new UpdateProfileRequest(newName, currentUserProfile.username(), currentUserProfile.profileImage());
         ejecutarActualizacion(req);
         toggleNameEdit(false);
@@ -216,9 +280,11 @@ public class ProfileController {
 
     @FXML private void handleSaveUsername() {
         String newUsername = usernameField.getText().trim();
+        
         if (newUsername.isEmpty()) {
             return;
         }
+        
         UpdateProfileRequest req = new UpdateProfileRequest(currentUserProfile.name(), newUsername, currentUserProfile.profileImage());
         ejecutarActualizacion(req);
         toggleUsernameEdit(false);
@@ -239,84 +305,148 @@ public class ProfileController {
     }
 
     private void cargarFavoritos(boolean isCurrentUser) {
-        CompletableFuture<List<LibraryItemDto>> future = isCurrentUser 
-            ? libraryService.getFavorites() 
-            : libraryService.getFavoritesByUser(currentUserProfile.getSafeAuthId());
+        CompletableFuture<List<LibraryItemDto>> future;
+        
+        if (isCurrentUser) {
+            future = libraryService.getFavorites();
+        } else {
+            future = libraryService.getFavoritesByUser(currentUserProfile.getSafeAuthId());
+        }
 
-        future.thenAccept(list -> Platform.runLater(() -> procesarListaFavoritos(list)))
-              .exceptionally(e -> {
-                  Platform.runLater(() -> mostrarVacio(favoritesSection, AppConstants.MESSAGE_ERROR_API));
-                  return null;
-              });
+        future.thenAccept(list -> {
+            Platform.runLater(() -> {
+                procesarListaFavoritos(list);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarVacio(favoritesSection, AppConstants.MESSAGE_ERROR_API);
+            });
+            return null;
+        });
     }
 
     private void procesarListaFavoritos(List<LibraryItemDto> list) {
-        if (list == null || list.isEmpty()) {
+        if (list == null) {
             mostrarVacio(favoritesSection, "No hay series en favoritos.");
             return;
         }
+        
+        if (list.isEmpty()) {
+            mostrarVacio(favoritesSection, "No hay series en favoritos.");
+            return;
+        }
+        
         List<Integer> ids = new ArrayList<>();
+        
         for (LibraryItemDto item : list) {
             if (item.tvmazeId() != null) {
                 ids.add(item.tvmazeId());
             }
         }
+        
         cargarSeriesEnCarrusel(ids, favoritesSection);
     }
 
     private void cargarWatchlist() {
-        libraryService.getWatchlist().thenAccept(list -> Platform.runLater(() -> {
-            if (list == null || list.isEmpty()) {
-                mostrarVacio(watchlistSection, "No tienes series en tu Watchlist.");
-                return;
-            }
-            List<Integer> ids = new ArrayList<>();
-            for (LibraryItemDto item : list) {
-                if (item.tvmazeId() != null) {
-                    ids.add(item.tvmazeId());
+        libraryService.getWatchlist().thenAccept(list -> {
+            Platform.runLater(() -> {
+                if (list == null) {
+                    mostrarVacio(watchlistSection, "No tienes series en tu Watchlist.");
+                    return;
                 }
-            }
-            cargarSeriesEnCarrusel(ids, watchlistSection);
-        })).exceptionally(e -> {
-            Platform.runLater(() -> mostrarVacio(watchlistSection, AppConstants.MESSAGE_ERROR_API));
+                
+                if (list.isEmpty()) {
+                    mostrarVacio(watchlistSection, "No tienes series en tu Watchlist.");
+                    return;
+                }
+                
+                List<Integer> ids = new ArrayList<>();
+                
+                for (LibraryItemDto item : list) {
+                    if (item.tvmazeId() != null) {
+                        ids.add(item.tvmazeId());
+                    }
+                }
+                
+                cargarSeriesEnCarrusel(ids, watchlistSection);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarVacio(watchlistSection, AppConstants.MESSAGE_ERROR_API);
+            });
             return null;
         });
     }
 
     private void cargarResenasPropias(int page, boolean isCurrentUser) {
-        String authId = isCurrentUser ? currentUserProfile.getSafeAuthId() : currentUserProfile.authId();
-        if (authId == null || authId.isEmpty()) {
+        String authId = currentUserProfile.getSafeAuthId();
+        
+        if (authId == null) {
             mostrarVacio(reviewsSection, "ID de usuario no disponible.");
             return;
         }
-        reviewService.getUserReviews(authId, page).thenAccept(res -> Platform.runLater(() -> procesarPaginacionResenas(res, isCurrentUser)))
-                     .exceptionally(e -> {
-                         Platform.runLater(() -> mostrarVacio(reviewsSection, AppConstants.MESSAGE_ERROR_API));
-                         return null;
-                     });
+        
+        if (authId.isEmpty()) {
+            mostrarVacio(reviewsSection, "ID de usuario no disponible.");
+            return;
+        }
+        
+        reviewService.getUserReviews(authId, page).thenAccept(res -> {
+            Platform.runLater(() -> {
+                procesarPaginacionResenas(res, isCurrentUser);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarVacio(reviewsSection, AppConstants.MESSAGE_ERROR_API);
+            });
+            return null;
+        });
     }
 
     private void procesarPaginacionResenas(ReviewPaginationResponse response, boolean isCurrentUser) {
-        if (response == null || response.reviews() == null || response.reviews().isEmpty()) {
+        if (response == null) {
             if (currentReviewPage == 1) {
                 mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
             }
             return;
         }
-        removerBotonCargarMas();
-        for (ReviewDto r : response.reviews()) {
-            reviewsSection.getChildren().add(buildReviewCard(r));
+        
+        if (response.reviews() == null) {
+            if (currentReviewPage == 1) {
+                mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
+            }
+            return;
         }
-        if (response.pagination() != null && response.pagination().hasNextPage()) {
-            agregarBotonCargarMas(isCurrentUser);
+        
+        if (response.reviews().isEmpty()) {
+            if (currentReviewPage == 1) {
+                mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
+            }
+            return;
+        }
+        
+        removerBotonCargarMas();
+        
+        for (ReviewDto r : response.reviews()) {
+            VBox cardBox = buildReviewCard(r);
+            reviewsSection.getChildren().add(cardBox);
+        }
+        
+        if (response.pagination() != null) {
+            if (response.pagination().hasNextPage() != null) {
+                if (response.pagination().hasNextPage()) {
+                    agregarBotonCargarMas(isCurrentUser);
+                }
+            }
         }
     }
 
     private void removerBotonCargarMas() {
         if (!reviewsSection.getChildren().isEmpty()) {
-            int last = reviewsSection.getChildren().size() - 1;
-            if (reviewsSection.getChildren().get(last) instanceof HBox) {
-                reviewsSection.getChildren().remove(last);
+            int lastIndex = reviewsSection.getChildren().size() - 1;
+            
+            if (reviewsSection.getChildren().get(lastIndex) instanceof HBox) {
+                reviewsSection.getChildren().remove(lastIndex);
             }
         }
     }
@@ -324,60 +454,94 @@ public class ProfileController {
     private void agregarBotonCargarMas(boolean isCurrentUser) {
         Button btn = new Button("Cargar más reseñas");
         btn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 8 15;");
+        
         btn.setOnAction(e -> {
             currentReviewPage++;
             cargarResenasPropias(currentReviewPage, isCurrentUser);
         });
+        
         HBox box = new HBox(btn);
         box.setAlignment(Pos.CENTER);
+        
         reviewsSection.getChildren().add(box);
     }
 
     private void cargarSeriesEnCarrusel(List<Integer> ids, VBox container) {
         List<CompletableFuture<ShowFullResponse>> futures = new ArrayList<>();
+        
         for (Integer id : ids) {
             futures.add(showService.getFullShowDetails(id));
         }
+        
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> {
             List<Show> shows = new ArrayList<>();
-            for (var f : futures) {
+            
+            for (CompletableFuture<ShowFullResponse> f : futures) {
                 try {
                     ShowFullResponse res = f.join();
-                    if (res != null && res.show() != null) {
-                        shows.add(res.show());
+                    
+                    if (res != null) {
+                        if (res.show() != null) {
+                            shows.add(res.show());
+                        }
                     }
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
             }
+            
             return shows;
-        }).thenAccept(shows -> Platform.runLater(() -> dibujarCarrusel(shows, container)));
+        }).thenAccept(shows -> {
+            Platform.runLater(() -> {
+                dibujarCarrusel(shows, container);
+            });
+        });
     }
 
     private void dibujarCarrusel(List<Show> shows, VBox container) {
         container.getChildren().clear();
+        
         if (shows.isEmpty()) {
             mostrarVacio(container, "Sin portadas disponibles.");
             return;
         }
+        
         HBox content = new HBox(15);
         content.setPadding(new javafx.geometry.Insets(10));
+        
         for (Show s : shows) {
             injectShowCard(s, content);
         }
+        
         ScrollPane sp = new ScrollPane(content);
         sp.setFitToHeight(true);
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        Button bI = new Button("<"); bI.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
-        Button bD = new Button(">"); bD.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
-        bI.setOnAction(e -> sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2)));
-        bD.setOnAction(e -> sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2)));
-        BorderPane bp = new BorderPane(sp); bp.setLeft(bI); bp.setRight(bD);
+        
+        Button bI = new Button("<"); 
+        bI.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
+        
+        Button bD = new Button(">"); 
+        bD.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
+        
+        bI.setOnAction(e -> {
+            sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2));
+        });
+        
+        bD.setOnAction(e -> {
+            sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2));
+        });
+        
+        BorderPane bp = new BorderPane(sp); 
+        bp.setLeft(bI); 
+        bp.setRight(bD);
+        
         container.getChildren().add(bp);
     }
 
     private void mostrarVacio(VBox section, String msj) {
         Label lbl = new Label(msj);
         lbl.setTextFill(Color.GRAY);
+        
         section.getChildren().clear();
         section.getChildren().add(lbl);
     }
@@ -386,28 +550,58 @@ public class ProfileController {
         try {
             FXMLLoader l = new FXMLLoader(getClass().getResource(AppConstants.FXML_SHOW_CARD));
             VBox card = l.load();
-            ((com.src.filmtracker.controllers.shows.ShowCardController) l.getController()).setData(s);
+            
+            com.src.filmtracker.controllers.shows.ShowCardController controller = l.getController();
+            controller.setData(s);
+            
             container.getChildren().add(card);
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
     }
 
     private VBox buildReviewCard(ReviewDto review) {
         VBox card = new VBox(8);
         card.setStyle("-fx-background-color: #151515; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
+        
         Label seriesLabel = new Label("Cargando Serie...");
         seriesLabel.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        
         if (review.tvmaze_id() != null) {
             showService.getFullShowDetails(review.tvmaze_id()).thenAccept(res -> {
-                if (res != null && res.show() != null) {
-                    Platform.runLater(() -> seriesLabel.setText("Serie: " + res.show().name()));
+                if (res != null) {
+                    if (res.show() != null) {
+                        Platform.runLater(() -> {
+                            seriesLabel.setText("Serie: " + res.show().name());
+                        });
+                    }
                 }
             });
         }
-        Label title = new Label(review.title() != null ? review.title() : "Sin título");
-        title.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;"); title.setTextFill(Color.WHITE);
-        Label content = new Label(review.content() != null ? review.content() : "");
-        content.setTextFill(Color.LIGHTGRAY); content.setWrapText(true);
-        card.getChildren().addAll(seriesLabel, title, content);
+        
+        String titleText = "Sin título";
+        
+        if (review.title() != null) {
+            titleText = review.title();
+        }
+        
+        Label title = new Label(titleText);
+        title.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;"); 
+        title.setTextFill(Color.WHITE);
+        
+        String contentText = "";
+        
+        if (review.content() != null) {
+            contentText = review.content();
+        }
+        
+        Label content = new Label(contentText);
+        content.setTextFill(Color.LIGHTGRAY); 
+        content.setWrapText(true);
+        
+        card.getChildren().add(seriesLabel);
+        card.getChildren().add(title);
+        card.getChildren().add(content);
+        
         return card;
     }
 

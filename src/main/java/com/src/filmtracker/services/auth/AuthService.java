@@ -1,15 +1,16 @@
 package com.src.filmtracker.services.auth;
 
-import com.src.filmtracker.services.auth.IAuthService;
 import com.google.gson.Gson;
 import com.src.filmtracker.models.common.ApiResponse;
 import com.src.filmtracker.models.auth.AuthResponse;
+import com.src.filmtracker.models.auth.ChangePasswordRequest;
 import com.src.filmtracker.models.auth.LoginRequest;
 import com.src.filmtracker.models.auth.RegisterRequest;
 import com.src.filmtracker.models.auth.RegisterResponse;
 import com.src.filmtracker.models.auth.ResendVerificationRequest;
 import com.src.filmtracker.models.auth.VerifyEmailRequest;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.SessionManager;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -44,6 +45,27 @@ public class AuthService implements IAuthService {
     @Override
     public CompletableFuture<ApiResponse> resendVerification(ResendVerificationRequest request) {
         return executePost(AppConstants.AUTH_RESEND_VERIFICATION_URL, request, ApiResponse.class);
+    }
+    
+    @Override
+    public CompletableFuture<ApiResponse> changePassword(ChangePasswordRequest request) {
+        String jsonBody = gson.toJson(request);
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(AppConstants.AUTH_CHANGE_PASSWORD_URL))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() >= 400) {
+                        throw new RuntimeException("Error: " + response.statusCode());
+                    }
+                    
+                    return gson.fromJson(response.body(), ApiResponse.class);
+                });
     }
 
     private <T> CompletableFuture<T> executePost(String url, Object bodyData, Class<T> responseClass) {
