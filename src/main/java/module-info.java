@@ -5,7 +5,7 @@ module com.src.filmtracker {
     requires com.google.gson;
     
     opens com.src.filmtracker.controllers.auth to javafx.fxml;
-    opens com.src.filmtracker.services.friends to javafx.fxml;
+    opens com.src.filmtracker.controllers.friends to javafx.fxml;
     opens com.src.filmtracker.controllers.shows to javafx.fxml;
     opens com.src.filmtracker.controllers.users to javafx.fxml;
     

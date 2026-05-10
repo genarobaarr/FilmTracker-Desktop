@@ -9,4 +9,9 @@ public interface IFriendsService {
     CompletableFuture<FriendStatusResponse> getRelationshipStatus(String otherAuthId);
     CompletableFuture<Void> sendFriendRequest(SendFriendRequest request);
     CompletableFuture<Void> removeFriend(String friendAuthId);
+    CompletableFuture<FriendRequestPaginationResponse> getIncomingRequests(int page);
+    CompletableFuture<FriendRequestPaginationResponse> getOutgoingRequests(int page);
+    CompletableFuture<Void> acceptFriendRequest(Integer requestId);
+    CompletableFuture<Void> rejectFriendRequest(Integer requestId);
+    CompletableFuture<Void> cancelFriendRequest(Integer requestId);
 }

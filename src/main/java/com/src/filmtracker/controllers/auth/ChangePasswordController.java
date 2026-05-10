@@ -62,7 +62,7 @@ public class ChangePasswordController {
         authService.changePassword(request).thenAccept(res -> {
             Platform.runLater(() -> {
                 mostrarAlertaExito();
-                App.setRoot(AppConstants.FXML_PROFILE);
+                App.setRoot(AppConstants.FXML_DASHBOARD);
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {

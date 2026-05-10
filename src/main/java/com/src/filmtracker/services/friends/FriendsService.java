@@ -152,4 +152,83 @@ public class FriendsService implements IFriendsService {
                     return null;
                 });
     }
+    
+    @Override
+    public CompletableFuture<FriendRequestPaginationResponse> getIncomingRequests(int page) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/incoming?page=" + page;
+        return executeGetRequestPagination(url);
+    }
+
+    @Override
+    public CompletableFuture<FriendRequestPaginationResponse> getOutgoingRequests(int page) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/outgoing?page=" + page;
+        return executeGetRequestPagination(url);
+    }
+
+    private CompletableFuture<FriendRequestPaginationResponse> executeGetRequestPagination(String url) {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Accept", "application/json")
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .GET()
+                .build();
+
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                .thenApply(res -> {
+                    if (res.statusCode() >= 400) {
+                        return null;
+                    }
+                    
+                    return gson.fromJson(res.body(), FriendRequestPaginationResponse.class);
+                });
+    }
+
+    @Override
+    public CompletableFuture<Void> acceptFriendRequest(Integer requestId) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/" + requestId + "/accept";
+        return executePutRequest(url);
+    }
+
+    @Override
+    public CompletableFuture<Void> rejectFriendRequest(Integer requestId) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/" + requestId + "/reject";
+        return executePutRequest(url);
+    }
+
+    private CompletableFuture<Void> executePutRequest(String url) {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .PUT(HttpRequest.BodyPublishers.ofString(""))
+                .build();
+
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                .thenApply(res -> {
+                    if (res.statusCode() >= 400) {
+                        throw new RuntimeException("Error: " + res.statusCode());
+                    }
+                    
+                    return null;
+                });
+    }
+
+    @Override
+    public CompletableFuture<Void> cancelFriendRequest(Integer requestId) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/" + requestId;
+        
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .DELETE()
+                .build();
+
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                .thenApply(res -> {
+                    if (res.statusCode() >= 400) {
+                        throw new RuntimeException("Error: " + res.statusCode());
+                    }
+                    
+                    return null;
+                });
+    }
 }

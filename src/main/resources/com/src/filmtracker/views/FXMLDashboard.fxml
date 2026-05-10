@@ -29,6 +29,7 @@
            <MenuButton fx:id="profileMenu" mnemonicParsing="false" style="-fx-background-color: transparent; -fx-cursor: hand;" text="👤" textFill="WHITE">
                 <items>
                   <MenuItem mnemonicParsing="false" onAction="#handleVerPerfil" text="Ver Perfil" />
+                  <MenuItem mnemonicParsing="false" onAction="#handleOpenFriendsManager" text="Panel de Amigos" />
                   <MenuItem mnemonicParsing="false" onAction="#handleLogout" text="Cerrar Sesión" />
                 </items>
                 <font>

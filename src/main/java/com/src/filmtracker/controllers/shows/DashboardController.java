@@ -91,56 +91,6 @@ public class DashboardController implements Initializable {
         });
     }
 
-    private void procesarResultadosBusqueda(String query, CompletableFuture<List<Show>> showsFuture, CompletableFuture<UserDto> userFuture) {
-        carruselResultados.getChildren().clear();
-        scrollResultados.setHvalue(0.0);
-
-        UserDto user = null;
-        try {
-            user = userFuture.join();
-        } catch (Exception ex) {
-        }
-
-        List<Show> shows = null;
-        try {
-            shows = showsFuture.join();
-        } catch (Exception ex) {
-        }
-
-        boolean foundAnything = iterarResultados(user, shows);
-
-        if (!foundAnything) {
-            labelResultados.setText("No se encontraron resultados para: " + query);
-        } else {
-            labelResultados.setText("Resultados para: " + query);
-        }
-
-        resultadosContainer.setVisible(true);
-        resultadosContainer.setManaged(true);
-    }
-
-    private boolean iterarResultados(UserDto user, List<Show> shows) {
-        boolean found = false;
-
-        if (user != null) {
-            if (user.id() != null) {
-                agregarTarjetaUsuario(user, carruselResultados);
-                found = true;
-            }
-        }
-
-        if (shows != null) {
-            if (!shows.isEmpty()) {
-                for (Show show : shows) {
-                    agregarTarjeta(show, carruselResultados);
-                }
-                found = true;
-            }
-        }
-
-        return found;
-    }
-
     @FXML
     private void handleVerPerfil() {
         userService.getProfile().thenAccept(user -> {
@@ -150,6 +100,11 @@ public class DashboardController implements Initializable {
         }).exceptionally(e -> {
             return null;
         });
+    }
+    
+    @FXML 
+    private void handleOpenFriendsManager() {
+        App.setRoot(AppConstants.FXML_FRIENDS_MANAGER);
     }
 
     @FXML
@@ -219,6 +174,56 @@ public class DashboardController implements Initializable {
     @FXML
     private void scrollDerTerminadas() {
         moverCarrusel(scrollTerminadas, SCROLL_STEP);
+    }
+
+    private void procesarResultadosBusqueda(String query, CompletableFuture<List<Show>> showsFuture, CompletableFuture<UserDto> userFuture) {
+        carruselResultados.getChildren().clear();
+        scrollResultados.setHvalue(0.0);
+
+        UserDto user = null;
+        try {
+            user = userFuture.join();
+        } catch (Exception ex) {
+        }
+
+        List<Show> shows = null;
+        try {
+            shows = showsFuture.join();
+        } catch (Exception ex) {
+        }
+
+        boolean foundAnything = iterarResultados(user, shows);
+
+        if (!foundAnything) {
+            labelResultados.setText("No se encontraron resultados para: " + query);
+        } else {
+            labelResultados.setText("Resultados para: " + query);
+        }
+
+        resultadosContainer.setVisible(true);
+        resultadosContainer.setManaged(true);
+    }
+
+    private boolean iterarResultados(UserDto user, List<Show> shows) {
+        boolean found = false;
+
+        if (user != null) {
+            if (user.id() != null) {
+                agregarTarjetaUsuario(user, carruselResultados);
+                found = true;
+            }
+        }
+
+        if (shows != null) {
+            if (!shows.isEmpty()) {
+                for (Show show : shows) {
+                    agregarTarjeta(show, carruselResultados);
+                }
+                found = true;
+            }
+        }
+
+        return found;
     }
 
     private void cargarDatosHome() {

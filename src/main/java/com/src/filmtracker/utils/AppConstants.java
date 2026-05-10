@@ -45,6 +45,7 @@ public final class AppConstants {
     public static final String FXML_CHANGE_PASSWORD = "/com/src/filmtracker/views/FXMLChangePassword.fxml";
     public static final String FXML_FORGOT_PASSWORD = "/com/src/filmtracker/views/FXMLForgotPassword.fxml";
     public static final String FXML_RESET_PASSWORD = "/com/src/filmtracker/views/FXMLResetPassword.fxml";
+    public static final String FXML_FRIENDS_MANAGER = "/com/src/filmtracker/views/FXMLFriendsManager.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";
@@ -72,6 +73,9 @@ public final class AppConstants {
     public static final String MESSAGE_SUCCESS_FRIEND_ADD = "Solicitud de amistad enviada.";
     public static final String MESSAGE_SUCCESS_FRIEND_REMOVE = "Amigo eliminado correctamente.";
     public static final String MESSAGE_ERROR_FRIEND_ACTION = "Error al procesar la acción de amistad.";
+    public static final String MESSAGE_SUCCESS_ACCEPTED = "Solicitud aceptada correctamente.";
+    public static final String MESSAGE_SUCCESS_REJECTED = "Solicitud rechazada correctamente.";
+    public static final String MESSAGE_SUCCESS_CANCELED = "Solicitud cancelada correctamente.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;
