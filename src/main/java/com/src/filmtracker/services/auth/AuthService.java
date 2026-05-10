@@ -4,10 +4,12 @@ import com.google.gson.Gson;
 import com.src.filmtracker.models.common.ApiResponse;
 import com.src.filmtracker.models.auth.AuthResponse;
 import com.src.filmtracker.models.auth.ChangePasswordRequest;
+import com.src.filmtracker.models.auth.ForgotPasswordRequest;
 import com.src.filmtracker.models.auth.LoginRequest;
 import com.src.filmtracker.models.auth.RegisterRequest;
 import com.src.filmtracker.models.auth.RegisterResponse;
 import com.src.filmtracker.models.auth.ResendVerificationRequest;
+import com.src.filmtracker.models.auth.ResetPasswordRequest;
 import com.src.filmtracker.models.auth.VerifyEmailRequest;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
@@ -66,6 +68,16 @@ public class AuthService implements IAuthService {
                     
                     return gson.fromJson(response.body(), ApiResponse.class);
                 });
+    }
+    
+    @Override
+    public CompletableFuture<ApiResponse> forgotPassword(ForgotPasswordRequest request) {
+        return executePost(AppConstants.AUTH_FORGOT_PASSWORD_URL, request, ApiResponse.class);
+    }
+
+    @Override
+    public CompletableFuture<ApiResponse> resetPassword(ResetPasswordRequest request) {
+        return executePost(AppConstants.AUTH_RESET_PASSWORD_URL, request, ApiResponse.class);
     }
 
     private <T> CompletableFuture<T> executePost(String url, Object bodyData, Class<T> responseClass) {

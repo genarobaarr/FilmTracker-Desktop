@@ -19,6 +19,8 @@ public final class AppConstants {
     public static final String AUTH_VERIFY_EMAIL_URL = AUTH_SERVICE_URL + "/verify-email";
     public static final String AUTH_RESEND_VERIFICATION_URL = AUTH_SERVICE_URL + "/resend-verification";
     public static final String AUTH_CHANGE_PASSWORD_URL = AUTH_SERVICE_URL + "/change-password";
+    public static final String AUTH_FORGOT_PASSWORD_URL = AUTH_SERVICE_URL + "/forgot-password";
+    public static final String AUTH_RESET_PASSWORD_URL = AUTH_SERVICE_URL + "/reset-password";
     
     public static final String LIBRARY_SERVICE_URL = CONFIG.getProperty("api.library.url", "http://localhost:3004/api");
     public static final String FAVORITES_URL = LIBRARY_SERVICE_URL + "/favorites";
@@ -41,6 +43,8 @@ public final class AppConstants {
     public static final String FXML_USER_CARD = "/com/src/filmtracker/views/FXMLUserCard.fxml";
     public static final String FXML_VERIFY_EMAIL = "/com/src/filmtracker/views/FXMLVerifyEmail.fxml";
     public static final String FXML_CHANGE_PASSWORD = "/com/src/filmtracker/views/FXMLChangePassword.fxml";
+    public static final String FXML_FORGOT_PASSWORD = "/com/src/filmtracker/views/FXMLForgotPassword.fxml";
+    public static final String FXML_RESET_PASSWORD = "/com/src/filmtracker/views/FXMLResetPassword.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";
@@ -63,6 +67,8 @@ public final class AppConstants {
     public static final String MESSAGE_SUCCESS_RESEND = "Se ha reenviado el código a tu correo.";
     public static final String MESSAGE_SUCCESS_PASSWORD = "La contraseña ha sido actualizada correctamente.";
     public static final String MESSAGE_ERROR_PASSWORD_CURRENT = "La contraseña actual es incorrecta.";
+    public static final String MESSAGE_SUCCESS_FORGOT = "Si el correo existe, se enviaron las instrucciones.";
+    public static final String MESSAGE_SUCCESS_RESET = "Contraseña actualizada con éxito.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

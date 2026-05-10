@@ -10,4 +10,6 @@ public interface IAuthService {
     CompletableFuture<AuthResponse> verifyEmail(VerifyEmailRequest request);
     CompletableFuture<ApiResponse> resendVerification(ResendVerificationRequest request);
     CompletableFuture<ApiResponse> changePassword(ChangePasswordRequest request);
+    CompletableFuture<ApiResponse> forgotPassword(ForgotPasswordRequest request);
+    CompletableFuture<ApiResponse> resetPassword(ResetPasswordRequest request);
 }

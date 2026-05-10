@@ -23,11 +23,18 @@ public class LoginController {
     @FXML private void handleClose() { 
         Platform.exit(); System.exit(0); 
     }
+    
     @FXML private void handleMinimize() { 
         ((Stage)emailField.getScene().getWindow()).setIconified(true); 
     }
+    
     @FXML private void goToRegister() { 
         App.setRoot(AppConstants.FXML_REGISTER); 
+    }
+    
+    @FXML
+    private void handleForgotPassword() {
+        App.setRoot(AppConstants.FXML_FORGOT_PASSWORD);
     }
 
     @FXML
