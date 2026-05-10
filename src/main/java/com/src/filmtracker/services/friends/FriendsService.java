@@ -79,23 +79,48 @@ public class FriendsService implements IFriendsService {
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
                     if (res.statusCode() >= 400) {
-                        return null;
+                        return new FriendStatusResponse("NONE", null);
                     }
                     
-                    return gson.fromJson(res.body(), FriendStatusResponse.class);
+                    JsonObject json = JsonParser.parseString(res.body()).getAsJsonObject();
+                    String statusStr = "NONE";
+                    
+                    if (json.has("status")) {
+                        if (!json.get("status").isJsonNull()) {
+                            statusStr = json.get("status").getAsString();
+                        }
+                    } else if (json.has("data")) {
+                        if (!json.get("data").isJsonNull()) {
+                            JsonObject dataObj = json.getAsJsonObject("data");
+                            if (dataObj.has("status")) {
+                                if (!dataObj.get("status").isJsonNull()) {
+                                    statusStr = dataObj.get("status").getAsString();
+                                }
+                            }
+                        }
+                    }
+                    
+                    return new FriendStatusResponse(statusStr, null);
                 });
     }
 
     @Override
     public CompletableFuture<Void> sendFriendRequest(SendFriendRequest request) {
         String url = AppConstants.FRIENDS_SERVICE_URL + "/requests";
-        String json = gson.toJson(request);
+        
+        JsonObject bodyObj = new JsonObject();
+        
+        if (request != null) {
+            if (request.receiverAuthId() != null) {
+                bodyObj.addProperty("receiverAuthId", request.receiverAuthId());
+            }
+        }
 
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .POST(HttpRequest.BodyPublishers.ofString(bodyObj.toString()))
                 .build();
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())

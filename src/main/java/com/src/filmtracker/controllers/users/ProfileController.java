@@ -5,6 +5,7 @@ import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.models.library.LibraryItemDto;
 import com.src.filmtracker.models.reviews.ReviewDto;
 import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
+import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import com.src.filmtracker.models.shows.Show;
 import com.src.filmtracker.models.shows.ShowFullResponse;
 import com.src.filmtracker.models.users.UpdateProfileRequest;
@@ -87,37 +88,14 @@ public class ProfileController {
     private int currentReviewPage = 1;
     private UserDto currentUserProfile;
     
-    @FXML private void handleEditName() { 
-        toggleNameEdit(true); 
-    }
-    
-    @FXML private void handleCancelName() { 
-        toggleNameEdit(false); 
-    }
-    
-    @FXML private void handleEditUsername() { 
-        toggleUsernameEdit(true); 
-    }
-    
-    @FXML private void handleCancelUsername() { 
-        toggleUsernameEdit(false); 
-    }
-    
-    @FXML private void handleChangePassword() { 
-        App.setRoot(AppConstants.FXML_CHANGE_PASSWORD); 
-    }
-    
-    @FXML private void handleBack() { 
-        App.setRoot(AppConstants.FXML_DASHBOARD); 
-    }
-    
-    @FXML private void handleMinimize() { 
-        ((Stage) nameLabel.getScene().getWindow()).setIconified(true); 
-    }
-    
-    @FXML private void handleClose() { 
-        Platform.exit(); System.exit(0); 
-    }
+    @FXML private void handleEditName() { toggleNameEdit(true); }
+    @FXML private void handleCancelName() { toggleNameEdit(false); }
+    @FXML private void handleEditUsername() { toggleUsernameEdit(true); }
+    @FXML private void handleCancelUsername() { toggleUsernameEdit(false); }
+    @FXML private void handleChangePassword() { App.setRoot(AppConstants.FXML_CHANGE_PASSWORD); }
+    @FXML private void handleBack() { App.setRoot(AppConstants.FXML_DASHBOARD); }
+    @FXML private void handleMinimize() { ((Stage) nameLabel.getScene().getWindow()).setIconified(true); }
+    @FXML private void handleClose() { Platform.exit(); System.exit(0); }
 
     public void initData(UserDto user) {
         if (user == null) {
@@ -216,13 +194,10 @@ public class ProfileController {
     private void configurarVisibilidadPublica(boolean isCurrentUser, UserDto user) {
         watchlistContainer.setVisible(isCurrentUser);
         watchlistContainer.setManaged(isCurrentUser);
-        
         privateInfoContainer.setVisible(isCurrentUser);
         privateInfoContainer.setManaged(isCurrentUser);
-        
         editNameBtn.setVisible(isCurrentUser);
         editNameBtn.setManaged(isCurrentUser);
-        
         editUsernameBtn.setVisible(isCurrentUser);
         editUsernameBtn.setManaged(isCurrentUser);
         
@@ -236,11 +211,33 @@ public class ProfileController {
         } else {
             friendActionsBox.setVisible(true);
             friendActionsBox.setManaged(true);
+            
+            ocultarBotonesAmistad();
+            
             reviewsTitleLabel.setText("Reseñas de @" + user.username());
             favoritesTitleLabel.setText("Favoritos de @" + user.username());
             cargarFavoritos(false);
             cargarEstadoAmistad(user.getSafeAuthId());
         }
+    }
+
+    private void ocultarBotonesAmistad() {
+        addFriendBtn.setVisible(false);
+        addFriendBtn.setManaged(false);
+        removeFriendBtn.setVisible(false);
+        removeFriendBtn.setManaged(false);
+    }
+
+    private void configurarBotonAgregar(String texto, boolean deshabilitado) {
+        addFriendBtn.setText(texto);
+        addFriendBtn.setDisable(deshabilitado);
+        addFriendBtn.setVisible(true);
+        addFriendBtn.setManaged(true);
+    }
+
+    private void configurarBotonEliminar() {
+        removeFriendBtn.setVisible(true);
+        removeFriendBtn.setManaged(true);
     }
 
     private void cargarEstadoAmistad(String otherAuthId) {
@@ -254,6 +251,8 @@ public class ProfileController {
     }
 
     private void procesarEstadoAmistad(FriendStatusResponse res) {
+        ocultarBotonesAmistad();
+
         if (res == null) {
             return;
         }
@@ -264,40 +263,39 @@ public class ProfileController {
             return;
         }
 
-        addFriendBtn.setVisible(false);
-        addFriendBtn.setManaged(false);
-        removeFriendBtn.setVisible(false);
-        removeFriendBtn.setManaged(false);
+        String safeStatus = status.trim().toUpperCase();
 
-        if (status.equals("NONE")) {
-            addFriendBtn.setText("Agregar amigo");
-            addFriendBtn.setDisable(false);
-            addFriendBtn.setVisible(true);
-            addFriendBtn.setManaged(true);
-        } else if (status.equals("FRIENDS")) {
-            removeFriendBtn.setVisible(true);
-            removeFriendBtn.setManaged(true);
-        } else if (status.equals("PENDING_OUTGOING")) {
-            addFriendBtn.setText("Solicitud enviada");
-            addFriendBtn.setDisable(true);
-            addFriendBtn.setVisible(true);
-            addFriendBtn.setManaged(true);
-        } else if (status.equals("PENDING_INCOMING")) {
-            addFriendBtn.setText("Responder solicitud");
-            addFriendBtn.setDisable(true);
-            addFriendBtn.setVisible(true);
-            addFriendBtn.setManaged(true);
+        if (safeStatus.equals("NONE")) {
+            configurarBotonAgregar("Agregar amigo", false);
+        } else if (safeStatus.equals("FRIENDS")) {
+            configurarBotonEliminar();
+        } else if (safeStatus.equals("PENDING_OUTGOING")) {
+            configurarBotonAgregar("Solicitud enviada", true);
+        } else if (safeStatus.equals("PENDING_INCOMING")) {
+            configurarBotonAgregar("Responder solicitud", true);
         }
     }
 
     @FXML
     private void handleAddFriend() {
-        SendFriendRequest req = new SendFriendRequest(currentUserProfile.getSafeAuthId());
+        String receiverId = currentUserProfile.getSafeAuthId();
+        
+        if (receiverId == null) {
+            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            return;
+        }
+        
+        if (receiverId.isEmpty()) {
+            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            return;
+        }
+
+        SendFriendRequest req = new SendFriendRequest(receiverId);
         
         friendsService.sendFriendRequest(req).thenRun(() -> {
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_ADD);
-                cargarEstadoAmistad(currentUserProfile.getSafeAuthId());
+                cargarEstadoAmistad(receiverId);
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
@@ -309,11 +307,23 @@ public class ProfileController {
 
     @FXML
     private void handleRemoveFriend() {
-        friendsService.removeFriend(currentUserProfile.getSafeAuthId()).thenRun(() -> {
+        String friendId = currentUserProfile.getSafeAuthId();
+        
+        if (friendId == null) {
+            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            return;
+        }
+        
+        if (friendId.isEmpty()) {
+            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            return;
+        }
+
+        friendsService.removeFriend(friendId).thenRun(() -> {
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_REMOVE);
-                cargarEstadoAmistad(currentUserProfile.getSafeAuthId());
-                cargarEstadisticas(currentUserProfile.getSafeAuthId());
+                cargarEstadoAmistad(friendId);
+                cargarEstadisticas(friendId);
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
