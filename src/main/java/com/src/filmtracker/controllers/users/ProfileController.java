@@ -5,10 +5,12 @@ import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.models.library.LibraryItemDto;
 import com.src.filmtracker.models.reviews.ReviewDto;
 import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
-import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import com.src.filmtracker.models.shows.Show;
 import com.src.filmtracker.models.shows.ShowFullResponse;
 import com.src.filmtracker.models.users.UpdateProfileRequest;
+import com.src.filmtracker.models.friends.FriendPaginationResponse;
+import com.src.filmtracker.models.friends.FriendStatusResponse;
+import com.src.filmtracker.models.friends.SendFriendRequest;
 import com.src.filmtracker.services.library.ILibraryService;
 import com.src.filmtracker.services.library.LibraryService;
 import com.src.filmtracker.services.reviews.IReviewService;
@@ -17,11 +19,14 @@ import com.src.filmtracker.services.shows.IShowService;
 import com.src.filmtracker.services.shows.ShowService;
 import com.src.filmtracker.services.users.IUserService;
 import com.src.filmtracker.services.users.UserService;
+import com.src.filmtracker.services.friends.IFriendsService;
+import com.src.filmtracker.services.friends.FriendsService;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -48,6 +53,14 @@ public class ProfileController {
     @FXML private Label likesReceivedLabel;
     @FXML private Label friendsCountLabel;
     @FXML private VBox privateInfoContainer;
+    
+    @FXML private VBox friendsListContainer;
+    @FXML private VBox friendsListSection;
+
+    @FXML private HBox friendActionsBox;
+    @FXML private Button addFriendBtn;
+    @FXML private Button removeFriendBtn;
+
     @FXML private VBox favoritesContainer;
     @FXML private VBox favoritesSection;
     @FXML private Label favoritesTitleLabel;
@@ -69,6 +82,7 @@ public class ProfileController {
     private final IShowService showService = new ShowService();
     private final IReviewService reviewService = new ReviewService();
     private final IUserService userService = new UserService();
+    private final IFriendsService friendsService = new FriendsService();
     
     private int currentReviewPage = 1;
     private UserDto currentUserProfile;
@@ -89,8 +103,8 @@ public class ProfileController {
         toggleUsernameEdit(false); 
     }
     
-    @FXML private void handleChangePassword() {
-        App.setRoot(AppConstants.FXML_CHANGE_PASSWORD);
+    @FXML private void handleChangePassword() { 
+        App.setRoot(AppConstants.FXML_CHANGE_PASSWORD); 
     }
     
     @FXML private void handleBack() { 
@@ -102,8 +116,7 @@ public class ProfileController {
     }
     
     @FXML private void handleClose() { 
-        Platform.exit(); 
-        System.exit(0); 
+        Platform.exit(); System.exit(0); 
     }
 
     public void initData(UserDto user) {
@@ -214,14 +227,236 @@ public class ProfileController {
         editUsernameBtn.setManaged(isCurrentUser);
         
         if (isCurrentUser) {
+            friendActionsBox.setVisible(false);
+            friendActionsBox.setManaged(false);
             reviewsTitleLabel.setText("Mis Reseñas Publicadas");
             favoritesTitleLabel.setText("Mis Series Favoritas");
             cargarFavoritos(true);
             cargarWatchlist();
         } else {
+            friendActionsBox.setVisible(true);
+            friendActionsBox.setManaged(true);
             reviewsTitleLabel.setText("Reseñas de @" + user.username());
             favoritesTitleLabel.setText("Favoritos de @" + user.username());
             cargarFavoritos(false);
+            cargarEstadoAmistad(user.getSafeAuthId());
+        }
+    }
+
+    private void cargarEstadoAmistad(String otherAuthId) {
+        friendsService.getRelationshipStatus(otherAuthId).thenAccept(res -> {
+            Platform.runLater(() -> {
+                procesarEstadoAmistad(res);
+            });
+        }).exceptionally(e -> {
+            return null;
+        });
+    }
+
+    private void procesarEstadoAmistad(FriendStatusResponse res) {
+        if (res == null) {
+            return;
+        }
+        
+        String status = res.status();
+        
+        if (status == null) {
+            return;
+        }
+
+        addFriendBtn.setVisible(false);
+        addFriendBtn.setManaged(false);
+        removeFriendBtn.setVisible(false);
+        removeFriendBtn.setManaged(false);
+
+        if (status.equals("NONE")) {
+            addFriendBtn.setText("Agregar amigo");
+            addFriendBtn.setDisable(false);
+            addFriendBtn.setVisible(true);
+            addFriendBtn.setManaged(true);
+        } else if (status.equals("FRIENDS")) {
+            removeFriendBtn.setVisible(true);
+            removeFriendBtn.setManaged(true);
+        } else if (status.equals("PENDING_OUTGOING")) {
+            addFriendBtn.setText("Solicitud enviada");
+            addFriendBtn.setDisable(true);
+            addFriendBtn.setVisible(true);
+            addFriendBtn.setManaged(true);
+        } else if (status.equals("PENDING_INCOMING")) {
+            addFriendBtn.setText("Responder solicitud");
+            addFriendBtn.setDisable(true);
+            addFriendBtn.setVisible(true);
+            addFriendBtn.setManaged(true);
+        }
+    }
+
+    @FXML
+    private void handleAddFriend() {
+        SendFriendRequest req = new SendFriendRequest(currentUserProfile.getSafeAuthId());
+        
+        friendsService.sendFriendRequest(req).thenRun(() -> {
+            Platform.runLater(() -> {
+                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_ADD);
+                cargarEstadoAmistad(currentUserProfile.getSafeAuthId());
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+            });
+            return null;
+        });
+    }
+
+    @FXML
+    private void handleRemoveFriend() {
+        friendsService.removeFriend(currentUserProfile.getSafeAuthId()).thenRun(() -> {
+            Platform.runLater(() -> {
+                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_REMOVE);
+                cargarEstadoAmistad(currentUserProfile.getSafeAuthId());
+                cargarEstadisticas(currentUserProfile.getSafeAuthId());
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+            });
+            return null;
+        });
+    }
+
+    @FXML
+    private void handleShowFriends() {
+        if (!esUsuarioActual(currentUserProfile)) {
+            return; 
+        }
+        
+        boolean isVisible = friendsListContainer.isVisible();
+        friendsListContainer.setVisible(!isVisible);
+        friendsListContainer.setManaged(!isVisible);
+
+        if (!isVisible) {
+            cargarAmigosPropios(1);
+        }
+    }
+
+    private void cargarAmigosPropios(int page) {
+        friendsService.getFriends(page).thenAccept(res -> {
+            Platform.runLater(() -> {
+                procesarPaginacionAmigos(res);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarVacio(friendsListSection, AppConstants.MESSAGE_ERROR_API);
+            });
+            return null;
+        });
+    }
+
+    private void procesarPaginacionAmigos(FriendPaginationResponse response) {
+        if (response == null) {
+            mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
+            return;
+        }
+        
+        if (response.data() == null) {
+            mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
+            return;
+        }
+        
+        if (response.data().isEmpty()) {
+            mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
+            return;
+        }
+
+        HBox content = new HBox(15);
+        content.setPadding(new Insets(10));
+        
+        for (UserDto u : response.data()) {
+            VBox card = buildFriendCard(u);
+            content.getChildren().add(card);
+        }
+        
+        ScrollPane sp = new ScrollPane(content);
+        sp.setFitToHeight(true);
+        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+
+        String btnStyle = "-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand;";
+        
+        Button bI = new Button("<"); 
+        bI.setStyle(btnStyle);
+        
+        Button bD = new Button(">"); 
+        bD.setStyle(btnStyle);
+        
+        bI.setOnAction(e -> {
+            sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2));
+        }); 
+        
+        bD.setOnAction(e -> {
+            sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2));
+        });
+        
+        BorderPane bp = new BorderPane(sp); 
+        bp.setLeft(bI); 
+        bp.setRight(bD);
+        
+        BorderPane.setAlignment(bI, Pos.CENTER); 
+        BorderPane.setAlignment(bD, Pos.CENTER);
+        
+        friendsListSection.getChildren().clear();
+        friendsListSection.getChildren().add(bp);
+    }
+
+    private VBox buildFriendCard(UserDto friend) {
+        VBox box = new VBox(10);
+        box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-cursor: hand;");
+        box.setPrefWidth(150);
+        box.setMaxWidth(150);
+
+        ImageView iv = new ImageView();
+        iv.setFitWidth(80);
+        iv.setFitHeight(80);
+        
+        String imageUrl = "https://ui-avatars.com/api/?name=" + friend.username() + "&background=e50914&color=fff";
+        
+        if (friend.profileImage() != null) {
+            if (!friend.profileImage().isEmpty()) {
+                imageUrl = friend.profileImage();
+            }
+        }
+        
+        iv.setImage(new Image(imageUrl, true));
+
+        Label name = new Label(friend.name());
+        name.setTextFill(Color.WHITE);
+        name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        Label user = new Label("@" + friend.username());
+        user.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        user.setStyle("-fx-font-size: 12px;");
+
+        box.getChildren().add(iv);
+        box.getChildren().add(name);
+        box.getChildren().add(user);
+
+        box.setOnMouseClicked(e -> {
+            abrirPerfilAmigo(friend);
+        });
+
+        return box;
+    }
+
+    private void abrirPerfilAmigo(UserDto amigo) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_PROFILE));
+            javafx.scene.Parent root = loader.load();
+            
+            ProfileController controller = loader.getController();
+            controller.initData(amigo);
+            
+            nameLabel.getScene().setRoot(root);
+        } catch (Exception e) {
         }
     }
 
@@ -239,6 +474,14 @@ public class ProfileController {
                 if (summary != null) {
                     reviewsCountLabel.setText(String.valueOf(summary.reviewsCount()));
                     likesReceivedLabel.setText(String.valueOf(summary.totalLikesReceived()));
+                }
+            });
+        });
+
+        friendsService.getUserSummary(authId).thenAccept(summary -> {
+            Platform.runLater(() -> {
+                if (summary != null) {
+                    friendsCountLabel.setText(String.valueOf(summary.friendsCount()));
                 }
             });
         });
@@ -608,6 +851,14 @@ public class ProfileController {
     private void mostrarAlertaError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+    
+    private void mostrarAlertaExito(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Éxito");
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();

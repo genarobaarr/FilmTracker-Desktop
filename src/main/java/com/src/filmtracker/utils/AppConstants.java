@@ -69,6 +69,9 @@ public final class AppConstants {
     public static final String MESSAGE_ERROR_PASSWORD_CURRENT = "La contraseña actual es incorrecta.";
     public static final String MESSAGE_SUCCESS_FORGOT = "Si el correo existe, se enviaron las instrucciones.";
     public static final String MESSAGE_SUCCESS_RESET = "Contraseña actualizada con éxito.";
+    public static final String MESSAGE_SUCCESS_FRIEND_ADD = "Solicitud de amistad enviada.";
+    public static final String MESSAGE_SUCCESS_FRIEND_REMOVE = "Amigo eliminado correctamente.";
+    public static final String MESSAGE_ERROR_FRIEND_ACTION = "Error al procesar la acción de amistad.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

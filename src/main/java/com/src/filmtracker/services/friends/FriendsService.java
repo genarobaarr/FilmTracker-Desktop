@@ -3,7 +3,7 @@ package com.src.filmtracker.services.friends;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.src.filmtracker.models.friends.FriendsSummaryDto;
+import com.src.filmtracker.models.friends.*;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
 import java.net.URI;
@@ -41,6 +41,90 @@ public class FriendsService implements IFriendsService {
                     }
                     
                     return gson.fromJson(json, FriendsSummaryDto.class);
+                });
+    }
+
+    @Override
+    public CompletableFuture<FriendPaginationResponse> getFriends(int page) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "?page=" + page;
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Accept", "application/json")
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .GET()
+                .build();
+
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                .thenApply(res -> {
+                    if (res.statusCode() >= 400) {
+                        return null;
+                    }
+                    
+                    return gson.fromJson(res.body(), FriendPaginationResponse.class);
+                });
+    }
+
+    @Override
+    public CompletableFuture<FriendStatusResponse> getRelationshipStatus(String otherAuthId) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/" + otherAuthId + "/status";
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Accept", "application/json")
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .GET()
+                .build();
+
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                .thenApply(res -> {
+                    if (res.statusCode() >= 400) {
+                        return null;
+                    }
+                    
+                    return gson.fromJson(res.body(), FriendStatusResponse.class);
+                });
+    }
+
+    @Override
+    public CompletableFuture<Void> sendFriendRequest(SendFriendRequest request) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests";
+        String json = gson.toJson(request);
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                .thenApply(res -> {
+                    if (res.statusCode() >= 400) {
+                        throw new RuntimeException("Error: " + res.statusCode());
+                    }
+                    
+                    return null;
+                });
+    }
+
+    @Override
+    public CompletableFuture<Void> removeFriend(String friendAuthId) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/" + friendAuthId;
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .DELETE()
+                .build();
+
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                .thenApply(res -> {
+                    if (res.statusCode() >= 400) {
+                        throw new RuntimeException("Error: " + res.statusCode());
+                    }
+                    
+                    return null;
                 });
     }
 }
