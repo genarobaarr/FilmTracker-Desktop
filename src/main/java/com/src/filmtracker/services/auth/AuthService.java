@@ -1,6 +1,7 @@
 package com.src.filmtracker.services.auth;
 
 import com.google.gson.Gson;
+import com.src.filmtracker.models.auth.AccountModeratedException;
 import com.src.filmtracker.models.common.ApiResponse;
 import com.src.filmtracker.models.auth.AuthResponse;
 import com.src.filmtracker.models.auth.ChangePasswordRequest;
@@ -92,6 +93,24 @@ public class AuthService implements IAuthService {
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> {
+                if (response.statusCode() == 403) {
+                    com.google.gson.JsonObject jsonResponse = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
+                    
+                    if (jsonResponse.has("data")) {
+                        com.google.gson.JsonObject data = jsonResponse.getAsJsonObject("data");
+                        String status = data.has("accountStatus") && !data.get("accountStatus").isJsonNull() ? data.get("accountStatus").getAsString() : "UNKNOWN";
+                        String reason = data.has("moderationReason") && !data.get("moderationReason").isJsonNull() ? data.get("moderationReason").getAsString() : "Violación de reglas.";
+                        String suspendedUntil = data.has("suspendedUntil") && !data.get("suspendedUntil").isJsonNull() ? data.get("suspendedUntil").getAsString() : null;
+                        
+                        throw new AccountModeratedException(
+                            jsonResponse.has("message") ? jsonResponse.get("message").getAsString() : "Acceso denegado.",
+                            status,
+                            reason,
+                            suspendedUntil
+                        );
+                    }
+                }
+                
                 if (response.statusCode() >= 400) {
                     throw new RuntimeException("Auth error: " + response.statusCode());
                 }
