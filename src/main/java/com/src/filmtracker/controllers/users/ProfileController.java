@@ -9,6 +9,7 @@ import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import com.src.filmtracker.models.shows.Show;
 import com.src.filmtracker.models.shows.ShowFullResponse;
 import com.src.filmtracker.models.users.UpdateProfileRequest;
+import com.src.filmtracker.models.friends.FriendItemDto;
 import com.src.filmtracker.models.friends.FriendPaginationResponse;
 import com.src.filmtracker.models.friends.FriendStatusResponse;
 import com.src.filmtracker.models.friends.SendFriendRequest;
@@ -349,7 +350,21 @@ public class ProfileController {
     }
 
     private void cargarAmigosPropios(int page) {
-        friendsService.getFriends(page).thenAccept(res -> {
+        if (currentUserProfile == null) {
+            return;
+        }
+        
+        String authId = currentUserProfile.getSafeAuthId();
+        
+        if (authId == null) {
+            return;
+        }
+        
+        if (authId.isEmpty()) {
+            return;
+        }
+        
+        friendsService.getFriends(authId, page).thenAccept(res -> {
             Platform.runLater(() -> {
                 procesarPaginacionAmigos(res);
             });
@@ -380,23 +395,49 @@ public class ProfileController {
         HBox content = new HBox(15);
         content.setPadding(new Insets(10));
         
-        for (UserDto u : response.data()) {
-            VBox card = buildFriendCard(u);
-            content.getChildren().add(card);
+        for (FriendItemDto item : response.data()) {
+            resolverAmigoYAgregar(item, content);
         }
         
+        dibujarContenedorAmigos(content);
+    }
+
+    private void resolverAmigoYAgregar(FriendItemDto item, HBox content) {
+        if (item == null) {
+            return;
+        }
+        
+        String targetId = item.friendAuthId();
+        
+        if (targetId == null) {
+            return;
+        }
+        
+        if (targetId.isEmpty()) {
+            return;
+        }
+        
+        userService.getUserById(targetId).thenAccept(fullUser -> {
+            if (fullUser != null) {
+                Platform.runLater(() -> {
+                    VBox card = buildFriendCard(fullUser);
+                    content.getChildren().add(card);
+                });
+            }
+        });
+    }
+
+    private void dibujarContenedorAmigos(HBox content) {
         ScrollPane sp = new ScrollPane(content);
         sp.setFitToHeight(true);
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
-        String btnStyle = "-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand;";
-        
         Button bI = new Button("<"); 
-        bI.setStyle(btnStyle);
+        bI.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand;");
         
         Button bD = new Button(">"); 
-        bD.setStyle(btnStyle);
+        bD.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand;");
         
         bI.setOnAction(e -> {
             sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2));
@@ -438,11 +479,21 @@ public class ProfileController {
         
         iv.setImage(new Image(imageUrl, true));
 
-        Label name = new Label(friend.name());
+        String nombreSeguro = "Desconocido";
+        if (friend.name() != null) {
+            nombreSeguro = friend.name();
+        }
+
+        Label name = new Label(nombreSeguro);
         name.setTextFill(Color.WHITE);
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-        Label user = new Label("@" + friend.username());
+        String userSeguro = "usuario";
+        if (friend.username() != null) {
+            userSeguro = friend.username();
+        }
+
+        Label user = new Label("@" + userSeguro);
         user.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         user.setStyle("-fx-font-size: 12px;");
 

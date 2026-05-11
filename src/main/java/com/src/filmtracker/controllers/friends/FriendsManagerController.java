@@ -2,6 +2,7 @@ package com.src.filmtracker.controllers.friends;
 
 import com.src.filmtracker.App;
 import com.src.filmtracker.controllers.users.ProfileController;
+import com.src.filmtracker.models.friends.FriendItemDto;
 import com.src.filmtracker.models.friends.FriendPaginationResponse;
 import com.src.filmtracker.models.friends.FriendRequestItemDto;
 import com.src.filmtracker.models.friends.FriendRequestPaginationResponse;
@@ -11,6 +12,7 @@ import com.src.filmtracker.services.friends.IFriendsService;
 import com.src.filmtracker.services.users.IUserService;
 import com.src.filmtracker.services.users.UserService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -57,7 +59,23 @@ public class FriendsManagerController {
     }
 
     private void cargarAmigosPropios(int page) {
-        friendsService.getFriends(page).thenAccept(res -> {
+        UserDto currentUser = SessionManager.getInstance().getCurrentUser();
+        
+        if (currentUser == null) {
+            return;
+        }
+        
+        String authId = currentUser.getSafeAuthId();
+        
+        if (authId == null) {
+            return;
+        }
+        
+        if (authId.isEmpty()) {
+            return;
+        }
+        
+        friendsService.getFriends(authId, page).thenAccept(res -> {
             Platform.runLater(() -> {
                 procesarPaginacionAmigos(res);
             });
@@ -88,11 +106,39 @@ public class FriendsManagerController {
         HBox content = new HBox(15);
         content.setPadding(new Insets(10));
         
-        for (UserDto u : response.data()) {
-            VBox card = buildFriendCard(u);
-            content.getChildren().add(card);
+        for (FriendItemDto item : response.data()) {
+            resolverAmigoYAgregar(item, content);
         }
         
+        dibujarContenedorAmigos(content);
+    }
+
+    private void resolverAmigoYAgregar(FriendItemDto item, HBox content) {
+        if (item == null) {
+            return;
+        }
+        
+        String targetId = item.friendAuthId();
+        
+        if (targetId == null) {
+            return;
+        }
+        
+        if (targetId.isEmpty()) {
+            return;
+        }
+        
+        userService.getUserById(targetId).thenAccept(fullUser -> {
+            if (fullUser != null) {
+                Platform.runLater(() -> {
+                    VBox card = buildFriendCard(fullUser);
+                    content.getChildren().add(card);
+                });
+            }
+        });
+    }
+
+    private void dibujarContenedorAmigos(HBox content) {
         ScrollPane sp = new ScrollPane(content);
         sp.setFitToHeight(true);
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
@@ -135,18 +181,30 @@ public class FriendsManagerController {
         iv.setFitHeight(80);
         
         String imageUrl = "https://ui-avatars.com/api/?name=" + friend.username() + "&background=e50914&color=fff";
+        
         if (friend.profileImage() != null) {
             if (!friend.profileImage().isEmpty()) {
                 imageUrl = friend.profileImage();
             }
         }
+        
         iv.setImage(new Image(imageUrl, true));
 
-        Label name = new Label(friend.name());
+        String nombreSeguro = "Desconocido";
+        if (friend.name() != null) {
+            nombreSeguro = friend.name();
+        }
+
+        Label name = new Label(nombreSeguro);
         name.setTextFill(Color.WHITE);
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-        Label user = new Label("@" + friend.username());
+        String userSeguro = "usuario";
+        if (friend.username() != null) {
+            userSeguro = friend.username();
+        }
+
+        Label user = new Label("@" + userSeguro);
         user.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         user.setStyle("-fx-font-size: 12px;");
 
@@ -225,11 +283,13 @@ public class FriendsManagerController {
         iv.setFitHeight(50);
         
         String imageUrl = "https://ui-avatars.com/api/?name=" + user.username() + "&background=e50914&color=fff";
+        
         if (user.profileImage() != null) {
             if (!user.profileImage().isEmpty()) {
                 imageUrl = user.profileImage();
             }
         }
+        
         iv.setImage(new Image(imageUrl, true));
 
         VBox infoBox = new VBox(5);
@@ -349,11 +409,13 @@ public class FriendsManagerController {
         iv.setFitHeight(50);
         
         String imageUrl = "https://ui-avatars.com/api/?name=" + user.username() + "&background=e50914&color=fff";
+        
         if (user.profileImage() != null) {
             if (!user.profileImage().isEmpty()) {
                 imageUrl = user.profileImage();
             }
         }
+        
         iv.setImage(new Image(imageUrl, true));
 
         VBox infoBox = new VBox(5);

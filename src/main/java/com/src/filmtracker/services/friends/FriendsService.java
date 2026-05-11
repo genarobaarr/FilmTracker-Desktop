@@ -45,8 +45,8 @@ public class FriendsService implements IFriendsService {
     }
 
     @Override
-    public CompletableFuture<FriendPaginationResponse> getFriends(int page) {
-        String url = AppConstants.FRIENDS_SERVICE_URL + "?page=" + page;
+    public CompletableFuture<FriendPaginationResponse> getFriends(String authId, int page) {
+        String url = AppConstants.FRIENDS_SERVICE_URL + "/user/" + authId + "?page=" + page;
 
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -152,7 +152,7 @@ public class FriendsService implements IFriendsService {
                     return null;
                 });
     }
-    
+
     @Override
     public CompletableFuture<FriendRequestPaginationResponse> getIncomingRequests(int page) {
         String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/incoming?page=" + page;
