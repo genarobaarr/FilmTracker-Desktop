@@ -42,6 +42,8 @@ import java.io.File;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,6 +75,7 @@ public class ShowDetailController {
     
     private File selectedReviewImage;
     private final Map<String, File> selectedCommentImages = new ConcurrentHashMap<>();
+    private final Map<String, File> editReviewImages = new ConcurrentHashMap<>();
 
     @FXML private void handleClose() {
         Platform.exit(); 
@@ -854,6 +857,14 @@ public class ShowDetailController {
         alert.showAndWait();
     }
     
+    private void mostrarAlertaExito(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Éxito");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+    
     private void mostrarAlertaPrecaucion(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle("Atención");
@@ -988,7 +999,7 @@ public class ShowDetailController {
         actions.getChildren().add(likeBtn);
         actions.getChildren().add(commBtn);
         
-        injectOwnerActions(rId, review.getOwnerId(), actions);
+        injectOwnerActions(review, actions, card);
         
         card.getChildren().add(actions);
         card.getChildren().add(commContainer);
@@ -1298,10 +1309,12 @@ public class ShowDetailController {
         });
     }
 
-    private void injectOwnerActions(String rId, String ownerId, HBox actions) {
+    private void injectOwnerActions(ReviewDto review, HBox actions, VBox card) {
         if (!SessionManager.getInstance().isAuthenticated()) {
             return;
         }
+        
+        String ownerId = review.getOwnerId();
         
         if (ownerId == null) {
             return;
@@ -1314,20 +1327,181 @@ public class ShowDetailController {
         String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
         
         if (ownerId.equals(currAuth)) {
-            Button del = new Button("Eliminar");
-            del.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand; -fx-underline: true;");
+            agregarBotonEliminarResena(review.getSafeId(), actions);
             
-            del.setOnAction(e -> {
-                reviewService.deleteReview(rId).thenRun(() -> {
-                    Platform.runLater(() -> {
-                        this.currentReviewPage = 1;
-                        cargarResenas(1);
-                    });
+            if (isWithinEditWindow(review.created_at())) {
+                agregarBotonEditarResena(review, actions, card);
+            }
+        }
+    }
+
+    private boolean isWithinEditWindow(String createdAtStr) {
+        if (createdAtStr == null) {
+            return false;
+        }
+        
+        if (createdAtStr.isEmpty()) {
+            return false;
+        }
+        
+        try {
+            ZonedDateTime created = ZonedDateTime.parse(createdAtStr);
+            ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+            long mins = ChronoUnit.MINUTES.between(created, now);
+            
+            if (mins <= 30) {
+                return true;
+            }
+            
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void agregarBotonEliminarResena(String rId, HBox actions) {
+        Button del = new Button("Eliminar");
+        del.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand; -fx-underline: true;");
+        
+        del.setOnAction(e -> {
+            reviewService.deleteReview(rId).thenRun(() -> {
+                Platform.runLater(() -> {
+                    this.currentReviewPage = 1;
+                    cargarResenas(1);
                 });
             });
-            
-            actions.getChildren().add(del);
+        });
+        
+        actions.getChildren().add(del);
+    }
+
+    private void agregarBotonEditarResena(ReviewDto review, HBox actions, VBox card) {
+        Button edit = new Button("Editar");
+        edit.setStyle("-fx-background-color: transparent; -fx-text-fill: #4caf50; -fx-cursor: hand; -fx-underline: true;");
+        
+        edit.setOnAction(e -> {
+            mostrarFormularioEdicion(review, card);
+        });
+        
+        actions.getChildren().add(edit);
+    }
+
+    private void mostrarFormularioEdicion(ReviewDto review, VBox card) {
+        card.getChildren().clear();
+        
+        Label errLbl = new Label();
+        errLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        errLbl.setVisible(false);
+        errLbl.setManaged(false);
+        
+        TextField titleIn = new TextField(review.title() != null ? review.title() : "");
+        titleIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+        
+        ComboBox<Integer> rateIn = new ComboBox<>();
+        rateIn.getItems().add(1);
+        rateIn.getItems().add(2);
+        rateIn.getItems().add(3);
+        rateIn.getItems().add(4);
+        rateIn.getItems().add(5);
+        rateIn.setValue(review.rating());
+        
+        TextArea contIn = new TextArea(review.content() != null ? review.content() : "");
+        contIn.setPrefRowCount(3);
+        contIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+        
+        Label fileLabel = new Label("Mantener imagen actual");
+        fileLabel.setTextFill(Color.GRAY);
+        
+        Button attachBtn = new Button("Cambiar Imagen");
+        attachBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-cursor: hand;");
+        
+        attachBtn.setOnAction(e -> {
+            File file = openImageChooser();
+            if (file != null) {
+                editReviewImages.put(review.getSafeId(), file);
+                fileLabel.setText(file.getName());
+            }
+        });
+        
+        HBox fileBox = new HBox(10);
+        fileBox.setAlignment(Pos.CENTER_LEFT);
+        fileBox.getChildren().add(attachBtn);
+        fileBox.getChildren().add(fileLabel);
+        
+        Button saveBtn = new Button("Guardar");
+        saveBtn.setStyle("-fx-background-color: #4caf50; -fx-text-fill: white; -fx-cursor: hand;");
+        
+        saveBtn.setOnAction(e -> {
+            procesarEdicionResena(review.getSafeId(), rateIn, titleIn, contIn, errLbl);
+        });
+        
+        Button cancelBtn = new Button("Cancelar");
+        cancelBtn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
+        
+        cancelBtn.setOnAction(e -> {
+            limpiarYRefrescarResenas();
+        });
+        
+        HBox actionsBox = new HBox(10);
+        actionsBox.getChildren().add(saveBtn);
+        actionsBox.getChildren().add(cancelBtn);
+        
+        card.getChildren().add(new Label("Editar reseña:"));
+        card.getChildren().add(errLbl);
+        card.getChildren().add(titleIn);
+        card.getChildren().add(rateIn);
+        card.getChildren().add(contIn);
+        card.getChildren().add(fileBox);
+        card.getChildren().add(actionsBox);
+    }
+
+    private void procesarEdicionResena(String rId, ComboBox<Integer> rateIn, TextField titleIn, TextArea contIn, Label errLbl) {
+        if (rateIn.getValue() == null) {
+            return;
         }
+        
+        if (titleIn.getText().isBlank()) {
+            return;
+        }
+        
+        if (contIn.getText().isBlank()) {
+            return;
+        }
+        
+        errLbl.setVisible(false);
+        errLbl.setManaged(false);
+        
+        ReviewRequest req = new ReviewRequest(currentTvmazeId, rateIn.getValue(), titleIn.getText().trim(), contIn.getText().trim());
+        
+        reviewService.updateReview(rId, req).thenAccept(review -> {
+            File img = editReviewImages.get(rId);
+            
+            if (img != null) {
+                if (review != null) {
+                    reviewService.uploadReviewImage(review.getSafeId(), img).thenRun(() -> {
+                        finalizarEdicionResena(rId);
+                    });
+                    return;
+                }
+            }
+            
+            finalizarEdicionResena(rId);
+            
+        }).exceptionally(err -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
+            });
+            return null;
+        });
+    }
+
+    private void finalizarEdicionResena(String rId) {
+        Platform.runLater(() -> {
+            editReviewImages.remove(rId);
+            mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_REVIEW_UPDATE);
+            this.currentReviewPage = 1;
+            cargarResenas(1);
+        });
     }
 
     private void injectCommentDelete(String cId, String ownerId, HBox actions, String rId, VBox parent) {

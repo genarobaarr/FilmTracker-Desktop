@@ -79,6 +79,7 @@ public final class AppConstants {
     public static final String MESSAGE_SUCCESS_CANCELED = "Solicitud cancelada correctamente.";
     public static final String MESSAGE_SUCCESS_PHOTO = "Foto de perfil actualizada correctamente.";
     public static final String MESSAGE_ERROR_PHOTO = "Error al subir la foto de perfil.";
+    public static final String MESSAGE_SUCCESS_REVIEW_UPDATE = "Reseña actualizada correctamente.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;
