@@ -2,7 +2,6 @@ package com.src.filmtracker.services.reviews;
 
 import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
 import com.src.filmtracker.models.reviews.CommentPaginationResponse;
-import com.src.filmtracker.services.reviews.IReviewService;
 import com.src.filmtracker.models.reviews.CommentRequest;
 import com.src.filmtracker.models.reviews.ReviewRequest;
 import com.src.filmtracker.models.reviews.CommentDto;
@@ -10,17 +9,14 @@ import com.src.filmtracker.models.reviews.ReviewDto;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
 import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
 
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 public class ReviewService implements IReviewService {
@@ -30,130 +26,202 @@ public class ReviewService implements IReviewService {
 
     @Override
     public CompletableFuture<ReviewPaginationResponse> getShowReviews(Integer tvmazeId, int page) {
-        Type type = TypeToken.getParameterized(ReviewPaginationResponse.class).getType();
         String url = AppConstants.REVIEWS_URL + "/show/" + tvmazeId + "?page=" + page;
-        CompletableFuture<ReviewPaginationResponse> future = executeGet(url, type, null);
+        return executeGet(url, ReviewPaginationResponse.class);
+    }
+
+    @Override
+    public CompletableFuture<ReviewDto> createReview(ReviewRequest request) {
+        return executePostAndParse(AppConstants.REVIEWS_URL, request, ReviewDto.class, "review");
+    }
+
+    @Override
+    public CompletableFuture<ReviewDto> updateReview(String reviewId, ReviewRequest request) {
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId;
         
-        return future.exceptionally(ex -> {
-            return new ReviewPaginationResponse(new ArrayList<>(), null);
-        });
+        HttpRequest req = createRequestBuilder(url)
+                .PUT(HttpRequest.BodyPublishers.ofString(gson.toJson(request)))
+                .build();
+                
+        return sendAndParse(req, ReviewDto.class, "review");
     }
 
     @Override
-    public CompletableFuture<ReviewDto> createReview(ReviewRequest req) {
-        return executePostPut(AppConstants.REVIEWS_URL, req, "POST", ReviewDto.class, "review");
+    public CompletableFuture<Void> deleteReview(String reviewId) {
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId;
+        
+        HttpRequest req = createRequestBuilder(url)
+                .DELETE()
+                .build();
+                
+        return sendAndIgnore(req);
     }
 
     @Override
-    public CompletableFuture<ReviewDto> updateReview(String id, ReviewRequest req) {
-        String url = AppConstants.REVIEWS_URL + "/" + id;
-        return executePostPut(url, req, "PUT", ReviewDto.class, "review");
-    }
-
-    @Override
-    public CompletableFuture<Void> deleteReview(String id) {
-        String url = AppConstants.REVIEWS_URL + "/" + id;
-        return executeDelete(url);
-    }
-
-    @Override
-    public CompletableFuture<Void> toggleReviewLike(String id, boolean isCurrentlyLiked) {
-        String url = AppConstants.REVIEWS_URL + "/" + id + "/like";
-        if (isCurrentlyLiked) {
-            return executeDelete(url);
-        } else {
-            return executePostPutVoid(url, null, "POST");
-        }
+    public CompletableFuture<Void> toggleReviewLike(String reviewId, boolean isCurrentlyLiked) {
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/like";
+        
+        HttpRequest req = createRequestBuilder(url)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+                
+        return sendAndIgnore(req);
     }
 
     @Override
     public CompletableFuture<CommentPaginationResponse> getReviewComments(String reviewId, int page) {
-        Type type = TypeToken.getParameterized(CommentPaginationResponse.class).getType();
-        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/comments?page=" + page;
-        CompletableFuture<CommentPaginationResponse> future = executeGet(url, type, null);
+        String url = AppConstants.COMMENTS_URL + "/reviews/" + reviewId + "/comments?page=" + page;
+        return executeGet(url, CommentPaginationResponse.class);
+    }
+
+    @Override
+    public CompletableFuture<CommentDto> createComment(String reviewId, CommentRequest request) {
+        String url = AppConstants.COMMENTS_URL + "/reviews/" + reviewId + "/comments";
+        return executePostAndParse(url, request, CommentDto.class, "comment");
+    }
+
+    @Override
+    public CompletableFuture<CommentDto> updateComment(String commentId, CommentRequest request) {
+        String url = AppConstants.COMMENTS_URL + "/comments/" + commentId;
         
-        return future.exceptionally(ex -> {
-            return new CommentPaginationResponse(new ArrayList<>(), null);
-        });
+        HttpRequest req = createRequestBuilder(url)
+                .PUT(HttpRequest.BodyPublishers.ofString(gson.toJson(request)))
+                .build();
+                
+        return sendAndParse(req, CommentDto.class, "comment");
     }
 
     @Override
-    public CompletableFuture<CommentDto> createComment(String reviewId, CommentRequest req) {
-        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/comments";
-        return executePostPut(url, req, "POST", CommentDto.class, "comment");
+    public CompletableFuture<Void> deleteComment(String commentId) {
+        String url = AppConstants.COMMENTS_URL + "/comments/" + commentId;
+        
+        HttpRequest req = createRequestBuilder(url)
+                .DELETE()
+                .build();
+                
+        return sendAndIgnore(req);
     }
 
     @Override
-    public CompletableFuture<CommentDto> updateComment(String id, CommentRequest req) {
-        return executePostPut(AppConstants.COMMENTS_URL + "/" + id, req, "PUT", CommentDto.class, "comment");
+    public CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked) {
+        String url = AppConstants.COMMENTS_URL + "/comments/" + commentId + "/like";
+        
+        HttpRequest req = createRequestBuilder(url)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+                
+        return sendAndIgnore(req);
     }
 
-    @Override
-    public CompletableFuture<Void> deleteComment(String id) {
-        return executeDelete(AppConstants.COMMENTS_URL + "/" + id);
-    }
-
-    @Override
-    public CompletableFuture<Void> toggleCommentLike(String id, boolean isCurrentlyLiked) {
-        String url = AppConstants.COMMENTS_URL + "/" + id + "/like";
-        if (isCurrentlyLiked) {
-            return executeDelete(url);
-        } else {
-            return executePostPutVoid(url, null, "POST");
-        }
-    }
-    
     @Override
     public CompletableFuture<ReviewPaginationResponse> getUserReviews(String authId, int page) {
-        Type type = TypeToken.getParameterized(ReviewPaginationResponse.class).getType();
         String url = AppConstants.REVIEWS_URL + "/user/" + authId + "?page=" + page;
-        CompletableFuture<ReviewPaginationResponse> future = executeGet(url, type, null);
-        
-        return future.exceptionally(ex -> {
-            return new ReviewPaginationResponse(new ArrayList<>(), null);
-        });
+        return executeGet(url, ReviewPaginationResponse.class);
     }
-    
+
     @Override
     public CompletableFuture<ReviewSummaryDto> getUserSummary(String authId) {
         String url = AppConstants.REVIEWS_URL + "/user/" + authId + "/summary";
-        return executeGet(url, ReviewSummaryDto.class, "data");
+        
+        HttpRequest request = createRequestBuilder(url).GET().build();
+        
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            if (response.statusCode() >= 400) {
+                return new ReviewSummaryDto(authId, 0, 0);
+            }
+            
+            JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+            
+            if (json.has("data")) {
+                return gson.fromJson(json.get("data"), ReviewSummaryDto.class);
+            }
+            
+            return gson.fromJson(json, ReviewSummaryDto.class);
+        });
     }
 
-    private <T> CompletableFuture<T> executeGet(String url, Type type, String key) {
-        HttpRequest req = buildRequestBuilder(url).GET().build();
-        return sendAndParse(req, type, key);
+    @Override
+    public CompletableFuture<Void> uploadReviewImage(String reviewId, java.io.File imageFile) {
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/image";
+        return executeImageUpload(url, imageFile);
     }
 
-    private <T> CompletableFuture<T> executePostPut(String url, Object body, String method, Type type, String key) {
-        String json = "{}";
-        if (body != null) {
-            json = gson.toJson(body);
+    @Override
+    public CompletableFuture<Void> uploadCommentImage(String commentId, java.io.File imageFile) {
+        String url = AppConstants.COMMENTS_URL + "/comments/" + commentId + "/image";
+        return executeImageUpload(url, imageFile);
+    }
+
+    private CompletableFuture<Void> executeImageUpload(String url, java.io.File file) {
+        String boundary = "Boundary-" + System.currentTimeMillis();
+        
+        try {
+            byte[] body = buildMultipartBody(file, boundary);
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                    .build();
+
+            return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenApply(res -> {
+                        if (res.statusCode() >= 400) {
+                            throw new RuntimeException("Upload failed: " + res.statusCode());
+                        }
+                        
+                        return null;
+                    });
+        } catch (java.io.IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    private byte[] buildMultipartBody(java.io.File file, String boundary) throws java.io.IOException {
+        java.io.ByteArrayOutputStream byteStream = new java.io.ByteArrayOutputStream();
+        java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, java.nio.charset.StandardCharsets.UTF_8), true);
+        
+        writer.append("--").append(boundary).append("\r\n");
+        writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"").append(file.getName()).append("\"\r\n");
+        
+        String mimeType = java.nio.file.Files.probeContentType(file.toPath());
+        
+        if (mimeType == null) {
+            mimeType = "image/jpeg";
         }
         
-        HttpRequest req = buildRequestBuilder(url).method(method, HttpRequest.BodyPublishers.ofString(json)).build();
-        return sendAndParse(req, type, key);
-    }
-
-    private CompletableFuture<Void> executePostPutVoid(String url, Object body, String method) {
-        String json = "{}";
-        if (body != null) {
-            json = gson.toJson(body);
-        }
+        writer.append("Content-Type: ").append(mimeType).append("\r\n\r\n");
+        writer.flush();
         
-        HttpRequest req = buildRequestBuilder(url).method(method, HttpRequest.BodyPublishers.ofString(json)).build();
-        return sendAndIgnore(req);
+        java.nio.file.Files.copy(file.toPath(), byteStream);
+        
+        writer.append("\r\n--").append(boundary).append("--\r\n");
+        writer.flush();
+        
+        return byteStream.toByteArray();
     }
 
-    private CompletableFuture<Void> executeDelete(String url) {
-        HttpRequest req = buildRequestBuilder(url).DELETE().build();
-        return sendAndIgnore(req);
+    private <T> CompletableFuture<T> executeGet(String url, Class<T> responseClass) {
+        HttpRequest request = createRequestBuilder(url).GET().build();
+        return sendAndParse(request, responseClass, null);
     }
 
-    private HttpRequest.Builder buildRequestBuilder(String url) {
-        HttpRequest.Builder builder = HttpRequest.newBuilder();
-        builder.uri(URI.create(url));
-        builder.header("Content-Type", "application/json");
+    private <T> CompletableFuture<T> executePostAndParse(String url, Object bodyData, Class<T> responseClass, String extractionKey) {
+        String jsonBody = gson.toJson(bodyData);
+        
+        HttpRequest request = createRequestBuilder(url)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+                
+        return sendAndParse(request, responseClass, extractionKey);
+    }
+
+    private HttpRequest.Builder createRequestBuilder(String url) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json");
         
         if (SessionManager.getInstance().isAuthenticated()) {
             builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
@@ -167,17 +235,19 @@ public class ReviewService implements IReviewService {
             if (res.statusCode() >= 400) {
                 throw new RuntimeException("API Error: " + res.statusCode());
             }
+            
             return null;
         });
     }
 
-    private <T> CompletableFuture<T> sendAndParse(HttpRequest request, Type responseType, String extractionKey) {
+    private <T> CompletableFuture<T> sendAndParse(HttpRequest request, Class<T> responseType, String extractionKey) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
             if (response.statusCode() >= 400) {
                 throw new RuntimeException("API Error: " + response.statusCode());
             }
             
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+            
             if (extractionKey != null) {
                 if (json.has(extractionKey)) {
                     return gson.fromJson(json.get(extractionKey), responseType);

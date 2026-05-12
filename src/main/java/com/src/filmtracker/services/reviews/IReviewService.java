@@ -15,12 +15,15 @@ public interface IReviewService {
     CompletableFuture<ReviewDto> updateReview(String reviewId, ReviewRequest request);
     CompletableFuture<Void> deleteReview(String reviewId);
     CompletableFuture<Void> toggleReviewLike(String reviewId, boolean isCurrentlyLiked);
+    CompletableFuture<Void> uploadReviewImage(String reviewId, java.io.File imageFile);
     
     CompletableFuture<CommentPaginationResponse> getReviewComments(String reviewId, int page);
     CompletableFuture<CommentDto> createComment(String reviewId, CommentRequest request);
     CompletableFuture<CommentDto> updateComment(String commentId, CommentRequest request);
     CompletableFuture<Void> deleteComment(String commentId);
     CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked);
+    CompletableFuture<Void> uploadCommentImage(String commentId, java.io.File imageFile);
+    
     CompletableFuture<ReviewPaginationResponse> getUserReviews(String authId, int page);
     CompletableFuture<ReviewSummaryDto> getUserSummary(String authId);
 }

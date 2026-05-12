@@ -11,6 +11,9 @@ public record CommentDto(
     String created_at, 
     String updated_at,
     
+    @SerializedName(value = "image_url", alternate = {"imageUrl"})
+    String image_url,
+    
     @SerializedName(value = "liked_by_me", alternate = {"is_liked", "isLiked", "liked"})
     Object likedByMe
 ) {
@@ -34,6 +37,14 @@ public record CommentDto(
         }
         
         return String.valueOf(auth_id);
+    }
+
+    public String getImageUrl() {
+        if (image_url == null) {
+            return "";
+        }
+
+        return image_url;
     }
     
     public int getLikesCount() {
@@ -70,10 +81,6 @@ public record CommentDto(
         }
         
         if (s.equals("1")) {
-            return true;
-        }
-        
-        if (s.equals("1.0")) {
             return true;
         }
         

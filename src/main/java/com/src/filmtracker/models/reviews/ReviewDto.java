@@ -14,6 +14,9 @@ public record ReviewDto(
     String created_at, 
     String updated_at,
     
+    @SerializedName(value = "image_url", alternate = {"imageUrl"})
+    String image_url,
+    
     @SerializedName(value = "liked_by_me", alternate = {"is_liked", "isLiked", "liked"})
     Object likedByMe
 ) {
@@ -21,10 +24,13 @@ public record ReviewDto(
         if (id == null) {
             return "";
         }
+        
         String strId = String.valueOf(id);
+        
         if (strId.endsWith(".0")) {
             return strId.substring(0, strId.length() - 2);
         }
+        
         return strId;
     }
     
@@ -32,7 +38,16 @@ public record ReviewDto(
         if (auth_id == null) {
             return "";
         }
+        
         return String.valueOf(auth_id);
+    }
+
+    public String getImageUrl() {
+        if (image_url == null) {
+            return "";
+        }
+
+        return image_url;
     }
     
     public int getLikesCount() {
@@ -40,10 +55,13 @@ public record ReviewDto(
             if (likes_count == null) {
                 return 0;
             }
+            
             String val = String.valueOf(likes_count);
+            
             if (val.endsWith(".0")) {
                 val = val.substring(0, val.length() - 2);
             }
+            
             return Integer.parseInt(val);
         } catch (Exception e) { 
             return 0; 
@@ -55,10 +73,13 @@ public record ReviewDto(
             if (comments_count == null) {
                 return 0;
             }
+            
             String val = String.valueOf(comments_count);
+            
             if (val.endsWith(".0")) {
                 val = val.substring(0, val.length() - 2);
             }
+            
             return Integer.parseInt(val); 
         } catch (Exception e) { 
             return 0; 
@@ -79,10 +100,8 @@ public record ReviewDto(
         if (s.equals("true")) {
             return true;
         }
+        
         if (s.equals("1")) {
-            return true;
-        }
-        if (s.equals("1.0")) {
             return true;
         }
         
