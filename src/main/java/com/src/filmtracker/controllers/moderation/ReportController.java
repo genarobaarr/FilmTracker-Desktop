@@ -12,6 +12,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.stage.Stage;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class ReportController {
 
     @FXML private ComboBox<String> reasonComboBox;
@@ -19,22 +22,27 @@ public class ReportController {
     @FXML private Label errorLabel;
 
     private final IModerationService moderationService = new ModerationService();
+    private final Map<String, String> reasonMap = new LinkedHashMap<>();
     
     private String targetType;
     private String targetId;
 
     @FXML
     public void initialize() {
-        reasonComboBox.getItems().add("SPAM");
-        reasonComboBox.getItems().add("OFFENSIVE_CONTENT");
-        reasonComboBox.getItems().add("HARASSMENT");
-        reasonComboBox.getItems().add("HATE_SPEECH");
-        reasonComboBox.getItems().add("SEXUAL_CONTENT");
-        reasonComboBox.getItems().add("VIOLENCE");
-        reasonComboBox.getItems().add("SPOILER");
-        reasonComboBox.getItems().add("FAKE_PROFILE");
-        reasonComboBox.getItems().add("INAPPROPRIATE_IMAGE");
-        reasonComboBox.getItems().add("OTHER");
+        reasonMap.put("Spam o contenido comercial no deseado", "SPAM");
+        reasonMap.put("Contenido ofensivo o abusivo", "OFFENSIVE_CONTENT");
+        reasonMap.put("Acoso o intimidación", "HARASSMENT");
+        reasonMap.put("Incitación al odio o discriminación", "HATE_SPEECH");
+        reasonMap.put("Contenido sexual o explícito", "SEXUAL_CONTENT");
+        reasonMap.put("Violencia o daño físico", "VIOLENCE");
+        reasonMap.put("Spoiler sin advertencia previa", "SPOILER");
+        reasonMap.put("Perfil falso o suplantación de identidad", "FAKE_PROFILE");
+        reasonMap.put("Imagen de perfil o contenido inapropiado", "INAPPROPRIATE_IMAGE");
+        reasonMap.put("Otro motivo", "OTHER");
+
+        for (String key : reasonMap.keySet()) {
+            reasonComboBox.getItems().add(key);
+        }
     }
 
     public void initData(String type, String id) {
@@ -50,15 +58,16 @@ public class ReportController {
 
     @FXML
     private void handleSubmit() {
-        String reason = reasonComboBox.getValue();
+        String selectedReasonText = reasonComboBox.getValue();
         
-        if (reason == null) {
+        if (selectedReasonText == null) {
             mostrarError("Debes seleccionar un motivo para el reporte.");
             return;
         }
 
+        String reasonCode = reasonMap.get(selectedReasonText);
         String description = descriptionArea.getText().trim();
-        ReportRequest request = new ReportRequest(targetType, targetId, reason, description);
+        ReportRequest request = new ReportRequest(targetType, targetId, reasonCode, description);
 
         moderationService.createReport(request).thenRun(() -> {
             Platform.runLater(() -> {
@@ -80,11 +89,14 @@ public class ReportController {
             errorMsg = e.getCause().getMessage();
         }
         
-        if (errorMsg != null && errorMsg.contains("409")) {
-            mostrarError(AppConstants.MESSAGE_ERROR_REPORT_DUPLICATE);
-        } else {
-            mostrarError(AppConstants.MESSAGE_ERROR_REPORT);
+        if (errorMsg != null) {
+            if (errorMsg.contains("409")) {
+                mostrarError(AppConstants.MESSAGE_ERROR_REPORT_DUPLICATE);
+                return;
+            }
         }
+        
+        mostrarError(AppConstants.MESSAGE_ERROR_REPORT);
     }
 
     private void mostrarError(String msg) {
