@@ -80,6 +80,7 @@ public class ProfileController {
     @FXML private HBox usernameEditBox;
     @FXML private TextField usernameField;
     @FXML private Button editUsernameBtn;
+    @FXML private Button reportProfileBtn;
 
     private final ILibraryService libraryService = new LibraryService();
     private final IShowService showService = new ShowService();
@@ -232,6 +233,23 @@ public class ProfileController {
             cargarAmigosPropios(1);
         }
     }
+    
+    @FXML
+    private void handleReportProfile() {
+        if (currentUserProfile == null) {
+            return;
+        }
+        
+        String targetId = currentUserProfile.getSafeAuthId();
+        
+        if (targetId == null) {
+            return;
+        }
+        
+        if (!targetId.isEmpty()) {
+            com.src.filmtracker.utils.ReportModalHelper.openReportModal("USER", targetId);
+        }
+    }
 
     public void initData(UserDto user) {
         if (user == null) {
@@ -343,6 +361,8 @@ public class ProfileController {
         if (isCurrentUser) {
             friendActionsBox.setVisible(false);
             friendActionsBox.setManaged(false);
+            reportProfileBtn.setVisible(false);
+            
             reviewsTitleLabel.setText("Mis Reseñas Publicadas");
             favoritesTitleLabel.setText("Mis Series Favoritas");
             cargarFavoritos(true);
@@ -350,6 +370,7 @@ public class ProfileController {
         } else {
             friendActionsBox.setVisible(true);
             friendActionsBox.setManaged(true);
+            reportProfileBtn.setVisible(true);
             
             ocultarBotonesAmistad();
             

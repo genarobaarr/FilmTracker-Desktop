@@ -32,6 +32,9 @@ public final class AppConstants {
     public static final String COMMENTS_URL = REVIEWS_SERVICE_URL + "/comments";
     
     public static final String FRIENDS_SERVICE_URL = CONFIG.getProperty("api.friends.url", "http://localhost:3006/api/friends");
+    
+    public static final String MODERATION_SERVICE_URL = CONFIG.getProperty("api.moderation.url", "http://localhost:3007/api/moderation");
+    public static final String REPORTS_URL = MODERATION_SERVICE_URL + "/reports";
 
     public static final int HOME_CAROUSEL_LIMIT = 20;
 
@@ -47,6 +50,7 @@ public final class AppConstants {
     public static final String FXML_FORGOT_PASSWORD = "/com/src/filmtracker/views/FXMLForgotPassword.fxml";
     public static final String FXML_RESET_PASSWORD = "/com/src/filmtracker/views/FXMLResetPassword.fxml";
     public static final String FXML_FRIENDS_MANAGER = "/com/src/filmtracker/views/FXMLFriendsManager.fxml";
+    public static final String FXML_REPORT = "/com/src/filmtracker/views/FXMLReport.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";
@@ -80,6 +84,9 @@ public final class AppConstants {
     public static final String MESSAGE_SUCCESS_PHOTO = "Foto de perfil actualizada correctamente.";
     public static final String MESSAGE_ERROR_PHOTO = "Error al subir la foto de perfil.";
     public static final String MESSAGE_SUCCESS_REVIEW_UPDATE = "Reseña actualizada correctamente.";
+    public static final String MESSAGE_SUCCESS_REPORT = "Reporte enviado correctamente.";
+    public static final String MESSAGE_ERROR_REPORT = "Error al enviar el reporte.";
+    public static final String MESSAGE_ERROR_REPORT_DUPLICATE = "Ya has enviado un reporte para este elemento y se encuentra en revisión.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

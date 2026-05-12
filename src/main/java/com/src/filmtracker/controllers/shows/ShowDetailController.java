@@ -840,6 +840,81 @@ public class ShowDetailController {
             return null;
         });
     }
+    
+    private void injectReviewActions(ReviewDto review, HBox actions, VBox card) {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            return;
+        }
+        
+        String ownerId = review.getOwnerId();
+        
+        if (ownerId == null) {
+            return;
+        }
+        
+        if (ownerId.isEmpty()) {
+            return;
+        }
+        
+        String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
+        
+        if (ownerId.equals(currAuth)) {
+            agregarBotonEliminarResena(review.getSafeId(), actions);
+            
+            if (isWithinEditWindow(review.created_at())) {
+                agregarBotonEditarResena(review, actions, card);
+            }
+            
+            return; 
+        }
+        
+        agregarBotonReportar(review.getSafeId(), "REVIEW", actions);
+    }
+
+    private void injectCommentActions(String cId, String ownerId, HBox actions, String rId, VBox parent) {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            return;
+        }
+        
+        if (ownerId == null) {
+            return;
+        }
+        
+        if (ownerId.isEmpty()) {
+            return;
+        }
+        
+        String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
+        
+        if (ownerId.equals(currAuth)) {
+            Button del = new Button("Eliminar");
+            del.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand; -fx-underline: true;");
+            
+            del.setOnAction(e -> {
+                reviewService.deleteComment(cId).thenRun(() -> {
+                    Platform.runLater(() -> {
+                        cargarComentariosUI(rId, parent, 1);
+                    });
+                });
+            });
+            
+            actions.getChildren().add(del);
+            return;
+        }
+        
+        agregarBotonReportar(cId, "COMMENT", actions);
+    }
+
+    private void agregarBotonReportar(String targetId, String targetType, HBox actions) {
+        Button rep = new Button("Reportar");
+        rep.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand; -fx-underline: true;");
+        
+        rep.setOnAction(e -> {
+            com.src.filmtracker.utils.ReportModalHelper.openReportModal(targetType, targetId);
+        });
+        
+        actions.getChildren().add(rep);
+    }
 
     private void limpiarYRefrescarResenas() {
         Platform.runLater(() -> {
@@ -999,7 +1074,7 @@ public class ShowDetailController {
         actions.getChildren().add(likeBtn);
         actions.getChildren().add(commBtn);
         
-        injectOwnerActions(review, actions, card);
+        injectReviewActions(review, actions, card);
         
         card.getChildren().add(actions);
         card.getChildren().add(commContainer);
@@ -1167,7 +1242,7 @@ public class ShowDetailController {
         configurarBotonLikeComentario(cId, lk, c.getLikesCount(), c.getIsLikedValue(), rId, parent);
         
         actions.getChildren().add(lk);
-        injectCommentDelete(cId, c.getOwnerId(), actions, rId, parent);
+        injectCommentActions(cId, c.getOwnerId(), actions, rId, parent);
         
         box.getChildren().add(actions);
         
@@ -1307,32 +1382,6 @@ public class ShowDetailController {
                 label.setText("@Usuario");
             });
         });
-    }
-
-    private void injectOwnerActions(ReviewDto review, HBox actions, VBox card) {
-        if (!SessionManager.getInstance().isAuthenticated()) {
-            return;
-        }
-        
-        String ownerId = review.getOwnerId();
-        
-        if (ownerId == null) {
-            return;
-        }
-        
-        if (ownerId.isEmpty()) {
-            return;
-        }
-        
-        String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
-        
-        if (ownerId.equals(currAuth)) {
-            agregarBotonEliminarResena(review.getSafeId(), actions);
-            
-            if (isWithinEditWindow(review.created_at())) {
-                agregarBotonEditarResena(review, actions, card);
-            }
-        }
     }
 
     private boolean isWithinEditWindow(String createdAtStr) {
@@ -1502,37 +1551,6 @@ public class ShowDetailController {
             this.currentReviewPage = 1;
             cargarResenas(1);
         });
-    }
-
-    private void injectCommentDelete(String cId, String ownerId, HBox actions, String rId, VBox parent) {
-        if (!SessionManager.getInstance().isAuthenticated()) {
-            return;
-        }
-        
-        if (ownerId == null) {
-            return;
-        }
-        
-        if (ownerId.isEmpty()) {
-            return;
-        }
-        
-        String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
-        
-        if (ownerId.equals(currAuth)) {
-            Button del = new Button("Eliminar");
-            del.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand; -fx-underline: true;");
-            
-            del.setOnAction(e -> {
-                reviewService.deleteComment(cId).thenRun(() -> {
-                    Platform.runLater(() -> {
-                        cargarComentariosUI(rId, parent, 1);
-                    });
-                });
-            });
-            
-            actions.getChildren().add(del);
-        }
     }
 
     private void injectShowCard(Show s, HBox container) {

@@ -67,6 +67,7 @@
                             <HBox fx:id="friendActionsBox" alignment="CENTER" spacing="10.0" visible="false" managed="false">
                                 <Button fx:id="addFriendBtn" onAction="#handleAddFriend" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Agregar amigo" />
                                 <Button fx:id="removeFriendBtn" onAction="#handleRemoveFriend" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Eliminar amigo" />
+                                <Button fx:id="reportProfileBtn" onAction="#handleReportProfile" style="-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand; -fx-underline: true;" text="Reportar Perfil" />
                             </HBox>
                         </VBox>
 
