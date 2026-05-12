@@ -27,6 +27,7 @@ public class ReviewService implements IReviewService {
     @Override
     public CompletableFuture<ReviewPaginationResponse> getShowReviews(Integer tvmazeId, int page) {
         String url = AppConstants.REVIEWS_URL + "/show/" + tvmazeId + "?page=" + page;
+        
         return executeGet(url, ReviewPaginationResponse.class);
     }
 
@@ -70,19 +71,35 @@ public class ReviewService implements IReviewService {
 
     @Override
     public CompletableFuture<CommentPaginationResponse> getReviewComments(String reviewId, int page) {
-        String url = AppConstants.COMMENTS_URL + "/reviews/" + reviewId + "/comments?page=" + page;
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/comments?page=" + page;
+        
         return executeGet(url, CommentPaginationResponse.class);
     }
 
     @Override
-    public CompletableFuture<CommentDto> createComment(String reviewId, CommentRequest request) {
-        String url = AppConstants.COMMENTS_URL + "/reviews/" + reviewId + "/comments";
-        return executePostAndParse(url, request, CommentDto.class, "comment");
+    public CompletableFuture<CommentDto> createComment(String reviewId, CommentRequest request, java.io.File imageFile) {
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/comments";
+        String boundary = "Boundary-" + System.currentTimeMillis();
+
+        try {
+            byte[] body = buildMultipartBodyWithTextAndFile(request.content(), imageFile, boundary);
+            
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                    .build();
+
+            return sendAndParse(req, CommentDto.class, "comment");
+        } catch (java.io.IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     @Override
     public CompletableFuture<CommentDto> updateComment(String commentId, CommentRequest request) {
-        String url = AppConstants.COMMENTS_URL + "/comments/" + commentId;
+        String url = AppConstants.COMMENTS_URL + "/" + commentId;
         
         HttpRequest req = createRequestBuilder(url)
                 .PUT(HttpRequest.BodyPublishers.ofString(gson.toJson(request)))
@@ -93,7 +110,7 @@ public class ReviewService implements IReviewService {
 
     @Override
     public CompletableFuture<Void> deleteComment(String commentId) {
-        String url = AppConstants.COMMENTS_URL + "/comments/" + commentId;
+        String url = AppConstants.COMMENTS_URL + "/" + commentId;
         
         HttpRequest req = createRequestBuilder(url)
                 .DELETE()
@@ -104,7 +121,7 @@ public class ReviewService implements IReviewService {
 
     @Override
     public CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked) {
-        String url = AppConstants.COMMENTS_URL + "/comments/" + commentId + "/like";
+        String url = AppConstants.COMMENTS_URL + "/" + commentId + "/like";
         
         HttpRequest req = createRequestBuilder(url)
                 .POST(HttpRequest.BodyPublishers.noBody())
@@ -116,6 +133,7 @@ public class ReviewService implements IReviewService {
     @Override
     public CompletableFuture<ReviewPaginationResponse> getUserReviews(String authId, int page) {
         String url = AppConstants.REVIEWS_URL + "/user/" + authId + "?page=" + page;
+        
         return executeGet(url, ReviewPaginationResponse.class);
     }
 
@@ -143,12 +161,14 @@ public class ReviewService implements IReviewService {
     @Override
     public CompletableFuture<Void> uploadReviewImage(String reviewId, java.io.File imageFile) {
         String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/image";
+        
         return executeImageUpload(url, imageFile);
     }
 
     @Override
     public CompletableFuture<Void> uploadCommentImage(String commentId, java.io.File imageFile) {
-        String url = AppConstants.COMMENTS_URL + "/comments/" + commentId + "/image";
+        String url = AppConstants.COMMENTS_URL + "/" + commentId + "/image";
+        
         return executeImageUpload(url, imageFile);
     }
 
@@ -178,12 +198,60 @@ public class ReviewService implements IReviewService {
         }
     }
 
+    private byte[] buildMultipartBodyWithTextAndFile(String content, java.io.File file, String boundary) throws java.io.IOException {
+        java.io.ByteArrayOutputStream byteStream = new java.io.ByteArrayOutputStream();
+        java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, java.nio.charset.StandardCharsets.UTF_8), true);
+
+        writer.append("--");
+        writer.append(boundary);
+        writer.append("\r\n");
+        writer.append("Content-Disposition: form-data; name=\"content\"\r\n\r\n");
+        writer.append(content);
+        writer.append("\r\n");
+
+        if (file != null) {
+            writer.append("--");
+            writer.append(boundary);
+            writer.append("\r\n");
+            writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"");
+            writer.append(file.getName());
+            writer.append("\"\r\n");
+
+            String mimeType = java.nio.file.Files.probeContentType(file.toPath());
+            
+            if (mimeType == null) {
+                mimeType = "image/jpeg";
+            }
+
+            writer.append("Content-Type: ");
+            writer.append(mimeType);
+            writer.append("\r\n\r\n");
+            writer.flush();
+
+            java.nio.file.Files.copy(file.toPath(), byteStream);
+            byteStream.flush();
+
+            writer.append("\r\n");
+        }
+
+        writer.append("--");
+        writer.append(boundary);
+        writer.append("--\r\n");
+        writer.flush();
+
+        return byteStream.toByteArray();
+    }
+
     private byte[] buildMultipartBody(java.io.File file, String boundary) throws java.io.IOException {
         java.io.ByteArrayOutputStream byteStream = new java.io.ByteArrayOutputStream();
         java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, java.nio.charset.StandardCharsets.UTF_8), true);
         
-        writer.append("--").append(boundary).append("\r\n");
-        writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"").append(file.getName()).append("\"\r\n");
+        writer.append("--");
+        writer.append(boundary);
+        writer.append("\r\n");
+        writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"");
+        writer.append(file.getName());
+        writer.append("\"\r\n");
         
         String mimeType = java.nio.file.Files.probeContentType(file.toPath());
         
@@ -191,12 +259,16 @@ public class ReviewService implements IReviewService {
             mimeType = "image/jpeg";
         }
         
-        writer.append("Content-Type: ").append(mimeType).append("\r\n\r\n");
+        writer.append("Content-Type: ");
+        writer.append(mimeType);
+        writer.append("\r\n\r\n");
         writer.flush();
         
         java.nio.file.Files.copy(file.toPath(), byteStream);
         
-        writer.append("\r\n--").append(boundary).append("--\r\n");
+        writer.append("\r\n--");
+        writer.append(boundary);
+        writer.append("--\r\n");
         writer.flush();
         
         return byteStream.toByteArray();
@@ -204,6 +276,7 @@ public class ReviewService implements IReviewService {
 
     private <T> CompletableFuture<T> executeGet(String url, Class<T> responseClass) {
         HttpRequest request = createRequestBuilder(url).GET().build();
+        
         return sendAndParse(request, responseClass, null);
     }
 

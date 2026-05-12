@@ -18,7 +18,7 @@ public interface IReviewService {
     CompletableFuture<Void> uploadReviewImage(String reviewId, java.io.File imageFile);
     
     CompletableFuture<CommentPaginationResponse> getReviewComments(String reviewId, int page);
-    CompletableFuture<CommentDto> createComment(String reviewId, CommentRequest request);
+    CompletableFuture<CommentDto> createComment(String reviewId, CommentRequest request, java.io.File imageFile);
     CompletableFuture<CommentDto> updateComment(String commentId, CommentRequest request);
     CompletableFuture<Void> deleteComment(String commentId);
     CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked);

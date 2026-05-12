@@ -1107,21 +1107,10 @@ public class ShowDetailController {
         }
         
         CommentRequest req = new CommentRequest(in.getText().trim());
+        File img = selectedCommentImages.get(rId);
         
-        reviewService.createComment(rId, req).thenAccept(comment -> {
-            File img = selectedCommentImages.get(rId);
-            
-            if (img != null) {
-                if (comment != null) {
-                    reviewService.uploadCommentImage(comment.getSafeId(), img).thenRun(() -> {
-                        refrescarComentarios(rId, container);
-                    });
-                    return;
-                }
-            }
-            
+        reviewService.createComment(rId, req, img).thenAccept(comment -> {
             refrescarComentarios(rId, container);
-            
         }).exceptionally(err -> {
             Platform.runLater(() -> {
                 mostrarAlertaError(AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
