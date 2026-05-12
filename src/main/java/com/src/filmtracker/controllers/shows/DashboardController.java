@@ -106,6 +106,11 @@ public class DashboardController implements Initializable {
     private void handleOpenFriendsManager() {
         App.setRoot(AppConstants.FXML_FRIENDS_MANAGER);
     }
+    
+    @FXML
+    private void handleOpenMyReports() {
+        App.setRoot(AppConstants.FXML_MY_REPORTS);
+    }
 
     @FXML
     private void handleLogout() {
