@@ -1,6 +1,7 @@
 package com.src.filmtracker.controllers.auth;
 
 import com.src.filmtracker.App;
+import com.src.filmtracker.models.auth.AccountModeratedException;
 import com.src.filmtracker.models.auth.LoginRequest;
 import com.src.filmtracker.services.auth.AuthService;
 import com.src.filmtracker.services.auth.IAuthService;
@@ -13,22 +14,32 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+
 public class LoginController {
+    
     @FXML private TextField emailField; 
     @FXML private PasswordField passwordField;
     @FXML private Label errorLabel;
 
     private final IAuthService authService = new AuthService();
 
-    @FXML private void handleClose() { 
-        Platform.exit(); System.exit(0); 
+    @FXML 
+    private void handleClose() { 
+        Platform.exit(); 
+        System.exit(0); 
     }
     
-    @FXML private void handleMinimize() { 
-        ((Stage)emailField.getScene().getWindow()).setIconified(true); 
+    @FXML 
+    private void handleMinimize() { 
+        Stage stage = (Stage) emailField.getScene().getWindow();
+        stage.setIconified(true); 
     }
     
-    @FXML private void goToRegister() { 
+    @FXML 
+    private void goToRegister() { 
         App.setRoot(AppConstants.FXML_REGISTER); 
     }
     
@@ -42,10 +53,18 @@ public class LoginController {
         String email = emailField.getText().trim();
         String pass = passwordField.getText().trim();
 
-        if (email.isEmpty() || pass.isEmpty()) {
+        if (email.isEmpty()) {
             showError(AppConstants.MESSAGE_ERROR_FIELDS);
             return;
         }
+        
+        if (pass.isEmpty()) {
+            showError(AppConstants.MESSAGE_ERROR_FIELDS);
+            return;
+        }
+
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
 
         LoginRequest request = new LoginRequest(email, pass);
         
@@ -55,9 +74,98 @@ public class LoginController {
                 App.setRoot(AppConstants.FXML_DASHBOARD);
             });
         }).exceptionally(e -> {
-            Platform.runLater(() -> showError(AppConstants.MESSAGE_ERROR_AUTH));
+            Platform.runLater(() -> {
+                procesarErrorLogin(e);
+            });
             return null;
         });
+    }
+
+    private void procesarErrorLogin(Throwable e) {
+        Throwable cause = e.getCause();
+
+        if (cause instanceof AccountModeratedException) {
+            AccountModeratedException modEx = (AccountModeratedException) cause;
+            manejarCuentaModerada(modEx);
+            return;
+        }
+
+        showError(AppConstants.MESSAGE_ERROR_AUTH);
+    }
+
+    private void manejarCuentaModerada(AccountModeratedException modEx) {
+        String status = modEx.getAccountStatus();
+
+        if ("BANNED".equals(status)) {
+            mostrarErrorBaneo(modEx);
+            return;
+        }
+
+        if ("SUSPENDED".equals(status)) {
+            mostrarErrorSuspension(modEx);
+            return;
+        }
+
+        showError(modEx.getMessage());
+    }
+
+    private void mostrarErrorBaneo(AccountModeratedException modEx) {
+        String mensaje = "Tu cuenta ha sido baneada.\nMotivo: " + modEx.getModerationReason();
+        showError(mensaje);
+    }
+
+    private void mostrarErrorSuspension(AccountModeratedException modEx) {
+        String untilStr = modEx.getSuspendedUntil();
+
+        if (untilStr == null) {
+            construirMensajeSuspensionBasico(modEx);
+            return;
+        }
+
+        if (untilStr.isEmpty()) {
+            construirMensajeSuspensionBasico(modEx);
+            return;
+        }
+
+        construirMensajeSuspensionDetallado(modEx, untilStr);
+    }
+
+    private void construirMensajeSuspensionBasico(AccountModeratedException modEx) {
+        String mensaje = "Tu cuenta está suspendida temporalmente.\nMotivo: " + modEx.getModerationReason();
+        showError(mensaje);
+    }
+
+    private void construirMensajeSuspensionDetallado(AccountModeratedException modEx, String untilStr) {
+        try {
+            ZonedDateTime fechaSuspension = ZonedDateTime.parse(untilStr);
+            ZonedDateTime fechaActual = ZonedDateTime.now();
+            long diasRestantes = ChronoUnit.DAYS.between(fechaActual, fechaSuspension);
+
+            if (diasRestantes <= 0) {
+                calcularHorasRestantes(modEx, fechaSuspension, fechaActual);
+                return;
+            }
+
+            String fechaFormateada = fechaSuspension.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            String mensaje = "Cuenta suspendida temporalmente.\nMotivo: " + modEx.getModerationReason() + "\nDisponible el " + fechaFormateada + " (Faltan " + diasRestantes + " días)";
+            
+            showError(mensaje);
+        } catch (Exception ex) {
+            construirMensajeSuspensionBasico(modEx);
+        }
+    }
+
+    private void calcularHorasRestantes(AccountModeratedException modEx, ZonedDateTime fechaSuspension, ZonedDateTime fechaActual) {
+        long horasRestantes = ChronoUnit.HOURS.between(fechaActual, fechaSuspension);
+        
+        if (horasRestantes <= 0) {
+            horasRestantes = 1;
+        }
+        
+        String fechaFormateada = fechaSuspension.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        String mensaje = "Cuenta suspendida temporalmente.\nMotivo: " + modEx.getModerationReason() + "\nDisponible el " + fechaFormateada + " (Faltan aprox. " + horasRestantes + " horas)";
+        
+        showError(mensaje);
     }
 
     private void showError(String message) {
