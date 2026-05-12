@@ -9,4 +9,5 @@ public interface IUserService {
     CompletableFuture<UserDto> getUserById(String authId);
     CompletableFuture<UserDto> getUserByUsername(String username);
     CompletableFuture<UserDto> updateProfile(UpdateProfileRequest request);
+    CompletableFuture<UserDto> uploadProfilePhoto(java.io.File file);
 }

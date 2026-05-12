@@ -46,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 public class ProfileController {
     
     @FXML private ImageView avatarView;
+    @FXML private Button editAvatarBtn;
     @FXML private Label nameLabel;
     @FXML private Label usernameLabel;
     @FXML private Label emailLabel;
@@ -89,14 +90,148 @@ public class ProfileController {
     private int currentReviewPage = 1;
     private UserDto currentUserProfile;
     
-    @FXML private void handleEditName() { toggleNameEdit(true); }
-    @FXML private void handleCancelName() { toggleNameEdit(false); }
-    @FXML private void handleEditUsername() { toggleUsernameEdit(true); }
-    @FXML private void handleCancelUsername() { toggleUsernameEdit(false); }
-    @FXML private void handleChangePassword() { App.setRoot(AppConstants.FXML_CHANGE_PASSWORD); }
-    @FXML private void handleBack() { App.setRoot(AppConstants.FXML_DASHBOARD); }
-    @FXML private void handleMinimize() { ((Stage) nameLabel.getScene().getWindow()).setIconified(true); }
-    @FXML private void handleClose() { Platform.exit(); System.exit(0); }
+    @FXML private void handleEditName() { 
+        toggleNameEdit(true); 
+    }
+    
+    @FXML private void handleCancelName() { 
+        toggleNameEdit(false); 
+    }
+    
+    @FXML private void handleEditUsername() { 
+        toggleUsernameEdit(true); 
+    }
+    
+    @FXML private void handleCancelUsername() { 
+        toggleUsernameEdit(false); 
+    }
+    
+    @FXML private void handleChangePassword() { 
+        App.setRoot(AppConstants.FXML_CHANGE_PASSWORD); 
+    }
+    
+    @FXML private void handleBack() { 
+        App.setRoot(AppConstants.FXML_DASHBOARD); 
+    }
+    
+    @FXML private void handleMinimize() { 
+        ((Stage) nameLabel.getScene().getWindow()).setIconified(true); 
+    }
+    
+    @FXML private void handleClose() { 
+        Platform.exit(); System.exit(0); 
+    }
+
+    @FXML private void handleSaveName() {
+        String newName = nameField.getText().trim();
+        
+        if (newName.isEmpty()) {
+            return;
+        }
+        
+        UpdateProfileRequest req = new UpdateProfileRequest(newName, currentUserProfile.username(), currentUserProfile.profileImage());
+        ejecutarActualizacion(req);
+        toggleNameEdit(false);
+    }
+
+    @FXML private void handleSaveUsername() {
+        String newUsername = usernameField.getText().trim();
+        
+        if (newUsername.isEmpty()) {
+            return;
+        }
+        
+        UpdateProfileRequest req = new UpdateProfileRequest(currentUserProfile.name(), newUsername, currentUserProfile.profileImage());
+        ejecutarActualizacion(req);
+        toggleUsernameEdit(false);
+    }
+    
+    @FXML
+    private void handleEditAvatar() {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Seleccionar Foto de Perfil");
+        
+        javafx.stage.FileChooser.ExtensionFilter imageFilter = new javafx.stage.FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg");
+        fileChooser.getExtensionFilters().add(imageFilter);
+        
+        java.io.File selectedFile = fileChooser.showOpenDialog(nameLabel.getScene().getWindow());
+        
+        if (selectedFile != null) {
+            subirFotoPerfil(selectedFile);
+        }
+    }
+
+    @FXML
+    private void handleAddFriend() {
+        String receiverId = currentUserProfile.getSafeAuthId();
+        
+        if (receiverId == null) {
+            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            return;
+        }
+        
+        if (receiverId.isEmpty()) {
+            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            return;
+        }
+
+        SendFriendRequest req = new SendFriendRequest(receiverId);
+        
+        friendsService.sendFriendRequest(req).thenRun(() -> {
+            Platform.runLater(() -> {
+                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_ADD);
+                cargarEstadoAmistad(receiverId);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+            });
+            return null;
+        });
+    }
+
+    @FXML
+    private void handleRemoveFriend() {
+        String friendId = currentUserProfile.getSafeAuthId();
+        
+        if (friendId == null) {
+            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            return;
+        }
+        
+        if (friendId.isEmpty()) {
+            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            return;
+        }
+
+        friendsService.removeFriend(friendId).thenRun(() -> {
+            Platform.runLater(() -> {
+                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_REMOVE);
+                cargarEstadoAmistad(friendId);
+                cargarEstadisticas(friendId);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+            });
+            return null;
+        });
+    }
+
+    @FXML
+    private void handleShowFriends() {
+        if (!esUsuarioActual(currentUserProfile)) {
+            return; 
+        }
+        
+        boolean isVisible = friendsListContainer.isVisible();
+        friendsListContainer.setVisible(!isVisible);
+        friendsListContainer.setManaged(!isVisible);
+
+        if (!isVisible) {
+            cargarAmigosPropios(1);
+        }
+    }
 
     public void initData(UserDto user) {
         if (user == null) {
@@ -202,6 +337,9 @@ public class ProfileController {
         editUsernameBtn.setVisible(isCurrentUser);
         editUsernameBtn.setManaged(isCurrentUser);
         
+        editAvatarBtn.setVisible(isCurrentUser);
+        editAvatarBtn.setManaged(isCurrentUser);
+
         if (isCurrentUser) {
             friendActionsBox.setVisible(false);
             friendActionsBox.setManaged(false);
@@ -274,78 +412,6 @@ public class ProfileController {
             configurarBotonAgregar("Solicitud enviada", true);
         } else if (safeStatus.equals("PENDING_INCOMING")) {
             configurarBotonAgregar("Responder solicitud", true);
-        }
-    }
-
-    @FXML
-    private void handleAddFriend() {
-        String receiverId = currentUserProfile.getSafeAuthId();
-        
-        if (receiverId == null) {
-            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-            return;
-        }
-        
-        if (receiverId.isEmpty()) {
-            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-            return;
-        }
-
-        SendFriendRequest req = new SendFriendRequest(receiverId);
-        
-        friendsService.sendFriendRequest(req).thenRun(() -> {
-            Platform.runLater(() -> {
-                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_ADD);
-                cargarEstadoAmistad(receiverId);
-            });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
-            });
-            return null;
-        });
-    }
-
-    @FXML
-    private void handleRemoveFriend() {
-        String friendId = currentUserProfile.getSafeAuthId();
-        
-        if (friendId == null) {
-            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-            return;
-        }
-        
-        if (friendId.isEmpty()) {
-            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-            return;
-        }
-
-        friendsService.removeFriend(friendId).thenRun(() -> {
-            Platform.runLater(() -> {
-                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_REMOVE);
-                cargarEstadoAmistad(friendId);
-                cargarEstadisticas(friendId);
-            });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
-            });
-            return null;
-        });
-    }
-
-    @FXML
-    private void handleShowFriends() {
-        if (!esUsuarioActual(currentUserProfile)) {
-            return; 
-        }
-        
-        boolean isVisible = friendsListContainer.isVisible();
-        friendsListContainer.setVisible(!isVisible);
-        friendsListContainer.setManaged(!isVisible);
-
-        if (!isVisible) {
-            cargarAmigosPropios(1);
         }
     }
 
@@ -570,30 +636,6 @@ public class ProfileController {
         }
     }
 
-    @FXML private void handleSaveName() {
-        String newName = nameField.getText().trim();
-        
-        if (newName.isEmpty()) {
-            return;
-        }
-        
-        UpdateProfileRequest req = new UpdateProfileRequest(newName, currentUserProfile.username(), currentUserProfile.profileImage());
-        ejecutarActualizacion(req);
-        toggleNameEdit(false);
-    }
-
-    @FXML private void handleSaveUsername() {
-        String newUsername = usernameField.getText().trim();
-        
-        if (newUsername.isEmpty()) {
-            return;
-        }
-        
-        UpdateProfileRequest req = new UpdateProfileRequest(currentUserProfile.name(), newUsername, currentUserProfile.profileImage());
-        ejecutarActualizacion(req);
-        toggleUsernameEdit(false);
-    }
-
     private void ejecutarActualizacion(UpdateProfileRequest req) {
         userService.updateProfile(req).thenAccept(updatedUser -> {
             Platform.runLater(() -> {
@@ -603,6 +645,23 @@ public class ProfileController {
         }).exceptionally(e -> {
             Platform.runLater(() -> {
                 mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            });
+            return null;
+        });
+    }
+    
+    
+
+    private void subirFotoPerfil(java.io.File file) {
+        userService.uploadProfilePhoto(file).thenAccept(updatedUser -> {
+            Platform.runLater(() -> {
+                SessionManager.getInstance().updateUser(updatedUser);
+                initData(updatedUser);
+                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_PHOTO);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_PHOTO);
             });
             return null;
         });

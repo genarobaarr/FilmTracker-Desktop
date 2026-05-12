@@ -106,4 +106,63 @@ public class UserService implements IUserService {
                     return gson.fromJson(obj, UserDto.class);
                 });
     }
+    
+    @Override
+    public CompletableFuture<UserDto> uploadProfilePhoto(java.io.File file) {
+        String boundary = "Boundary-" + System.currentTimeMillis();
+        byte[] multipartBody = construirCuerpoMultipart(file, boundary);
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(AppConstants.USERS_PROFILE_PHOTO_URL))
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
+                .build();
+
+        return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() >= 400) {
+                        throw new RuntimeException("Upload Error: " + response.statusCode());
+                    }
+                    
+                    JsonObject obj = JsonParser.parseString(response.body()).getAsJsonObject();
+                    
+                    if (obj.has("data")) {
+                        return gson.fromJson(obj.get("data"), UserDto.class);
+                    }
+                    
+                    return gson.fromJson(obj, UserDto.class);
+                });
+    }
+
+    private byte[] construirCuerpoMultipart(java.io.File file, String boundary) {
+        try {
+            java.io.ByteArrayOutputStream byteStream = new java.io.ByteArrayOutputStream();
+            java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, java.nio.charset.StandardCharsets.UTF_8), true);
+            
+            writer.append("--").append(boundary).append("\r\n");
+            writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"").append(file.getName()).append("\"\r\n");
+            
+            String mimeType = java.nio.file.Files.probeContentType(file.toPath());
+            
+            if (mimeType == null) {
+                mimeType = "application/octet-stream";
+            }
+            
+            writer.append("Content-Type: ").append(mimeType).append("\r\n");
+            writer.append("\r\n");
+            writer.flush();
+            
+            java.nio.file.Files.copy(file.toPath(), byteStream);
+            byteStream.flush();
+            
+            writer.append("\r\n");
+            writer.append("--").append(boundary).append("--\r\n");
+            writer.flush();
+            
+            return byteStream.toByteArray();
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Error al leer el archivo de imagen", e);
+        }
+    }
 }

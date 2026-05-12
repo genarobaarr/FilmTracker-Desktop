@@ -12,6 +12,7 @@ public final class AppConstants {
     
     public static final String USERS_SERVICE_URL = CONFIG.getProperty("api.users.url", "http://localhost:3002/api/users");
     public static final String USERS_PROFILE_URL = USERS_SERVICE_URL + "/profile";
+    public static final String USERS_PROFILE_PHOTO_URL = USERS_PROFILE_URL + "/photo";
     
     public static final String AUTH_SERVICE_URL = CONFIG.getProperty("api.auth.url", "http://localhost:3003/api/auth");
     public static final String AUTH_LOGIN_URL = AUTH_SERVICE_URL + "/login";
@@ -76,6 +77,8 @@ public final class AppConstants {
     public static final String MESSAGE_SUCCESS_ACCEPTED = "Solicitud aceptada correctamente.";
     public static final String MESSAGE_SUCCESS_REJECTED = "Solicitud rechazada correctamente.";
     public static final String MESSAGE_SUCCESS_CANCELED = "Solicitud cancelada correctamente.";
+    public static final String MESSAGE_SUCCESS_PHOTO = "Foto de perfil actualizada correctamente.";
+    public static final String MESSAGE_ERROR_PHOTO = "Error al subir la foto de perfil.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

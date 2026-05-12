@@ -30,8 +30,12 @@
             <content>
                 <VBox alignment="CENTER" spacing="25.0" style="-fx-padding: 20; -fx-background-color: #121212;">
                     <children>
-                        <ImageView fx:id="avatarView" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true" />
-                
+                        <StackPane maxWidth="120.0" maxHeight="120.0">
+                            <children>
+                                <ImageView fx:id="avatarView" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="false" />
+                                <Button fx:id="editAvatarBtn" mnemonicParsing="false" onAction="#handleEditAvatar" style="-fx-background-color: rgba(30,30,30,0.8); -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 20;" text="✎" StackPane.alignment="BOTTOM_RIGHT" />
+                            </children>
+                        </StackPane>                
                         <VBox alignment="CENTER" spacing="10.0">
                             <StackPane>
                                 <HBox fx:id="nameDisplayBox" alignment="CENTER" spacing="10.0">
