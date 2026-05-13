@@ -30,6 +30,10 @@ public final class AppConstants {
     public static final String REVIEWS_SERVICE_URL = CONFIG.getProperty("api.reviews.url", "http://localhost:3005/api");
     public static final String REVIEWS_URL = REVIEWS_SERVICE_URL + "/reviews";
     public static final String COMMENTS_URL = REVIEWS_SERVICE_URL + "/comments";
+    public static final String LEADERBOARDS_URL = REVIEWS_SERVICE_URL + "/leaderboards";
+    public static final String LEADERBOARDS_USERS_URL = LEADERBOARDS_URL + "/users";
+    public static final String LEADERBOARDS_REVIEWS_URL = LEADERBOARDS_URL + "/reviews";
+    public static final String LEADERBOARDS_COMMENTS_URL = LEADERBOARDS_URL + "/comments";
     
     public static final String FRIENDS_SERVICE_URL = CONFIG.getProperty("api.friends.url", "http://localhost:3006/api/friends");
     
@@ -53,6 +57,7 @@ public final class AppConstants {
     public static final String FXML_FRIENDS_MANAGER = "/com/src/filmtracker/views/FXMLFriendsManager.fxml";
     public static final String FXML_REPORT = "/com/src/filmtracker/views/FXMLReport.fxml";
     public static final String FXML_MY_REPORTS = "/com/src/filmtracker/views/FXMLMyReports.fxml";
+    public static final String FXML_LEADERBOARDS = "/com/src/filmtracker/views/FXMLLeaderboards.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";

@@ -26,6 +26,10 @@
 
            <javafx.scene.layout.Region HBox.hgrow="ALWAYS" />
            
+            <Button mnemonicParsing="false" onAction="#handleOpenLeaderboards" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;" text="🏆 Marcadores">
+                <font><Font name="System Bold" size="14.0" /></font>
+            </Button>
+           
            <MenuButton fx:id="profileMenu" mnemonicParsing="false" style="-fx-background-color: transparent; -fx-cursor: hand;" text="👤" textFill="WHITE">
                 <items>
                   <MenuItem mnemonicParsing="false" onAction="#handleVerPerfil" text="Ver Perfil" />

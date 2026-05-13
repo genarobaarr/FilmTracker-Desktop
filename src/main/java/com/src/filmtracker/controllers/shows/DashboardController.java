@@ -180,6 +180,11 @@ public class DashboardController implements Initializable {
     private void scrollDerTerminadas() {
         moverCarrusel(scrollTerminadas, SCROLL_STEP);
     }
+    
+    @FXML
+    private void handleOpenLeaderboards() {
+        App.setRoot(AppConstants.FXML_LEADERBOARDS);
+    }
 
     private void procesarResultadosBusqueda(String query, CompletableFuture<List<Show>> showsFuture, CompletableFuture<UserDto> userFuture) {
         carruselResultados.getChildren().clear();
