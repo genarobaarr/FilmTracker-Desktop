@@ -40,6 +40,9 @@ public final class AppConstants {
     public static final String MODERATION_SERVICE_URL = CONFIG.getProperty("api.moderation.url", "http://localhost:3007/api/moderation");
     public static final String REPORTS_URL = MODERATION_SERVICE_URL + "/reports";
     public static final String MODERATION_MY_REPORTS_URL = REPORTS_URL + "/my";
+    public static final String ADMIN_USERS_SEARCH_URL = USERS_SERVICE_URL + "/admin/search";
+    public static final String ADMIN_AUTH_USERS_URL = AUTH_SERVICE_URL + "/admin/users";
+    public static final String ADMIN_MODERATION_REPORTS_URL = MODERATION_SERVICE_URL + "/admin/reports";
     
     public static final String NOTIFICATIONS_SERVICE_URL = CONFIG.getProperty("api.notifications.url", "http://localhost:3008/api/notifications");
     public static final String NOTIFICATIONS_UNREAD_URL = NOTIFICATIONS_SERVICE_URL + "/unread-count";
@@ -63,6 +66,7 @@ public final class AppConstants {
     public static final String FXML_MY_REPORTS = "/com/src/filmtracker/views/FXMLMyReports.fxml";
     public static final String FXML_LEADERBOARDS = "/com/src/filmtracker/views/FXMLLeaderboards.fxml";
     public static final String FXML_NOTIFICATIONS = "/com/src/filmtracker/views/FXMLNotifications.fxml";
+    public static final String FXML_ADMIN_PANEL = "/com/src/filmtracker/views/FXMLAdminPanel.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";
@@ -101,6 +105,7 @@ public final class AppConstants {
     public static final String MESSAGE_ERROR_REPORT_DUPLICATE = "Ya has enviado un reporte para este elemento y se encuentra en revisión.";
     public static final String MESSAGE_SUCCESS_READ_ALL = "Todas las notificaciones han sido marcadas como leídas.";
     public static final String MESSAGE_ERROR_NOTIFICATIONS = "Error al procesar las notificaciones.";
+    public static final String MESSAGE_SUCCESS_ADMIN_ACTION = "Acción administrativa ejecutada correctamente.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

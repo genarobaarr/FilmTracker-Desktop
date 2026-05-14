@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
+import javafx.scene.control.MenuItem;
 
 public class DashboardController implements Initializable {
 
@@ -51,6 +52,7 @@ public class DashboardController implements Initializable {
     @FXML private ScrollPane scrollTerminadas;
     
     @FXML private Label unreadBadgeLabel;
+    @FXML private MenuItem adminMenuItem;
 
     private final IShowService showService;
     private final IUserService userService;
@@ -66,6 +68,7 @@ public class DashboardController implements Initializable {
     public void initialize(URL url, ResourceBundle rb) {
         cargarDatosHome();
         cargarConteoNotificaciones();
+        evaluarMenuAdmin();
     }
     
     @FXML
@@ -106,6 +109,11 @@ public class DashboardController implements Initializable {
         }).exceptionally(e -> {
             return null;
         });
+    }
+    
+    @FXML
+    private void handleOpenAdminPanel() {
+        App.setRoot(AppConstants.FXML_ADMIN_PANEL);
     }
     
     @FXML 
@@ -245,6 +253,17 @@ public class DashboardController implements Initializable {
         }
 
         return found;
+    }
+    
+    private void evaluarMenuAdmin() {
+        if (SessionManager.getInstance().getCurrentUser() != null) {
+            if ("ADMIN".equals(SessionManager.getInstance().getCurrentUser().role())) {
+                adminMenuItem.setVisible(true);
+                return;
+            }
+        }
+        
+        adminMenuItem.setVisible(false);
     }
     
     private void cargarConteoNotificaciones() {
