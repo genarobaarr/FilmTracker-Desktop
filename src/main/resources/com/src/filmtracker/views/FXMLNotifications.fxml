@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="700.0" prefWidth="800.0" style="-fx-background-color: #121212;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.notifications.NotificationsController">
+    <top>
+      <HBox alignment="CENTER_LEFT" prefHeight="50.0" spacing="15.0" style="-fx-background-color: #000000;" BorderPane.alignment="CENTER">
+            <children>
+                <Button mnemonicParsing="false" onAction="#handleBack" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="← VOLVER" >
+                    <HBox.margin><Insets left="20.0" /></HBox.margin>
+                </Button>
+                <Label text="Centro de Notificaciones" textFill="WHITE">
+                    <font><Font name="System Bold" size="20.0" /></font>
+                </Label>
+                <HBox HBox.hgrow="ALWAYS" />
+                <Button mnemonicParsing="false" onAction="#handleMarkAllRead" style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;" text="Marcar todas como leídas" />
+                <Button mnemonicParsing="false" onAction="#handleMinimize" style="-fx-background-color: transparent; -fx-cursor: hand;" text="—" textFill="WHITE">
+                    <font><Font name="System Bold" size="16.0" /></font>
+                </Button>
+                <Button mnemonicParsing="false" onAction="#handleClose" style="-fx-background-color: transparent; -fx-cursor: hand;" text="X" textFill="WHITE">
+                    <font><Font name="System Bold" size="16.0" /></font>
+                    <HBox.margin><Insets right="20.0" /></HBox.margin>
+                </Button>
+            </children>
+        </HBox>
+    </top>
+    <center>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: #121212; -fx-background: #121212;">
+            <content>
+                <VBox fx:id="notificationsContainer" spacing="10.0" style="-fx-padding: 20;" />
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

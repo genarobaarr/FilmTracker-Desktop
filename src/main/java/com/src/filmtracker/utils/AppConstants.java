@@ -40,6 +40,10 @@ public final class AppConstants {
     public static final String MODERATION_SERVICE_URL = CONFIG.getProperty("api.moderation.url", "http://localhost:3007/api/moderation");
     public static final String REPORTS_URL = MODERATION_SERVICE_URL + "/reports";
     public static final String MODERATION_MY_REPORTS_URL = REPORTS_URL + "/my";
+    
+    public static final String NOTIFICATIONS_SERVICE_URL = CONFIG.getProperty("api.notifications.url", "http://localhost:3008/api/notifications");
+    public static final String NOTIFICATIONS_UNREAD_URL = NOTIFICATIONS_SERVICE_URL + "/unread-count";
+    public static final String NOTIFICATIONS_READ_ALL_URL = NOTIFICATIONS_SERVICE_URL + "/read-all";
 
     public static final int HOME_CAROUSEL_LIMIT = 20;
 
@@ -58,6 +62,7 @@ public final class AppConstants {
     public static final String FXML_REPORT = "/com/src/filmtracker/views/FXMLReport.fxml";
     public static final String FXML_MY_REPORTS = "/com/src/filmtracker/views/FXMLMyReports.fxml";
     public static final String FXML_LEADERBOARDS = "/com/src/filmtracker/views/FXMLLeaderboards.fxml";
+    public static final String FXML_NOTIFICATIONS = "/com/src/filmtracker/views/FXMLNotifications.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";
@@ -94,6 +99,8 @@ public final class AppConstants {
     public static final String MESSAGE_SUCCESS_REPORT = "Reporte enviado correctamente.";
     public static final String MESSAGE_ERROR_REPORT = "Error al enviar el reporte.";
     public static final String MESSAGE_ERROR_REPORT_DUPLICATE = "Ya has enviado un reporte para este elemento y se encuentra en revisión.";
+    public static final String MESSAGE_SUCCESS_READ_ALL = "Todas las notificaciones han sido marcadas como leídas.";
+    public static final String MESSAGE_ERROR_NOTIFICATIONS = "Error al procesar las notificaciones.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

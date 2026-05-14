@@ -4,6 +4,8 @@ import com.src.filmtracker.App;
 import com.src.filmtracker.controllers.users.UserCardController;
 import com.src.filmtracker.models.shows.Show;
 import com.src.filmtracker.models.users.UserDto;
+import com.src.filmtracker.services.notifications.INotificationService;
+import com.src.filmtracker.services.notifications.NotificationService;
 import com.src.filmtracker.services.shows.IShowService;
 import com.src.filmtracker.services.users.IUserService;
 import com.src.filmtracker.services.shows.ShowService;
@@ -47,9 +49,12 @@ public class DashboardController implements Initializable {
     @FXML private ScrollPane scrollMejorPuntuadas;
     @FXML private ScrollPane scrollRecientes;
     @FXML private ScrollPane scrollTerminadas;
+    
+    @FXML private Label unreadBadgeLabel;
 
     private final IShowService showService;
     private final IUserService userService;
+    private final INotificationService notificationService = new NotificationService();
     private static final double SCROLL_STEP = 0.3;
 
     public DashboardController() {
@@ -60,6 +65,7 @@ public class DashboardController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         cargarDatosHome();
+        cargarConteoNotificaciones();
     }
     
     @FXML
@@ -110,6 +116,11 @@ public class DashboardController implements Initializable {
     @FXML
     private void handleOpenMyReports() {
         App.setRoot(AppConstants.FXML_MY_REPORTS);
+    }
+    
+    @FXML
+    private void handleOpenNotifications() {
+        App.setRoot(AppConstants.FXML_NOTIFICATIONS);
     }
 
     @FXML
@@ -234,6 +245,30 @@ public class DashboardController implements Initializable {
         }
 
         return found;
+    }
+    
+    private void cargarConteoNotificaciones() {
+        notificationService.getUnreadCount().thenAccept(res -> {
+            Platform.runLater(() -> {
+                actualizarBadgeNotificaciones(res);
+            });
+        }).exceptionally(e -> null);
+    }
+
+    private void actualizarBadgeNotificaciones(com.src.filmtracker.models.notifications.UnreadCountResponse res) {
+        if (res != null) {
+            if (res.unreadCount() != null) {
+                if (res.unreadCount() > 0) {
+                    unreadBadgeLabel.setText(String.valueOf(res.unreadCount()));
+                    unreadBadgeLabel.setVisible(true);
+                    unreadBadgeLabel.setManaged(true);
+                    return;
+                }
+            }
+        }
+        
+        unreadBadgeLabel.setVisible(false);
+        unreadBadgeLabel.setManaged(false);
     }
 
     private void cargarDatosHome() {

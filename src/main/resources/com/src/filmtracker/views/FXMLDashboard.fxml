@@ -8,6 +8,7 @@
 <?import javafx.scene.control.MenuButton?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
@@ -29,6 +30,17 @@
             <Button mnemonicParsing="false" onAction="#handleOpenLeaderboards" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;" text="🏆 Marcadores">
                 <font><Font name="System Bold" size="14.0" /></font>
             </Button>
+            
+            <StackPane>
+                <children>
+                    <Button mnemonicParsing="false" onAction="#handleOpenNotifications" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;" text="🔔">
+                        <font><Font name="System Bold" size="18.0" /></font>
+                    </Button>
+                    <Label fx:id="unreadBadgeLabel" alignment="CENTER" managed="false" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-background-radius: 10; -fx-font-size: 11px; -fx-padding: 1 6;" text="0" visible="false" StackPane.alignment="TOP_RIGHT">
+                        <StackPane.margin><Insets right="5.0" top="5.0" /></StackPane.margin>
+                    </Label>
+                </children>
+            </StackPane>
            
            <MenuButton fx:id="profileMenu" mnemonicParsing="false" style="-fx-background-color: transparent; -fx-cursor: hand;" text="👤" textFill="WHITE">
                 <items>

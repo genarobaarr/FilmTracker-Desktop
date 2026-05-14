@@ -10,6 +10,7 @@ module com.src.filmtracker {
     opens com.src.filmtracker.controllers.friends to javafx.fxml;
     opens com.src.filmtracker.controllers.moderation to javafx.fxml;
     opens com.src.filmtracker.controllers.leaderboards to javafx.fxml;
+    opens com.src.filmtracker.controllers.notifications to javafx.fxml;
     
     opens com.src.filmtracker.models.auth to com.google.gson;
     opens com.src.filmtracker.models.common to com.google.gson;
@@ -20,6 +21,7 @@ module com.src.filmtracker {
     opens com.src.filmtracker.models.friends to com.google.gson;
     opens com.src.filmtracker.models.moderation to com.google.gson;
     opens com.src.filmtracker.models.leaderboards to com.google.gson;
+    opens com.src.filmtracker.models.notifications to com.google.gson;
     
     opens com.src.filmtracker to javafx.fxml;
     exports com.src.filmtracker;
