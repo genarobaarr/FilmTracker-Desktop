@@ -14,7 +14,7 @@
                     </HBox.margin>
                 </Button>
                 <Label text="Panel de Administración" textFill="WHITE">
-                    <font><Font name="System Bold" size="22.0" /></font>
+                    <font><Font name="System Bold" size="20.0" /></font>
                 </Label>
                 <HBox HBox.hgrow="ALWAYS" />
                 <Button mnemonicParsing="false" onAction="#handleMinimize" style="-fx-background-color: transparent; -fx-cursor: hand;" text="—" textFill="WHITE">
@@ -30,6 +30,20 @@
     <center>
         <TabPane side="TOP" styleClass="floating" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
             <tabs>
+                <Tab fx:id="tabDashboard" text="Panel de Control">
+                    <content>
+                        <ScrollPane fitToWidth="true" style="-fx-background-color: #121212; -fx-background: #121212;">
+                            <content>
+                                <VBox spacing="20.0" style="-fx-padding: 20;">
+                                    <Label text="Métricas de la Plataforma" textFill="WHITE">
+                                        <font><Font name="System Bold" size="24.0" /></font>
+                                    </Label>
+                                    <FlowPane fx:id="statsCardsContainer" hgap="15.0" vgap="15.0" />
+                                </VBox>
+                            </content>
+                        </ScrollPane>
+                    </content>
+                </Tab>
                 <Tab text="Gestión de Usuarios">
                     <content>
                         <SplitPane dividerPositions="0.4" style="-fx-background-color: #121212; -fx-padding: 10;">
@@ -50,7 +64,7 @@
                         </SplitPane>
                     </content>
                 </Tab>
-                <Tab onSelectionChanged="#loadReports" text="Revisión de Reportes">
+                <Tab fx:id="tabReports" text="Revisión de Reportes">
                     <content>
                         <SplitPane dividerPositions="0.4" style="-fx-background-color: #121212; -fx-padding: 10;">
                             <items>

@@ -8,6 +8,9 @@ import com.google.gson.reflect.TypeToken;
 import com.src.filmtracker.models.admin.AccountStatusDto;
 import com.src.filmtracker.models.admin.AdminReportResponse;
 import com.src.filmtracker.models.admin.AdminActionRequest;
+import com.src.filmtracker.models.admin.AuthStatsDto;
+import com.src.filmtracker.models.admin.ModerationStatsDto;
+import com.src.filmtracker.models.admin.ReviewStatsDto;
 import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
@@ -134,6 +137,27 @@ public class AdminService implements IAdminService {
                 .build();
 
         return ejecutarPeticionVacia(request);
+    }
+    
+    @Override
+    public CompletableFuture<AuthStatsDto> getAuthStats() {
+        HttpRequest request = construirPeticionGet(AppConstants.ADMIN_AUTH_STATS_URL);
+        
+        return ejecutarPeticion(request, AuthStatsDto.class);
+    }
+
+    @Override
+    public CompletableFuture<ReviewStatsDto> getReviewStats() {
+        HttpRequest request = construirPeticionGet(AppConstants.ADMIN_REVIEWS_STATS_URL);
+        
+        return ejecutarPeticion(request, ReviewStatsDto.class);
+    }
+
+    @Override
+    public CompletableFuture<ModerationStatsDto> getModerationStats() {
+        HttpRequest request = construirPeticionGet(AppConstants.ADMIN_MODERATION_STATS_URL);
+        
+        return ejecutarPeticion(request, ModerationStatsDto.class);
     }
     
     private long calcularDiasSuspension(String duration) {

@@ -172,6 +172,12 @@ public class NotificationsController {
     }
 
     private void procesarRedireccion(NotificationDto notif) {
+        if (notif.type() != null) {
+            if (notif.type().startsWith("moderation.")) {
+                return;
+            }
+        }
+
         if (notif.metadata() == null) {
             return;
         }

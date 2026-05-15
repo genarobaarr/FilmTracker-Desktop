@@ -2,9 +2,7 @@ package com.src.filmtracker.controllers.admin;
 
 import com.google.gson.GsonBuilder;
 import com.src.filmtracker.App;
-import com.src.filmtracker.models.admin.AccountStatusDto;
-import com.src.filmtracker.models.admin.AdminActionRequest;
-import com.src.filmtracker.models.admin.AdminReportDto;
+import com.src.filmtracker.models.admin.*;
 import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.services.admin.AdminService;
 import com.src.filmtracker.services.admin.IAdminService;
@@ -33,6 +31,7 @@ import java.util.Optional;
 
 public class AdminPanelController {
 
+    @FXML private FlowPane statsCardsContainer;
     @FXML private TextField searchUserField;
     @FXML private VBox usersListContainer;
     @FXML private VBox userDetailPane;
@@ -40,6 +39,9 @@ public class AdminPanelController {
     @FXML private ComboBox<String> reportStatusFilter;
     @FXML private VBox reportsListContainer;
     @FXML private VBox reportDetailPane;
+    
+    @FXML private Tab tabDashboard;
+    @FXML private Tab tabReports;
 
     private final IAdminService adminService = new AdminService();
     private final IUserService userService = new UserService();
@@ -54,6 +56,66 @@ public class AdminPanelController {
     public void initialize() {
         inicializarDiccionarios();
         prepararFiltrosReportes();
+
+        tabDashboard.setOnSelectionChanged(e -> {
+            if (tabDashboard.isSelected()) {
+                loadStats();
+            }
+        });
+
+        tabReports.setOnSelectionChanged(e -> {
+            if (tabReports.isSelected()) {
+                loadReports();
+            }
+        });
+
+        loadStats();
+    }
+
+    private void inicializarDiccionarios() {
+        statusMapUiToBackend.put("Pendiente", "PENDING");
+        statusMapUiToBackend.put("Descartado", "DISMISSED");
+        statusMapUiToBackend.put("Acción Tomada", "ACTION_TAKEN");
+        statusMapUiToBackend.put("Todos", "ALL");
+
+        durationMapUiToBackend.put("1 día", "1_DAY");
+        durationMapUiToBackend.put("3 días", "3_DAYS");
+        durationMapUiToBackend.put("7 días", "7_DAYS");
+        durationMapUiToBackend.put("30 días", "30_DAYS");
+
+        targetTypeMap.put("USER", "Usuario");
+        targetTypeMap.put("REVIEW", "Reseña");
+        targetTypeMap.put("COMMENT", "Comentario");
+
+        actionMapBackendToUi.put("DISMISS_REPORT", "Descartar Reporte");
+        actionMapBackendToUi.put("SUSPEND_USER", "Suspender Usuario");
+        actionMapBackendToUi.put("BAN_USER", "Banear Usuario");
+        actionMapBackendToUi.put("DELETE_REVIEW", "Eliminar Reseña");
+        actionMapBackendToUi.put("DELETE_COMMENT", "Eliminar Comentario");
+        actionMapBackendToUi.put("REMOVE_PROFILE_IMAGE", "Eliminar Foto Perfil");
+        actionMapBackendToUi.put("REMOVE_REVIEW_IMAGE", "Eliminar Foto Reseña");
+        actionMapBackendToUi.put("REMOVE_COMMENT_IMAGE", "Eliminar Foto Comentario");
+    }
+
+    @FXML
+    private void loadStats() {
+        if (statsCardsContainer == null) {
+            return;
+        }
+        
+        statsCardsContainer.getChildren().clear();
+
+        adminService.getAuthStats().thenAccept(stats -> {
+            Platform.runLater(() -> renderAuthStats(stats));
+        }).exceptionally(e -> null);
+
+        adminService.getReviewStats().thenAccept(stats -> {
+            Platform.runLater(() -> renderReviewStats(stats));
+        }).exceptionally(e -> null);
+
+        adminService.getModerationStats().thenAccept(stats -> {
+            Platform.runLater(() -> renderModerationStats(stats));
+        }).exceptionally(e -> null);
     }
     
     @FXML private void handleBack() { 
@@ -67,7 +129,7 @@ public class AdminPanelController {
     @FXML private void handleClose() { 
         Platform.exit(); System.exit(0); 
     }
-    
+
     @FXML
     private void handleSearchUsers() {
         String query = searchUserField.getText().trim();
@@ -102,29 +164,68 @@ public class AdminPanelController {
         peticionReportes(1);
     }
 
-    private void inicializarDiccionarios() {
-        statusMapUiToBackend.put("Pendiente", "PENDING");
-        statusMapUiToBackend.put("Descartado", "DISMISSED");
-        statusMapUiToBackend.put("Acción Tomada", "ACTION_TAKEN");
-        statusMapUiToBackend.put("Todos", "ALL");
+    private void renderAuthStats(AuthStatsDto stats) {
+        if (stats == null) {
+            return;
+        }
+        
+        statsCardsContainer.getChildren().add(crearTarjetaMétrica("Usuarios Registrados", String.valueOf(stats.totalUsers()), "#4caf50"));
 
-        durationMapUiToBackend.put("1 día", "1_DAY");
-        durationMapUiToBackend.put("3 días", "3_DAYS");
-        durationMapUiToBackend.put("7 días", "7_DAYS");
-        durationMapUiToBackend.put("30 días", "30_DAYS");
+        if (stats.byStatus() != null) {
+            Integer activos = stats.byStatus().getOrDefault("ACTIVE", 0);
+            Integer suspendidos = stats.byStatus().getOrDefault("SUSPENDED", 0);
+            Integer baneados = stats.byStatus().getOrDefault("BANNED", 0);
+            
+            statsCardsContainer.getChildren().add(crearTarjetaMétrica("Usuarios Activos", String.valueOf(activos), "#4caf50"));
+            statsCardsContainer.getChildren().add(crearTarjetaMétrica("Cuentas Suspendidas", String.valueOf(suspendidos), "#ff9800"));
+            statsCardsContainer.getChildren().add(crearTarjetaMétrica("Cuentas Baneadas", String.valueOf(baneados), "#e50914"));
+        }
+    }
 
-        targetTypeMap.put("USER", "Usuario");
-        targetTypeMap.put("REVIEW", "Reseña");
-        targetTypeMap.put("COMMENT", "Comentario");
+    private void renderReviewStats(ReviewStatsDto stats) {
+        if (stats == null) {
+            return;
+        }
+        
+        if (stats.totals() != null) {
+            Number reviews = stats.totals().getOrDefault("reviews", 0);
+            Number comments = stats.totals().getOrDefault("comments", 0);
+            Number likes = stats.totals().getOrDefault("likes", 0);
+            
+            statsCardsContainer.getChildren().add(crearTarjetaMétrica("Reseñas Globales", String.valueOf(reviews), "#2196f3"));
+            statsCardsContainer.getChildren().add(crearTarjetaMétrica("Comentarios Globales", String.valueOf(comments), "#2196f3"));
+            statsCardsContainer.getChildren().add(crearTarjetaMétrica("Likes Repartidos", String.valueOf(likes), "#e91e63"));
+        }
+    }
 
-        actionMapBackendToUi.put("DISMISS_REPORT", "Descartar Reporte");
-        actionMapBackendToUi.put("SUSPEND_USER", "Suspender Usuario");
-        actionMapBackendToUi.put("BAN_USER", "Banear Usuario");
-        actionMapBackendToUi.put("DELETE_REVIEW", "Eliminar Reseña");
-        actionMapBackendToUi.put("DELETE_COMMENT", "Eliminar Comentario");
-        actionMapBackendToUi.put("REMOVE_PROFILE_IMAGE", "Eliminar Foto Perfil");
-        actionMapBackendToUi.put("REMOVE_REVIEW_IMAGE", "Eliminar Foto Reseña");
-        actionMapBackendToUi.put("REMOVE_COMMENT_IMAGE", "Eliminar Foto Comentario");
+    private void renderModerationStats(ModerationStatsDto stats) {
+        if (stats == null) {
+            return;
+        }
+        
+        statsCardsContainer.getChildren().add(crearTarjetaMétrica("Reportes Históricos", String.valueOf(stats.totalReports()), "#9c27b0"));
+        statsCardsContainer.getChildren().add(crearTarjetaMétrica("Reportes Pendientes", String.valueOf(stats.pendingReports()), "#ff9800"));
+        statsCardsContainer.getChildren().add(crearTarjetaMétrica("Reportes Resueltos", String.valueOf(stats.resolvedReports()), "#4caf50"));
+    }
+
+    private VBox crearTarjetaMétrica(String titulo, String valor, String colorHex) {
+        VBox card = new VBox(10);
+        card.setAlignment(Pos.CENTER);
+        card.setPrefSize(220, 110);
+        card.setStyle("-fx-background-color: #1a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: " + colorHex + "; -fx-border-width: 0 0 0 5;");
+        
+        Label titleLbl = new Label(titulo);
+        titleLbl.setTextFill(Color.GRAY);
+        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+        
+        Label valLbl = new Label(valor);
+        valLbl.setTextFill(Color.WHITE);
+        valLbl.setStyle("-fx-font-size: 28px; -fx-font-weight: bold;");
+        
+        card.getChildren().add(titleLbl);
+        card.getChildren().add(valLbl);
+        
+        return card;
     }
 
     private String traducirRazon(String reasonCode) {
@@ -133,16 +234,16 @@ public class AdminPanelController {
         }
         
         switch (reasonCode) {
-            case "SPAM": return "Spam o contenido comercial";
+            case "SPAM": return "Spam o comercial";
             case "OFFENSIVE_CONTENT": return "Contenido ofensivo";
-            case "HARASSMENT": return "Acoso o intimidación";
+            case "HARASSMENT": return "Acoso";
             case "HATE_SPEECH": return "Discurso de odio";
             case "SEXUAL_CONTENT": return "Contenido sexual";
             case "VIOLENCE": return "Violencia";
             case "SPOILER": return "Spoiler sin aviso";
             case "FAKE_PROFILE": return "Perfil falso";
             case "INAPPROPRIATE_IMAGE": return "Imagen inapropiada";
-            default: return "Otro motivo";
+            default: return "Otro";
         }
     }
 
@@ -150,7 +251,7 @@ public class AdminPanelController {
         reportStatusFilter.getItems().addAll(statusMapUiToBackend.keySet());
         reportStatusFilter.setValue("Pendiente");
     }
-    
+
     private HBox construirFilaUsuario(UserDto user) {
         HBox row = new HBox(10);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -238,7 +339,9 @@ public class AdminPanelController {
                 }
             });
 
-            actions.getChildren().addAll(ban, dur, susp);
+            actions.getChildren().add(ban);
+            actions.getChildren().add(dur);
+            actions.getChildren().add(susp);
         }
 
         userDetailPane.getChildren().add(actions);
@@ -446,9 +549,7 @@ public class AdminPanelController {
              adminService.dismissReport(String.valueOf(r.id()), note)
                 .thenRun(this::finalizarAccionExito)
                 .exceptionally(e -> {
-                     Platform.runLater(() -> {
-                         mostrarAlertaError("Error descartando reporte.");
-                     });
+                     Platform.runLater(() -> mostrarAlertaError("Error descartando reporte."));
                      return null;
                 });
              return;
@@ -456,23 +557,13 @@ public class AdminPanelController {
 
         if ("DELETE_REVIEW".equals(actionBackend)) {
             String reviewId = r.targetId();
-            
             adminService.deleteReviewDirectly(reviewId)
                 .whenComplete((res, ex) -> {
-                    String finalNote = note;
-                    
-                    if (finalNote == null) {
-                        finalNote = "Reseña eliminada administrativamente.";
-                    } else if (finalNote.trim().isEmpty()) {
-                        finalNote = "Reseña eliminada administrativamente.";
-                    }
-                    
+                    String finalNote = (note == null || note.trim().isEmpty()) ? "Reseña eliminada administrativamente." : note;
                     adminService.dismissReport(String.valueOf(r.id()), finalNote)
                         .thenRun(this::finalizarAccionExito)
                         .exceptionally(e2 -> {
-                            Platform.runLater(() -> {
-                                mostrarAlertaError("Error cerrando el reporte.");
-                            });
+                            Platform.runLater(() -> mostrarAlertaError("Error cerrando el reporte."));
                             return null;
                         });
                 });
