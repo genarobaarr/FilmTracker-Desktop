@@ -5,7 +5,6 @@ import com.src.filmtracker.App;
 import com.src.filmtracker.models.admin.AccountStatusDto;
 import com.src.filmtracker.models.admin.AdminActionRequest;
 import com.src.filmtracker.models.admin.AdminReportDto;
-import com.src.filmtracker.models.admin.AdminReportResponse;
 import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.services.admin.AdminService;
 import com.src.filmtracker.services.admin.IAdminService;
@@ -18,6 +17,14 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 public class AdminPanelController {
 
     @FXML private TextField searchUserField;
@@ -29,21 +36,29 @@ public class AdminPanelController {
     @FXML private VBox reportDetailPane;
 
     private final IAdminService adminService = new AdminService();
-    private int currentReportPage = 1;
+    
+    private final Map<String, String> statusMapUiToBackend = new LinkedHashMap<>();
+    private final Map<String, String> durationMapUiToBackend = new LinkedHashMap<>();
+    private final Map<String, String> actionMapBackendToUi = new LinkedHashMap<>();
 
     @FXML
     public void initialize() {
+        inicializarDiccionarios();
         prepararFiltrosReportes();
     }
-
-    private void prepararFiltrosReportes() {
-        reportStatusFilter.getItems().add("PENDING");
-        reportStatusFilter.getItems().add("DISMISSED");
-        reportStatusFilter.getItems().add("ACTION_TAKEN");
-        reportStatusFilter.getItems().add("ALL");
-        reportStatusFilter.setValue("PENDING");
+    
+    @FXML private void handleBack() { 
+        App.setRoot(AppConstants.FXML_DASHBOARD); 
     }
-
+    
+    @FXML private void handleMinimize() { 
+        ((Stage) searchUserField.getScene().getWindow()).setIconified(true); 
+    }
+    
+    @FXML private void handleClose() { 
+        Platform.exit(); System.exit(0); 
+    }
+    
     @FXML
     private void handleSearchUsers() {
         String query = searchUserField.getText().trim();
@@ -64,6 +79,44 @@ public class AdminPanelController {
                 }
             });
         }).exceptionally(e -> null);
+    }
+    
+    @FXML
+    private void loadReports() {
+        if (reportsListContainer == null) {
+            return;
+        }
+        
+        reportsListContainer.getChildren().clear();
+        reportDetailPane.getChildren().clear();
+        
+        peticionReportes(1);
+    }
+    
+    private void inicializarDiccionarios() {
+        statusMapUiToBackend.put("Pendiente", "PENDING");
+        statusMapUiToBackend.put("Descartado", "DISMISSED");
+        statusMapUiToBackend.put("Acción Tomada", "ACTION_TAKEN");
+        statusMapUiToBackend.put("Todos", "ALL");
+
+        durationMapUiToBackend.put("1 día", "1_DAY");
+        durationMapUiToBackend.put("3 días", "3_DAYS");
+        durationMapUiToBackend.put("7 días", "7_DAYS");
+        durationMapUiToBackend.put("30 días", "30_DAYS");
+
+        actionMapBackendToUi.put("DISMISS_REPORT", "Descartar Reporte");
+        actionMapBackendToUi.put("SUSPEND_USER", "Suspender Usuario");
+        actionMapBackendToUi.put("BAN_USER", "Banear Usuario");
+        actionMapBackendToUi.put("DELETE_REVIEW", "Eliminar Reseña");
+        actionMapBackendToUi.put("DELETE_COMMENT", "Eliminar Comentario");
+        actionMapBackendToUi.put("REMOVE_PROFILE_IMAGE", "Eliminar Foto Perfil");
+        actionMapBackendToUi.put("REMOVE_REVIEW_IMAGE", "Eliminar Foto Reseña");
+        actionMapBackendToUi.put("REMOVE_COMMENT_IMAGE", "Eliminar Foto Comentario");
+    }
+
+    private void prepararFiltrosReportes() {
+        reportStatusFilter.getItems().addAll(statusMapUiToBackend.keySet());
+        reportStatusFilter.setValue("Pendiente");
     }
 
     private HBox construirFilaUsuario(UserDto user) {
@@ -104,9 +157,25 @@ public class AdminPanelController {
         header.setTextFill(Color.WHITE);
         header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
-        String stStr = status != null ? status.accountStatus() : "Desconocido";
-        Label statusLbl = new Label("Estado: " + stStr);
+        String stStr = "Desconocido";
+        
+        if (status != null) {
+            stStr = status.accountStatus();
+        }
+        
+        Label statusLbl = new Label("Estado: " + traducirEstadoUsuario(stStr));
         statusLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        
+        userDetailPane.getChildren().add(header);
+        userDetailPane.getChildren().add(statusLbl);
+
+        if ("SUSPENDED".equals(stStr)) {
+            if (status.suspendedUntil() != null) {
+                Label suspLbl = new Label("Suspendido hasta: " + formatearFecha(status.suspendedUntil()));
+                suspLbl.setTextFill(Color.ORANGE);
+                userDetailPane.getChildren().add(suspLbl);
+            }
+        }
 
         HBox actions = new HBox(10);
         
@@ -128,7 +197,7 @@ public class AdminPanelController {
             });
 
             ComboBox<String> dur = new ComboBox<>();
-            dur.getItems().addAll("1_DAY", "3_DAYS", "7_DAYS", "30_DAYS");
+            dur.getItems().addAll(durationMapUiToBackend.keySet());
             dur.setPromptText("Duración");
 
             Button susp = new Button("Suspender");
@@ -136,14 +205,35 @@ public class AdminPanelController {
             
             susp.setOnAction(e -> {
                 if (dur.getValue() != null) {
-                    procesarAccionUsuario(adminService.suspendUser(authId, dur.getValue()), user);
+                    String backendDur = durationMapUiToBackend.get(dur.getValue());
+                    String reason = "Suspensión administrativa desde el panel de control.";
+                    
+                    procesarAccionUsuario(adminService.suspendUser(authId, backendDur, reason), user);
                 }
             });
 
-            actions.getChildren().addAll(ban, dur, susp);
+            actions.getChildren().add(ban);
+            actions.getChildren().add(dur);
+            actions.getChildren().add(susp);
         }
 
-        userDetailPane.getChildren().addAll(header, statusLbl, actions);
+        userDetailPane.getChildren().add(actions);
+    }
+
+    private String traducirEstadoUsuario(String status) {
+        if ("ACTIVE".equals(status)) {
+            return "Activo";
+        }
+        
+        if ("SUSPENDED".equals(status)) {
+            return "Suspendido";
+        }
+        
+        if ("BANNED".equals(status)) {
+            return "Baneado";
+        }
+        
+        return status;
     }
 
     private void procesarAccionUsuario(java.util.concurrent.CompletableFuture<Void> futuro, UserDto user) {
@@ -158,23 +248,11 @@ public class AdminPanelController {
         });
     }
 
-    @FXML
-    private void loadReports() {
-        if (reportsListContainer == null) {
-            return;
-        }
-        
-        reportsListContainer.getChildren().clear();
-        reportDetailPane.getChildren().clear();
-        currentReportPage = 1;
-        
-        peticionReportes(1);
-    }
-
     private void peticionReportes(int page) {
-        String filter = reportStatusFilter.getValue();
+        String filterUi = reportStatusFilter.getValue();
+        String filterBackend = statusMapUiToBackend.get(filterUi);
 
-        adminService.getAdminReports(filter, page).thenAccept(res -> {
+        adminService.getAdminReports(filterBackend, page).thenAccept(res -> {
             Platform.runLater(() -> {
                 if (res != null) {
                     if (res.reports() != null) {
@@ -199,7 +277,8 @@ public class AdminPanelController {
         Label reason = new Label(r.reason());
         reason.setTextFill(Color.WHITE);
 
-        row.getChildren().addAll(type, reason);
+        row.getChildren().add(type);
+        row.getChildren().add(reason);
 
         row.setOnMouseClicked(e -> {
             dibujarDetalleReporte(r);
@@ -223,7 +302,7 @@ public class AdminPanelController {
         if (r.targetSnapshot() != null) {
             snapArea.setText(new GsonBuilder().setPrettyPrinting().create().toJson(r.targetSnapshot()));
         } else {
-            snapArea.setText("No snapshot available");
+            snapArea.setText("Sin datos adicionales");
         }
 
         TextArea noteArea = new TextArea();
@@ -237,38 +316,67 @@ public class AdminPanelController {
 
         inyectarBotonesDeAccionReporte(r, actionsPane, noteArea);
 
-        reportDetailPane.getChildren().addAll(header, new Label("Snapshot:"), snapArea, noteArea, actionsPane);
+        reportDetailPane.getChildren().add(header);
+        reportDetailPane.getChildren().add(new Label("Snapshot:"));
+        reportDetailPane.getChildren().add(snapArea);
+        reportDetailPane.getChildren().add(noteArea);
+        reportDetailPane.getChildren().add(actionsPane);
     }
 
     private void inyectarBotonesDeAccionReporte(AdminReportDto r, FlowPane container, TextArea noteArea) {
         if ("PENDING".equals(r.status())) {
             if (r.availableActions() != null) {
-                for (String act : r.availableActions()) {
-                    Button btn = new Button(act);
+                for (String actBackend : r.availableActions()) {
+                    String actUi = actionMapBackendToUi.getOrDefault(actBackend, actBackend);
+                    Button btn = new Button(actUi);
                     btn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
                     
                     btn.setOnAction(e -> {
-                        ejecutarAccion(r.id(), act, noteArea.getText());
+                        procesarClicAccionReporte(r.id(), actBackend, noteArea.getText());
                     });
                     
                     container.getChildren().add(btn);
                 }
             }
-            
-            Button dismiss = new Button("DISMISS_REPORT");
-            dismiss.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-cursor: hand;");
-            
-            dismiss.setOnAction(e -> {
-                adminService.dismissReport(String.valueOf(r.id()), noteArea.getText()).thenRun(this::finalizarAccionExito);
-            });
-            
-            container.getChildren().add(dismiss);
         }
     }
 
-    private void ejecutarAccion(Integer id, String action, String note) {
-        String dur = "SUSPEND_USER".equals(action) ? "7_DAYS" : null;
-        AdminActionRequest req = new AdminActionRequest(action, note, dur);
+    private void procesarClicAccionReporte(Integer id, String actionBackend, String note) {
+        if ("SUSPEND_USER".equals(actionBackend)) {
+            solicitarDuracionSuspension(id, actionBackend, note);
+            return;
+        }
+        
+        if ("DISMISS_REPORT".equals(actionBackend)) {
+             adminService.dismissReport(String.valueOf(id), note)
+                .thenRun(this::finalizarAccionExito)
+                .exceptionally(e -> {
+                     Platform.runLater(() -> mostrarAlertaError("Error descartando reporte."));
+                     return null;
+                });
+             return;
+        }
+        
+        ejecutarAccion(id, actionBackend, note, null);
+    }
+
+    private void solicitarDuracionSuspension(Integer id, String actionBackend, String note) {
+        List<String> choices = new ArrayList<>(durationMapUiToBackend.keySet());
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(choices.get(0), choices);
+        
+        dialog.setTitle("Suspender Usuario");
+        dialog.setHeaderText("Selecciona la duración de la suspensión");
+        
+        Optional<String> result = dialog.showAndWait();
+        
+        if (result.isPresent()) {
+            String backendDur = durationMapUiToBackend.get(result.get());
+            ejecutarAccion(id, actionBackend, note, backendDur);
+        }
+    }
+
+    private void ejecutarAccion(Integer id, String actionBackend, String note, String durationBackend) {
+        AdminActionRequest req = new AdminActionRequest(actionBackend, note, durationBackend);
 
         adminService.executeReportAction(String.valueOf(id), req)
             .thenRun(this::finalizarAccionExito)
@@ -283,6 +391,15 @@ public class AdminPanelController {
             mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_ADMIN_ACTION);
             loadReports();
         });
+    }
+
+    private String formatearFecha(String iso) {
+        try {
+            ZonedDateTime zdt = ZonedDateTime.parse(iso);
+            return zdt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        } catch (Exception e) {
+            return iso;
+        }
     }
 
     private void mostrarAlertaError(String mensaje) {
@@ -300,8 +417,4 @@ public class AdminPanelController {
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
-
-    @FXML private void handleBack() { App.setRoot(AppConstants.FXML_DASHBOARD); }
-    @FXML private void handleMinimize() { ((Stage) searchUserField.getScene().getWindow()).setIconified(true); }
-    @FXML private void handleClose() { Platform.exit(); System.exit(0); }
 }

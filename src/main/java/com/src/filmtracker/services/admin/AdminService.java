@@ -63,9 +63,18 @@ public class AdminService implements IAdminService {
     }
 
     @Override
-    public CompletableFuture<Void> suspendUser(String authId, String duration) {
+    public CompletableFuture<Void> suspendUser(String authId, String duration, String reason) {
         String url = AppConstants.ADMIN_AUTH_USERS_URL + "/" + authId + "/suspend";
-        String body = gson.toJson(Map.of("duration", duration));
+        long dias = calcularDiasSuspension(duration);
+        
+        java.time.ZonedDateTime fechaFutura = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC).plusDays(dias);
+        String suspendedUntilStr = fechaFutura.format(java.time.format.DateTimeFormatter.ISO_INSTANT);
+        
+        java.util.Map<String, String> payload = new java.util.HashMap<>();
+        payload.put("suspendedUntil", suspendedUntilStr);
+        payload.put("reason", reason);
+        
+        String body = gson.toJson(payload);
         HttpRequest request = construirPeticionPatch(url, body);
 
         return ejecutarPeticionVacia(request);
@@ -112,6 +121,22 @@ public class AdminService implements IAdminService {
         HttpRequest request = construirPeticionPost(url, body);
 
         return ejecutarPeticionVacia(request);
+    }
+    
+    private long calcularDiasSuspension(String duration) {
+        if ("1_DAY".equals(duration)) {
+            return 1L;
+        }
+        
+        if ("3_DAYS".equals(duration)) {
+            return 3L;
+        }
+        
+        if ("30_DAYS".equals(duration)) {
+            return 30L;
+        }
+        
+        return 7L;
     }
 
     private HttpRequest construirPeticionGet(String url) {

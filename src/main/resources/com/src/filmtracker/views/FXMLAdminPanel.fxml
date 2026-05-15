@@ -6,9 +6,13 @@
 
 <BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #121212;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.admin.AdminPanelController">
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="15" style="-fx-padding: 15; -fx-background-color: #1e1e1e; -fx-border-color: #333333; -fx-border-width: 0 0 1 0;">
+      <HBox alignment="CENTER_LEFT" prefHeight="50.0" spacing="15.0" style="-fx-background-color: #000000;" BorderPane.alignment="CENTER">
             <children>
-                <Button mnemonicParsing="false" onAction="#handleBack" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="← VOLVER" />
+                <Button mnemonicParsing="false" onAction="#handleBack" style="-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="← VOLVER" >
+                    <HBox.margin>
+                        <Insets left="20.0" />
+                    </HBox.margin>
+                </Button>
                 <Label text="Panel de Administración" textFill="WHITE">
                     <font><Font name="System Bold" size="22.0" /></font>
                 </Label>
@@ -18,6 +22,7 @@
                 </Button>
                 <Button mnemonicParsing="false" onAction="#handleClose" style="-fx-background-color: transparent; -fx-cursor: hand;" text="X" textFill="WHITE">
                     <font><Font name="System Bold" size="16.0" /></font>
+                    <HBox.margin><Insets right="20.0" /></HBox.margin>
                 </Button>
             </children>
         </HBox>

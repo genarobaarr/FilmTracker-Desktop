@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 public interface IAdminService {
     CompletableFuture<List<UserDto>> searchUsers(String query);
     CompletableFuture<AccountStatusDto> getAccountStatus(String authId);
-    CompletableFuture<Void> suspendUser(String authId, String duration);
+    CompletableFuture<Void> suspendUser(String authId, String duration, String reason);
     CompletableFuture<Void> banUser(String authId, String reason);
     CompletableFuture<Void> unbanUser(String authId);
     CompletableFuture<AdminReportResponse> getAdminReports(String status, int page);

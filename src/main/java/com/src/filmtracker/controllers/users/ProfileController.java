@@ -280,7 +280,9 @@ public class ProfileController {
         
         if (result.isPresent()) {
             String backendValue = translationMap.get(result.get());
-            ejecutarAccionAdmin(adminService.suspendUser(currentUserProfile.getSafeAuthId(), backendValue));
+            String reason = "Suspensión administrativa desde el perfil público.";
+            
+            ejecutarAccionAdmin(adminService.suspendUser(currentUserProfile.getSafeAuthId(), backendValue, reason));
         }
     }
 
