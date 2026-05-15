@@ -123,6 +123,19 @@ public class AdminService implements IAdminService {
         return ejecutarPeticionVacia(request);
     }
     
+    @Override
+    public CompletableFuture<Void> deleteReviewDirectly(String reviewId) {
+        String url = AppConstants.REVIEWS_SERVICE_URL + "/" + reviewId;
+        
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .DELETE()
+                .build();
+
+        return ejecutarPeticionVacia(request);
+    }
+    
     private long calcularDiasSuspension(String duration) {
         if ("1_DAY".equals(duration)) {
             return 1L;

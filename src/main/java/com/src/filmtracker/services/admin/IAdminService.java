@@ -16,4 +16,5 @@ public interface IAdminService {
     CompletableFuture<AdminReportResponse> getAdminReports(String status, int page);
     CompletableFuture<Void> executeReportAction(String reportId, AdminActionRequest request);
     CompletableFuture<Void> dismissReport(String reportId, String note);
+    CompletableFuture<Void> deleteReviewDirectly(String reviewId);
 }
