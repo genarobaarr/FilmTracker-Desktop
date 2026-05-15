@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.control.MenuButton?>
+<?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 <?import javafx.geometry.Insets?>
@@ -35,7 +37,17 @@
                                 <ImageView fx:id="avatarView" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="false" />
                                 <Button fx:id="editAvatarBtn" mnemonicParsing="false" onAction="#handleEditAvatar" style="-fx-background-color: rgba(30,30,30,0.8); -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 20;" text="✎" StackPane.alignment="BOTTOM_RIGHT" />
                             </children>
-                        </StackPane>                
+                        </StackPane> 
+                        <MenuButton fx:id="adminMenu" mnemonicParsing="false" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;" text="⋮" visible="false">
+                            <items>
+                                <MenuItem fx:id="itemSuspender" mnemonicParsing="false" onAction="#handleSuspender" text="Suspender cuenta" />
+                                <MenuItem fx:id="itemBanear" mnemonicParsing="false" onAction="#handleBanear" text="Banear permanentemente" />
+                                <MenuItem fx:id="itemDesbanear" mnemonicParsing="false" onAction="#handleDesbanear" text="Quitar baneo / Activar" />
+                            </items>
+                            <font>
+                                <javafx.scene.text.Font name="System Bold" size="24.0" />
+                            </font>
+                        </MenuButton>               
                         <VBox alignment="CENTER" spacing="10.0">
                             <StackPane>
                                 <HBox fx:id="nameDisplayBox" alignment="CENTER" spacing="10.0">

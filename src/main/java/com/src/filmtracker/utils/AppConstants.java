@@ -106,6 +106,12 @@ public final class AppConstants {
     public static final String MESSAGE_SUCCESS_READ_ALL = "Todas las notificaciones han sido marcadas como leídas.";
     public static final String MESSAGE_ERROR_NOTIFICATIONS = "Error al procesar las notificaciones.";
     public static final String MESSAGE_SUCCESS_ADMIN_ACTION = "Acción administrativa ejecutada correctamente.";
+    public static final String MESSAGE_TITLE_SUSPEND = "Suspender Usuario";
+    public static final String MESSAGE_HEADER_SUSPEND = "Selecciona la duración de la suspensión";
+    public static final String MESSAGE_TITLE_BAN = "Banear Usuario";
+    public static final String MESSAGE_CONTENT_BAN = "¿Estás seguro de que deseas banear permanentemente a este usuario?";
+    public static final String MESSAGE_TITLE_UNBAN = "Desbanear Usuario";
+    public static final String MESSAGE_CONTENT_UNBAN = "¿Deseas reactivar la cuenta de este usuario?";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

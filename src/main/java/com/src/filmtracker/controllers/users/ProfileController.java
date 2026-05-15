@@ -5,7 +5,6 @@ import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.models.library.LibraryItemDto;
 import com.src.filmtracker.models.reviews.ReviewDto;
 import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
-import com.src.filmtracker.models.reviews.ReviewSummaryDto;
 import com.src.filmtracker.models.shows.Show;
 import com.src.filmtracker.models.shows.ShowFullResponse;
 import com.src.filmtracker.models.users.UpdateProfileRequest;
@@ -13,6 +12,8 @@ import com.src.filmtracker.models.friends.FriendItemDto;
 import com.src.filmtracker.models.friends.FriendPaginationResponse;
 import com.src.filmtracker.models.friends.FriendStatusResponse;
 import com.src.filmtracker.models.friends.SendFriendRequest;
+import com.src.filmtracker.services.admin.AdminService;
+import com.src.filmtracker.services.admin.IAdminService;
 import com.src.filmtracker.services.library.ILibraryService;
 import com.src.filmtracker.services.library.LibraryService;
 import com.src.filmtracker.services.reviews.IReviewService;
@@ -40,7 +41,9 @@ import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class ProfileController {
@@ -81,15 +84,29 @@ public class ProfileController {
     @FXML private TextField usernameField;
     @FXML private Button editUsernameBtn;
     @FXML private Button reportProfileBtn;
+    @FXML private MenuButton adminMenu;
+    @FXML private MenuItem itemSuspender;
+    @FXML private MenuItem itemBanear;
+    @FXML private MenuItem itemDesbanear;
 
     private final ILibraryService libraryService = new LibraryService();
     private final IShowService showService = new ShowService();
     private final IReviewService reviewService = new ReviewService();
     private final IUserService userService = new UserService();
     private final IFriendsService friendsService = new FriendsService();
+    private final IAdminService adminService = new AdminService();
     
     private int currentReviewPage = 1;
     private UserDto currentUserProfile;
+    private final Map<String, String> translationMap = new LinkedHashMap<>();
+    
+    @FXML
+    public void initialize() {
+        translationMap.put("1 día", "1_DAY");
+        translationMap.put("3 días", "3_DAYS");
+        translationMap.put("7 días", "7_DAYS");
+        translationMap.put("30 días", "30_DAYS");
+    }
     
     @FXML private void handleEditName() { 
         toggleNameEdit(true); 
@@ -250,6 +267,36 @@ public class ProfileController {
             com.src.filmtracker.utils.ReportModalHelper.openReportModal("USER", targetId);
         }
     }
+    
+    @FXML
+    private void handleSuspender() {
+        java.util.List<String> choices = new java.util.ArrayList<>(translationMap.keySet());
+        javafx.scene.control.ChoiceDialog<String> dialog = new javafx.scene.control.ChoiceDialog<>(choices.get(0), choices);
+        
+        dialog.setTitle(com.src.filmtracker.utils.AppConstants.MESSAGE_TITLE_SUSPEND);
+        dialog.setHeaderText(com.src.filmtracker.utils.AppConstants.MESSAGE_HEADER_SUSPEND);
+        
+        java.util.Optional<String> result = dialog.showAndWait();
+        
+        if (result.isPresent()) {
+            String backendValue = translationMap.get(result.get());
+            ejecutarAccionAdmin(adminService.suspendUser(currentUserProfile.getSafeAuthId(), backendValue));
+        }
+    }
+
+    @FXML
+    private void handleBanear() {
+        if (confirmarAccion(com.src.filmtracker.utils.AppConstants.MESSAGE_TITLE_BAN, com.src.filmtracker.utils.AppConstants.MESSAGE_CONTENT_BAN)) {
+            ejecutarAccionAdmin(adminService.banUser(currentUserProfile.getSafeAuthId(), "Violación de términos (Admin)"));
+        }
+    }
+
+    @FXML
+    private void handleDesbanear() {
+        if (confirmarAccion(com.src.filmtracker.utils.AppConstants.MESSAGE_TITLE_UNBAN, com.src.filmtracker.utils.AppConstants.MESSAGE_CONTENT_UNBAN)) {
+            ejecutarAccionAdmin(adminService.unbanUser(currentUserProfile.getSafeAuthId()));
+        }
+    }
 
     public void initData(UserDto user) {
         if (user == null) {
@@ -264,6 +311,8 @@ public class ProfileController {
         
         reviewsSection.getChildren().clear();
         cargarResenasPropias(1, esUsuarioActual(user));
+        
+        evaluarAccionesAdmin();
     }
 
     private void actualizarEtiquetasBasicas(UserDto user) {
@@ -632,6 +681,75 @@ public class ProfileController {
                     friendsCountLabel.setText(String.valueOf(summary.friendsCount()));
                 }
             });
+        });
+    }
+    
+    private void evaluarAccionesAdmin() {
+        com.src.filmtracker.models.users.UserDto loggedUser = com.src.filmtracker.utils.SessionManager.getInstance().getCurrentUser();
+        
+        if (loggedUser == null || currentUserProfile == null) {
+            return;
+        }
+
+        boolean isAdmin = "ADMIN".equals(loggedUser.role());
+        boolean isSameUser = loggedUser.getSafeAuthId().equals(currentUserProfile.getSafeAuthId());
+
+        if (isAdmin && !isSameUser) {
+            adminMenu.setVisible(true);
+            adminMenu.setManaged(true);
+            verificarEstadoCuentaAdmin();
+        }
+    }
+
+    private void verificarEstadoCuentaAdmin() {
+        adminService.getAccountStatus(currentUserProfile.getSafeAuthId()).thenAccept(status -> {
+            Platform.runLater(() -> {
+                actualizarVisibilidadMenu(status);
+            });
+        }).exceptionally(e -> {
+            return null;
+        });
+    }
+
+    private void actualizarVisibilidadMenu(com.src.filmtracker.models.admin.AccountStatusDto status) {
+        if (status == null) {
+            return;
+        }
+
+        boolean isBanned = "BANNED".equals(status.accountStatus());
+        itemBanear.setVisible(!isBanned);
+        itemSuspender.setVisible(!isBanned);
+        itemDesbanear.setVisible(isBanned);
+    }
+    
+    private boolean confirmarAccion(String titulo, String contenido) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.CONFIRMATION);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(contenido);
+        
+        java.util.Optional<javafx.scene.control.ButtonType> result = alert.showAndWait();
+        
+        if (result.isPresent()) {
+            if (result.get() == javafx.scene.control.ButtonType.OK) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    private void ejecutarAccionAdmin(java.util.concurrent.CompletableFuture<Void> futuro) {
+        futuro.thenRun(() -> {
+            Platform.runLater(() -> {
+                mostrarAlertaExito(com.src.filmtracker.utils.AppConstants.MESSAGE_SUCCESS_ADMIN_ACTION);
+                verificarEstadoCuentaAdmin();
+            });
+        }).exceptionally(err -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(com.src.filmtracker.utils.AppConstants.MESSAGE_ERROR_API);
+            });
+            return null;
         });
     }
 
