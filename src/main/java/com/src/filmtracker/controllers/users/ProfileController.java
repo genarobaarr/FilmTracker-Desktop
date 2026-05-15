@@ -85,6 +85,7 @@ public class ProfileController {
     @FXML private Button editUsernameBtn;
     @FXML private Button reportProfileBtn;
     @FXML private MenuButton adminMenu;
+    @FXML private MenuItem itemQuitarFoto;
     @FXML private MenuItem itemSuspender;
     @FXML private MenuItem itemBanear;
     @FXML private MenuItem itemDesbanear;
@@ -265,6 +266,13 @@ public class ProfileController {
         
         if (!targetId.isEmpty()) {
             com.src.filmtracker.utils.ReportModalHelper.openReportModal("USER", targetId);
+        }
+    }
+    
+    @FXML
+    private void handleQuitarFoto() {
+        if (confirmarAccion("Quitar Foto", "¿Deseas eliminar administrativamente la foto de perfil de este usuario?")) {
+            ejecutarAccionAdmin(adminService.removeProfilePhotoDirectly(currentUserProfile.getSafeAuthId()));
         }
     }
     

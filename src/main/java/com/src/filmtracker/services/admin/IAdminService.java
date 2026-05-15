@@ -23,4 +23,9 @@ public interface IAdminService {
     CompletableFuture<AuthStatsDto> getAuthStats();
     CompletableFuture<ReviewStatsDto> getReviewStats();
     CompletableFuture<ModerationStatsDto> getModerationStats();
+    CompletableFuture<com.src.filmtracker.models.admin.AdminUserDetailDto> getAdminUserDetails(String authId);
+    CompletableFuture<Void> removeProfilePhotoDirectly(String authId);
+    CompletableFuture<Void> removeReviewImageDirectly(String reviewId);
+    CompletableFuture<Void> removeCommentImageDirectly(String commentId);
+    CompletableFuture<Void> deleteCommentDirectly(String commentId);
 }

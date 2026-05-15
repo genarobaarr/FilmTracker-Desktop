@@ -1,13 +1,13 @@
 package com.src.filmtracker.services.admin;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.src.filmtracker.models.admin.AccountStatusDto;
 import com.src.filmtracker.models.admin.AdminReportResponse;
 import com.src.filmtracker.models.admin.AdminActionRequest;
+import com.src.filmtracker.models.admin.AdminUserDetailDto;
 import com.src.filmtracker.models.admin.AuthStatsDto;
 import com.src.filmtracker.models.admin.ModerationStatsDto;
 import com.src.filmtracker.models.admin.ReviewStatsDto;
@@ -158,6 +158,46 @@ public class AdminService implements IAdminService {
         HttpRequest request = construirPeticionGet(AppConstants.ADMIN_MODERATION_STATS_URL);
         
         return ejecutarPeticion(request, ModerationStatsDto.class);
+    }
+    
+    @Override
+    public CompletableFuture<AdminUserDetailDto> getAdminUserDetails(String authId) {
+        String url = AppConstants.USERS_SERVICE_URL + "/admin/users/" + authId;
+        HttpRequest request = construirPeticionGet(url);
+        
+        return ejecutarPeticion(request, AdminUserDetailDto.class);
+    }
+
+    @Override
+    public CompletableFuture<Void> removeProfilePhotoDirectly(String authId) {
+        String url = AppConstants.USERS_SERVICE_URL + "/admin/users/" + authId + "/profile-photo";
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("Authorization", "Bearer " + SessionManager.getInstance().getToken()).DELETE().build();
+        
+        return ejecutarPeticionVacia(request);
+    }
+
+    @Override
+    public CompletableFuture<Void> removeReviewImageDirectly(String reviewId) {
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/image";
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("Authorization", "Bearer " + SessionManager.getInstance().getToken()).DELETE().build();
+        
+        return ejecutarPeticionVacia(request);
+    }
+
+    @Override
+    public CompletableFuture<Void> removeCommentImageDirectly(String commentId) {
+        String url = AppConstants.COMMENTS_URL + "/" + commentId + "/image";
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("Authorization", "Bearer " + SessionManager.getInstance().getToken()).DELETE().build();
+        
+        return ejecutarPeticionVacia(request);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteCommentDirectly(String commentId) {
+        String url = AppConstants.COMMENTS_URL + "/" + commentId;
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("Authorization", "Bearer " + SessionManager.getInstance().getToken()).DELETE().build();
+        
+        return ejecutarPeticionVacia(request);
     }
     
     private long calcularDiasSuspension(String duration) {

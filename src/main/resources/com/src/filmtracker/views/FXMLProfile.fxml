@@ -40,6 +40,7 @@
                         </StackPane> 
                         <MenuButton fx:id="adminMenu" mnemonicParsing="false" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;" text="⋮" visible="false">
                             <items>
+                                <MenuItem fx:id="itemQuitarFoto" mnemonicParsing="false" onAction="#handleQuitarFoto" text="Quitar Foto Perfil" />
                                 <MenuItem fx:id="itemSuspender" mnemonicParsing="false" onAction="#handleSuspender" text="Suspender cuenta" />
                                 <MenuItem fx:id="itemBanear" mnemonicParsing="false" onAction="#handleBanear" text="Banear permanentemente" />
                                 <MenuItem fx:id="itemDesbanear" mnemonicParsing="false" onAction="#handleDesbanear" text="Quitar baneo / Activar" />

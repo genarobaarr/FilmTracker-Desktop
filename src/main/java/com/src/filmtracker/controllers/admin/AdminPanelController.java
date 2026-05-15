@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class AdminPanelController {
 
@@ -278,34 +279,62 @@ public class AdminPanelController {
         userDetailPane.getChildren().clear();
         String authId = user.getSafeAuthId();
 
-        adminService.getAccountStatus(authId).thenAccept(status -> {
+        CompletableFuture<AccountStatusDto> statusFuture = adminService.getAccountStatus(authId);
+        CompletableFuture<AdminUserDetailDto> detailsFuture = adminService.getAdminUserDetails(authId);
+
+        statusFuture.thenAcceptBoth(detailsFuture, (status, details) -> {
             Platform.runLater(() -> {
-                dibujarPanelDetalleUsuario(user, status, authId);
+                dibujarPanelDetalleUsuario(user, status, details, authId);
             });
         }).exceptionally(e -> null);
     }
 
-    private void dibujarPanelDetalleUsuario(UserDto user, AccountStatusDto status, String authId) {
+    private void dibujarPanelDetalleUsuario(UserDto user, AccountStatusDto status, AdminUserDetailDto details, String authId) {
+        userDetailPane.getChildren().clear();
+
         Label header = new Label("Detalles de Usuario: @" + user.username());
         header.setTextFill(Color.WHITE);
         header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
+        VBox infoBox = new VBox(5);
+        
+        if (details != null) {
+            Label lblName = new Label("Nombre: " + details.name());
+            lblName.setTextFill(Color.LIGHTGRAY);
+            
+            String verificadoStr = details.isEmailVerified() ? " (Verificado)" : " (No Verificado)";
+            Label lblEmail = new Label("Email: " + details.email() + verificadoStr);
+            lblEmail.setTextFill(Color.LIGHTGRAY);
+            
+            Label lblRole = new Label("Rol: " + details.role());
+            lblRole.setTextFill(Color.LIGHTGRAY);
+            
+            Label lblCreated = new Label("Miembro desde: " + formatearFecha(details.createdAt()));
+            lblCreated.setTextFill(Color.LIGHTGRAY);
+            
+            infoBox.getChildren().addAll(lblName, lblEmail, lblRole, lblCreated);
+        }
+
         String stStr = (status != null) ? status.accountStatus() : "Desconocido";
         Label statusLbl = new Label("Estado: " + traducirEstadoUsuario(stStr));
         statusLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        
-        userDetailPane.getChildren().add(header);
-        userDetailPane.getChildren().add(statusLbl);
+        statusLbl.setStyle("-fx-font-weight: bold;");
+
+        userDetailPane.getChildren().addAll(header, infoBox, statusLbl);
 
         if ("SUSPENDED".equals(stStr)) {
-            if (status.suspendedUntil() != null) {
-                Label suspLbl = new Label("Suspendido hasta: " + formatearFecha(status.suspendedUntil()));
-                suspLbl.setTextFill(Color.ORANGE);
-                userDetailPane.getChildren().add(suspLbl);
+            if (status != null) {
+                if (status.suspendedUntil() != null) {
+                    Label suspLbl = new Label("Suspendido hasta: " + formatearFecha(status.suspendedUntil()));
+                    suspLbl.setTextFill(Color.ORANGE);
+                    userDetailPane.getChildren().add(suspLbl);
+                }
             }
         }
 
-        HBox actions = new HBox(10);
+        FlowPane actions = new FlowPane();
+        actions.setHgap(10);
+        actions.setVgap(10);
         
         if ("BANNED".equals(stStr)) {
             Button unban = new Button("Desbanear");
@@ -339,9 +368,28 @@ public class AdminPanelController {
                 }
             });
 
-            actions.getChildren().add(ban);
-            actions.getChildren().add(dur);
-            actions.getChildren().add(susp);
+            actions.getChildren().addAll(ban, dur, susp);
+        }
+
+        if (details != null) {
+            if (details.profileImage() != null) {
+                Button rmPhoto = new Button("Quitar Foto Perfil");
+                rmPhoto.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
+                
+                rmPhoto.setOnAction(e -> {
+                    adminService.removeProfilePhotoDirectly(authId).thenRun(() -> {
+                        Platform.runLater(() -> {
+                            mostrarAlertaExito("Foto de perfil eliminada correctamente.");
+                            cargarDetalleUsuario(user);
+                        });
+                    }).exceptionally(err -> {
+                        Platform.runLater(() -> mostrarAlertaError("Error al eliminar la foto."));
+                        return null;
+                    });
+                });
+                
+                actions.getChildren().add(rmPhoto);
+            }
         }
 
         userDetailPane.getChildren().add(actions);
@@ -546,31 +594,77 @@ public class AdminPanelController {
         }
         
         if ("DISMISS_REPORT".equals(actionBackend)) {
-             adminService.dismissReport(String.valueOf(r.id()), note)
-                .thenRun(this::finalizarAccionExito)
-                .exceptionally(e -> {
-                     Platform.runLater(() -> mostrarAlertaError("Error descartando reporte."));
-                     return null;
-                });
+             ejecutarDescarteDirecto(r.id(), note);
              return;
         }
 
-        if ("DELETE_REVIEW".equals(actionBackend)) {
-            String reviewId = r.targetId();
-            adminService.deleteReviewDirectly(reviewId)
-                .whenComplete((res, ex) -> {
-                    String finalNote = (note == null || note.trim().isEmpty()) ? "Reseña eliminada administrativamente." : note;
-                    adminService.dismissReport(String.valueOf(r.id()), finalNote)
-                        .thenRun(this::finalizarAccionExito)
-                        .exceptionally(e2 -> {
-                            Platform.runLater(() -> mostrarAlertaError("Error cerrando el reporte."));
-                            return null;
-                        });
-                });
+        if (esAccionDeBypass(actionBackend)) {
+            ejecutarAccionConBypass(r, actionBackend, note);
             return;
         }
         
         ejecutarAccion(r.id(), actionBackend, note, null);
+    }
+
+    private void ejecutarDescarteDirecto(Integer reportId, String note) {
+        adminService.dismissReport(String.valueOf(reportId), note)
+            .thenRun(this::finalizarAccionExito)
+            .exceptionally(e -> {
+                Platform.runLater(() -> mostrarAlertaError("Error descartando reporte."));
+                return null;
+            });
+    }
+
+    private boolean esAccionDeBypass(String action) {
+        if ("DELETE_REVIEW".equals(action)) { 
+            return true; 
+        }
+        
+        if ("DELETE_COMMENT".equals(action)) { 
+            return true; 
+        }
+        
+        if ("REMOVE_REVIEW_IMAGE".equals(action)) { 
+            return true; 
+        }
+        
+        if ("REMOVE_COMMENT_IMAGE".equals(action)) { 
+            return true; 
+        }
+        
+        return false;
+    }
+
+    private void ejecutarAccionConBypass(AdminReportDto r, String action, String note) {
+        String targetId = r.targetId();
+        java.util.concurrent.CompletableFuture<Void> future = null;
+        String defaultNote = "";
+
+        if ("DELETE_REVIEW".equals(action)) {
+            future = adminService.deleteReviewDirectly(targetId);
+            defaultNote = "Reseña eliminada administrativamente.";
+        } else if ("DELETE_COMMENT".equals(action)) {
+            future = adminService.deleteCommentDirectly(targetId);
+            defaultNote = "Comentario eliminado administrativamente.";
+        } else if ("REMOVE_REVIEW_IMAGE".equals(action)) {
+            future = adminService.removeReviewImageDirectly(targetId);
+            defaultNote = "Imagen de reseña eliminada administrativamente.";
+        } else if ("REMOVE_COMMENT_IMAGE".equals(action)) {
+            future = adminService.removeCommentImageDirectly(targetId);
+            defaultNote = "Imagen de comentario eliminada administrativamente.";
+        }
+
+        if (future != null) {
+            String finalNote = (note == null || note.trim().isEmpty()) ? defaultNote : note;
+            future.whenComplete((res, ex) -> {
+                adminService.dismissReport(String.valueOf(r.id()), finalNote)
+                    .thenRun(this::finalizarAccionExito)
+                    .exceptionally(e2 -> {
+                        Platform.runLater(() -> mostrarAlertaError("Error cerrando el reporte."));
+                        return null;
+                    });
+            });
+        }
     }
 
     private void solicitarDuracionSuspension(Integer id, String actionBackend, String note) {
