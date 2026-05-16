@@ -128,7 +128,7 @@ public class AdminService implements IAdminService {
     
     @Override
     public CompletableFuture<Void> deleteReviewDirectly(String reviewId) {
-        String url = AppConstants.REVIEWS_SERVICE_URL + "/" + reviewId;
+        String url = AppConstants.REVIEWS_URL + "/" + reviewId;
         
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
