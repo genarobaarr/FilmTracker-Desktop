@@ -2,6 +2,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.image.*?>
 <?import javafx.scene.text.Font?>
 
 <BorderPane style="-fx-background-color: #121212; -fx-border-color: #333333; -fx-border-width: 2;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.src.filmtracker.controllers.moderation.ReportController">
@@ -21,6 +22,17 @@
     <center>
         <VBox spacing="15.0" style="-fx-padding: 20; -fx-background-color: #121212;">
             <children>
+                <HBox alignment="TOP_LEFT" spacing="15" >
+                    <children>
+                        <ImageView fitWidth="60.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@../images/lotso.png" />
+                           </image>
+                           <HBox.margin><Insets left="10.0" /></HBox.margin>
+                           <VBox.margin><Insets bottom="10.0" /></VBox.margin>
+                        </ImageView>
+                    </children>
+                </HBox>
                 <Label fx:id="errorLabel" managed="false" textFill="#e50914" visible="false" wrapText="true" />
                 
                 <Label text="Motivo del reporte:" textFill="#888888">
