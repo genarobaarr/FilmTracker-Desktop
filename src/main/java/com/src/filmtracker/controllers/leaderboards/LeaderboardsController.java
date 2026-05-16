@@ -101,7 +101,7 @@ public class LeaderboardsController {
     private void renderUserRank(UserRankDto rank) {
         HBox row = new HBox(15);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
+        row.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;");
 
         Label rankLbl = new Label("#" + rank.rank());
         rankLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
@@ -115,13 +115,23 @@ public class LeaderboardsController {
         titleLbl.setTextFill(Color.WHITE);
         titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 15px;");
         
-        userService.getUserById(rank.authId()).thenAccept(user -> {
-            Platform.runLater(() -> {
-                if (user != null) { 
-                    titleLbl.setText(user.name() + " (@" + user.username() + ")"); 
-                }
+        if (rank.authId() != null) {
+            userService.getUserById(rank.authId()).thenAccept(user -> {
+                Platform.runLater(() -> {
+                    if (user != null) {
+                        if (user.username() != null) {
+                            titleLbl.setText(user.name() + " (@" + user.username() + ")");
+                        }
+                        
+                        row.setOnMouseClicked(e -> {
+                            App.showProfileView(user);
+                        });
+                    }
+                });
+            }).exceptionally(e -> {
+                return null;
             });
-        }).exceptionally(e -> null);
+        }
 
         Label metaLbl = new Label("Total Likes: " + rank.totalLikes() + " (Reseñas: " + rank.reviewLikes() + ", Comentarios: " + rank.commentLikes() + ")");
         metaLbl.setTextFill(Color.GRAY);
@@ -158,7 +168,7 @@ public class LeaderboardsController {
     private void renderReviewRank(ReviewRankDto review) {
         HBox row = new HBox(15);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
+        row.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;");
 
         Label rankLbl = new Label("#" + review.rank());
         rankLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
@@ -179,9 +189,15 @@ public class LeaderboardsController {
                         if (show.name() != null) {
                             seriesLbl.setText(show.name());
                         }
+                        
+                        row.setOnMouseClicked(e -> {
+                            App.showShowDetail(show);
+                        });
                     }
                 });
-            }).exceptionally(e -> null);
+            }).exceptionally(e -> {
+                return null;
+            });
         }
 
         String titleStr = "Sin título";
@@ -217,7 +233,9 @@ public class LeaderboardsController {
                         }
                     }
                 });
-            }).exceptionally(e -> null);
+            }).exceptionally(e -> {
+                return null;
+            });
         }
 
         contentBox.getChildren().add(seriesLbl);
