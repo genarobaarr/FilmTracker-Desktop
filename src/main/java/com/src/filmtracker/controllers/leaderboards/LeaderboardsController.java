@@ -173,13 +173,11 @@ public class LeaderboardsController {
         seriesLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
 
         if (review.tvmazeId() != null) {
-            showService.getFullShowDetails(review.tvmazeId()).thenAccept(res -> {
+            showService.getShowDetails(review.tvmazeId()).thenAccept(show -> {
                 Platform.runLater(() -> {
-                    if (res != null) {
-                        if (res.show() != null) {
-                            if (res.show().name() != null) {
-                                seriesLbl.setText(res.show().name());
-                            }
+                    if (show != null) {
+                        if (show.name() != null) {
+                            seriesLbl.setText(show.name());
                         }
                     }
                 });
