@@ -1,10 +1,9 @@
 package com.src.filmtracker.controllers.notifications;
 
 import com.src.filmtracker.App;
-import com.src.filmtracker.controllers.shows.ShowDetailController;
-import com.src.filmtracker.controllers.users.ProfileController;
 import com.src.filmtracker.models.notifications.NotificationDto;
 import com.src.filmtracker.models.notifications.NotificationResponse;
+import com.src.filmtracker.models.shows.Show;
 import com.src.filmtracker.services.notifications.INotificationService;
 import com.src.filmtracker.services.notifications.NotificationService;
 import com.src.filmtracker.services.shows.IShowService;
@@ -14,12 +13,12 @@ import com.src.filmtracker.services.users.UserService;
 import com.src.filmtracker.utils.AppConstants;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
-import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -36,16 +35,33 @@ public class NotificationsController {
     private final INotificationService notificationService = new NotificationService();
     private final IShowService showService = new ShowService();
     private final IUserService userService = new UserService();
+    
     private int currentPage = 1;
+
+    public NotificationsController() {
+    }
 
     @FXML
     public void initialize() {
         cargarNotificaciones(1);
     }
     
-    @FXML private void handleBack() { App.setRoot(AppConstants.FXML_DASHBOARD); }
-    @FXML private void handleMinimize() { ((Stage) notificationsContainer.getScene().getWindow()).setIconified(true); }
-    @FXML private void handleClose() { Platform.exit(); System.exit(0); }
+    @FXML 
+    private void handleBack() { 
+        App.setRoot(AppConstants.FXML_DASHBOARD); 
+    }
+    
+    @FXML 
+    private void handleMinimize() { 
+        Stage stage = (Stage) notificationsContainer.getScene().getWindow();
+        stage.setIconified(true); 
+    }
+    
+    @FXML 
+    private void handleClose() { 
+        Platform.exit(); 
+        System.exit(0); 
+    }
     
     @FXML
     private void handleMarkAllRead() {
@@ -110,11 +126,13 @@ public class NotificationsController {
         HBox card = new HBox(15);
         card.setAlignment(Pos.CENTER_LEFT);
         
-        if (notif.isRead()) {
-            card.setStyle("-fx-background-color: #1a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
-        } else {
-            card.setStyle("-fx-background-color: #2a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e50914; -fx-border-width: 0 0 0 4;");
-        }
+        boolean[] isReadState = {notif.isRead()};
+        aplicarEstiloLectura(card, isReadState[0]);
+
+        ImageView imageView = new ImageView();
+        imageView.setFitWidth(40);
+        imageView.setFitHeight(60);
+        imageView.setPreserveRatio(true);
 
         VBox contentBox = new VBox(5);
         HBox.setHgrow(contentBox, Priority.ALWAYS);
@@ -130,6 +148,8 @@ public class NotificationsController {
         Label dateLbl = new Label(formatearFecha(notif.createdAt()));
         dateLbl.setTextFill(Color.GRAY);
         dateLbl.setStyle("-fx-font-size: 11px;");
+        
+        cargarDatosAdicionales(notif, imageView, bodyLbl);
 
         contentBox.getChildren().add(titleLbl);
         contentBox.getChildren().add(bodyLbl);
@@ -138,15 +158,61 @@ public class NotificationsController {
         Button deleteBtn = new Button("🗑");
         deleteBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand;");
 
-        configurarEventosTarjeta(card, deleteBtn, notif);
+        configurarEventosTarjeta(card, deleteBtn, notif, isReadState);
 
+        card.getChildren().add(imageView);
         card.getChildren().add(contentBox);
         card.getChildren().add(deleteBtn);
 
         return card;
     }
+    
+    private void aplicarEstiloLectura(HBox card, boolean isRead) {
+        if (isRead) {
+            card.setStyle("-fx-background-color: #1a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;");
+        } else {
+            card.setStyle("-fx-background-color: #2a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e50914; -fx-border-width: 0 0 0 4; -fx-cursor: hand;");
+        }
+    }
 
-    private void configurarEventosTarjeta(HBox card, Button deleteBtn, NotificationDto notif) {
+    private void cargarDatosAdicionales(NotificationDto notif, ImageView imageView, Label bodyLbl) {
+        if (notif.metadata() == null) {
+            return;
+        }
+        
+        if (notif.metadata().tvmazeId() != null) {
+            showService.getShowDetails(notif.metadata().tvmazeId()).thenAccept(show -> {
+                Platform.runLater(() -> {
+                    actualizarDatosSerie(show, imageView, bodyLbl, notif.type());
+                });
+            }).exceptionally(e -> {
+                return null;
+            });
+        }
+    }
+    
+    private void actualizarDatosSerie(Show show, ImageView imageView, Label bodyLbl, String type) {
+        if (show == null) {
+            return;
+        }
+        
+        if (show.image() != null) {
+            if (show.image().medium() != null) {
+                imageView.setImage(new Image(show.image().medium(), true));
+            }
+        }
+        
+        if (show.name() != null) {
+            if (type != null) {
+                if (type.contains("library")) {
+                    String oldText = bodyLbl.getText();
+                    bodyLbl.setText(oldText + "\nSerie: " + show.name());
+                }
+            }
+        }
+    }
+
+    private void configurarEventosTarjeta(HBox card, Button deleteBtn, NotificationDto notif, boolean[] isReadState) {
         deleteBtn.setOnAction(e -> {
             e.consume();
             notificationService.deleteNotification(notif.id()).thenRun(() -> {
@@ -157,18 +223,19 @@ public class NotificationsController {
         });
 
         card.setOnMouseClicked(e -> {
-            if (!notif.isRead()) {
+            if (!isReadState[0]) {
                 notificationService.markAsRead(notif.id()).thenRun(() -> {
                     Platform.runLater(() -> {
+                        isReadState[0] = true;
+                        aplicarEstiloLectura(card, true);
                         procesarRedireccion(notif);
                     });
                 });
                 return;
             }
+            
             procesarRedireccion(notif);
         });
-        
-        card.setStyle(card.getStyle() + " -fx-cursor: hand;");
     }
 
     private void procesarRedireccion(NotificationDto notif) {
@@ -194,41 +261,27 @@ public class NotificationsController {
     }
 
     private void abrirDetalleSerie(Integer tvmazeId) {
-        showService.getFullShowDetails(tvmazeId).thenAccept(fullData -> {
+        showService.getShowDetails(tvmazeId).thenAccept(show -> {
             Platform.runLater(() -> {
-                try {
-                    FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_SHOW_DETAIL));
-                    Parent root = loader.load();
-                    ShowDetailController controller = loader.getController();
-                    
-                    if (fullData != null) {
-                        if (fullData.show() != null) {
-                            controller.initData(fullData.show());
-                            ((Stage) notificationsContainer.getScene().getWindow()).getScene().setRoot(root);
-                        }
-                    }
-                } catch (Exception ex) {
+                if (show != null) {
+                    App.showShowDetail(show);
                 }
             });
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> {
+            return null;
+        });
     }
 
     private void abrirPerfilUsuario(String authId) {
         userService.getUserById(authId).thenAccept(user -> {
             Platform.runLater(() -> {
-                try {
-                    FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_PROFILE));
-                    Parent root = loader.load();
-                    ProfileController controller = loader.getController();
-                    
-                    if (user != null) {
-                        controller.initData(user);
-                        ((Stage) notificationsContainer.getScene().getWindow()).getScene().setRoot(root);
-                    }
-                } catch (Exception ex) {
+                if (user != null) {
+                    App.showProfileView(user);
                 }
             });
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> {
+            return null;
+        });
     }
 
     private void evaluarBotonCargarMas(NotificationResponse res) {
