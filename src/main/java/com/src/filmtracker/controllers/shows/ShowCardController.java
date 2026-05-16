@@ -20,7 +20,7 @@ public class ShowCardController {
 
     @FXML
     private void onCardClicked() {
-        App.showDetailView(showData);
+        App.showShowDetail(showData);
     }
 
     public void setData(Show show) {

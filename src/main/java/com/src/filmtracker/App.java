@@ -19,8 +19,8 @@ public class App extends Application {
 
     private static Scene scene;
     
-    private static final Stack<Show> historyStack = new Stack<>();
-    private static Show currentViewedShow = null;
+    private static final Stack<Object> navigationHistory = new Stack<>();
+    private static Object currentViewState = AppConstants.FXML_LOGIN;
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -41,36 +41,82 @@ public class App extends Application {
     }
     
     public static void setRoot(String fxml) {
-        if (fxml.equals(AppConstants.FXML_DASHBOARD) || fxml.equals(AppConstants.FXML_LOGIN)) {
-            historyStack.clear();
-            currentViewedShow = null;
+        if (AppConstants.FXML_DASHBOARD.equals(fxml)) {
+            navigationHistory.clear();
+        } else {
+            if (currentViewState != null) {
+                if (!currentViewState.equals(fxml)) {
+                    navigationHistory.push(currentViewState);
+                }
+            }
         }
+        
+        currentViewState = fxml;
         
         try {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(fxml));
-            Parent root = loader.load();
-            scene.setRoot(root);
+            scene.setRoot(loader.load());
         } catch (IOException e) {
-            System.err.println("Error crítico al intentar cargar la vista: " + fxml + " | " + e.getMessage());
         }
     }
 
-    public static void showDetailView(Show show) {
-        if (currentViewedShow != null && !currentViewedShow.tvmazeId().equals(show.tvmazeId())) {
-            historyStack.push(currentViewedShow);
+    public static void showShowDetail(Show show) {
+        if (currentViewState != null) {
+            if (currentViewState != show) {
+                navigationHistory.push(currentViewState);
+            }
         }
         
-        currentViewedShow = show;
+        currentViewState = show;
         loadShowDetailTemplate(show);
     }
 
+    public static void showShowDetailFromProfile(Show show, UserDto profile) {
+        showShowDetail(show);
+    }
+
+    public static void showProfileView(UserDto user) {
+        if (currentViewState != null) {
+            if (currentViewState != user) {
+                navigationHistory.push(currentViewState);
+            }
+        }
+        
+        currentViewState = user;
+        loadProfileTemplate(user);
+    }
+
     public static void goBackFromDetail() {
-        if (!historyStack.isEmpty()) {
-            Show previousShow = historyStack.pop();
-            currentViewedShow = previousShow;
-            loadShowDetailTemplate(previousShow);
-        } else {
+        goBackUniversal();
+    }
+    
+    public static void goBackUniversal() {
+        if (navigationHistory.isEmpty()) {
             setRoot(AppConstants.FXML_DASHBOARD);
+            return;
+        }
+        
+        Object previousState = navigationHistory.pop();
+        currentViewState = previousState;
+        
+        if (previousState instanceof Show) {
+            loadShowDetailTemplate((Show) previousState);
+            return;
+        }
+        
+        if (previousState instanceof UserDto) {
+            loadProfileTemplate((UserDto) previousState);
+            return;
+        }
+        
+        if (previousState instanceof String) {
+            String fxml = (String) previousState;
+            
+            try {
+                FXMLLoader loader = new FXMLLoader(App.class.getResource(fxml));
+                scene.setRoot(loader.load());
+            } catch (IOException e) {
+            }
         }
     }
 
@@ -84,11 +130,10 @@ public class App extends Application {
 
             scene.setRoot(root);
         } catch (IOException e) {
-            System.err.println("Error crítico al intentar cargar la vista de detalle para: " + show.name() + " | " + e.getMessage());
         }
     }
 
-    public static void showProfileView(UserDto user) {
+    private static void loadProfileTemplate(UserDto user) {
         try {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_PROFILE));
             Parent root = loader.load();
@@ -98,7 +143,6 @@ public class App extends Application {
 
             scene.setRoot(root);
         } catch (IOException e) {
-            System.err.println("Error al cargar vista de perfil: " + e.getMessage());
         }
     }
 }

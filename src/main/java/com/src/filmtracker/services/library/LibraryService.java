@@ -1,6 +1,5 @@
 package com.src.filmtracker.services.library;
 
-import com.src.filmtracker.services.library.ILibraryService;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -74,6 +73,39 @@ public class LibraryService implements ILibraryService {
     public CompletableFuture<Void> removeWatchlist(Integer tvmazeId) {
         String url = AppConstants.WATCHLIST_URL + "/" + tvmazeId;
         return executeDelete(url);
+    }
+
+    @Override
+    public CompletableFuture<List<LibraryItemDto>> getFavoritesPaged(int page) {
+        String url = AppConstants.FAVORITES_URL + "?page=" + page;
+        return executeGetList(url);
+    }
+
+    @Override
+    public CompletableFuture<List<LibraryItemDto>> getFavoritesByUserPaged(String authId, int page) {
+        String url = AppConstants.FAVORITES_URL + "/user/" + authId + "?page=" + page;
+        return executeGetList(url);
+    }
+
+    @Override
+    public CompletableFuture<List<LibraryItemDto>> getWatchlistPaged(int page) {
+        String url = AppConstants.WATCHLIST_URL + "?page=" + page;
+        return executeGetList(url);
+    }
+
+    private CompletableFuture<List<LibraryItemDto>> executeGetList(String url) {
+        Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
+        HttpRequest req = buildRequestBuilder(url).GET().build();
+        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            if (response.statusCode() >= 400) {
+                throw new RuntimeException("API Error: " + response.statusCode());
+            }
+            JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+            if (json.has("data")) {
+                return gson.fromJson(json.get("data"), type);
+            }
+            return new ArrayList<LibraryItemDto>();
+        });
     }
 
     private <T> CompletableFuture<T> executeGet(String url, Type type, String key) {

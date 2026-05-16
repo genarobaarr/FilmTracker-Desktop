@@ -13,4 +13,5 @@ public interface IShowService {
     CompletableFuture<ShowFullResponse> getFullShowDetails(Integer id);
     CompletableFuture<List<Show>> getShowsByGenre(String genre);
     CompletableFuture<List<EpisodeDto>> getShowEpisodes(Integer id);
+    CompletableFuture<Show> getShowDetails(Integer tvmazeId);
 }

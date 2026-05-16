@@ -1,7 +1,7 @@
 package com.src.filmtracker.controllers.users;
 
 import com.src.filmtracker.App;
-import com.src.filmtracker.models.users.UserDto;
+import com.src.filmtracker.models.admin.AccountStatusDto;
 import com.src.filmtracker.models.library.LibraryItemDto;
 import com.src.filmtracker.models.reviews.ReviewDto;
 import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
@@ -12,6 +12,7 @@ import com.src.filmtracker.models.friends.FriendItemDto;
 import com.src.filmtracker.models.friends.FriendPaginationResponse;
 import com.src.filmtracker.models.friends.FriendStatusResponse;
 import com.src.filmtracker.models.friends.SendFriendRequest;
+import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.services.admin.AdminService;
 import com.src.filmtracker.services.admin.IAdminService;
 import com.src.filmtracker.services.library.ILibraryService;
@@ -37,6 +38,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+
+import java.io.File;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -44,10 +47,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ProfileController {
-    
+
     @FXML private ImageView avatarView;
     @FXML private Button editAvatarBtn;
     @FXML private Label nameLabel;
@@ -59,14 +64,11 @@ public class ProfileController {
     @FXML private Label likesReceivedLabel;
     @FXML private Label friendsCountLabel;
     @FXML private VBox privateInfoContainer;
-    
     @FXML private VBox friendsListContainer;
     @FXML private VBox friendsListSection;
-
     @FXML private HBox friendActionsBox;
     @FXML private Button addFriendBtn;
     @FXML private Button removeFriendBtn;
-
     @FXML private VBox favoritesContainer;
     @FXML private VBox favoritesSection;
     @FXML private Label favoritesTitleLabel;
@@ -74,7 +76,6 @@ public class ProfileController {
     @FXML private VBox watchlistSection;
     @FXML private VBox reviewsSection;
     @FXML private Label reviewsTitleLabel;
-
     @FXML private HBox nameDisplayBox;
     @FXML private HBox nameEditBox;
     @FXML private TextField nameField;
@@ -97,10 +98,15 @@ public class ProfileController {
     private final IFriendsService friendsService = new FriendsService();
     private final IAdminService adminService = new AdminService();
     
-    private int currentReviewPage = 1;
-    private UserDto currentUserProfile;
+    private final Map<Integer, CompletableFuture<Show>> showCache = new ConcurrentHashMap<>();
     private final Map<String, String> translationMap = new LinkedHashMap<>();
     
+    private int currentReviewPage = 1;
+    private UserDto currentUserProfile;
+
+    public ProfileController() {
+    }
+
     @FXML
     public void initialize() {
         translationMap.put("1 día", "1_DAY");
@@ -108,40 +114,51 @@ public class ProfileController {
         translationMap.put("7 días", "7_DAYS");
         translationMap.put("30 días", "30_DAYS");
     }
-    
-    @FXML private void handleEditName() { 
+
+    @FXML 
+    private void handleEditName() { 
         toggleNameEdit(true); 
     }
     
-    @FXML private void handleCancelName() { 
+    @FXML 
+    private void handleCancelName() { 
         toggleNameEdit(false); 
     }
     
-    @FXML private void handleEditUsername() { 
+    @FXML 
+    private void handleEditUsername() { 
         toggleUsernameEdit(true); 
     }
     
-    @FXML private void handleCancelUsername() { 
+    @FXML 
+    private void handleCancelUsername() { 
         toggleUsernameEdit(false); 
     }
     
-    @FXML private void handleChangePassword() { 
+    @FXML 
+    private void handleChangePassword() { 
         App.setRoot(AppConstants.FXML_CHANGE_PASSWORD); 
     }
     
-    @FXML private void handleBack() { 
-        App.setRoot(AppConstants.FXML_DASHBOARD); 
+    @FXML 
+    private void handleBack() { 
+        App.goBackUniversal(); 
     }
     
-    @FXML private void handleMinimize() { 
-        ((Stage) nameLabel.getScene().getWindow()).setIconified(true); 
+    @FXML 
+    private void handleMinimize() { 
+        Stage stage = (Stage) nameLabel.getScene().getWindow();
+        stage.setIconified(true); 
     }
     
-    @FXML private void handleClose() { 
-        Platform.exit(); System.exit(0); 
+    @FXML 
+    private void handleClose() { 
+        Platform.exit(); 
+        System.exit(0); 
     }
 
-    @FXML private void handleSaveName() {
+    @FXML 
+    private void handleSaveName() {
         String newName = nameField.getText().trim();
         
         if (newName.isEmpty()) {
@@ -153,7 +170,8 @@ public class ProfileController {
         toggleNameEdit(false);
     }
 
-    @FXML private void handleSaveUsername() {
+    @FXML 
+    private void handleSaveUsername() {
         String newUsername = usernameField.getText().trim();
         
         if (newUsername.isEmpty()) {
@@ -173,7 +191,7 @@ public class ProfileController {
         javafx.stage.FileChooser.ExtensionFilter imageFilter = new javafx.stage.FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg");
         fileChooser.getExtensionFilters().add(imageFilter);
         
-        java.io.File selectedFile = fileChooser.showOpenDialog(nameLabel.getScene().getWindow());
+        File selectedFile = fileChooser.showOpenDialog(nameLabel.getScene().getWindow());
         
         if (selectedFile != null) {
             subirFotoPerfil(selectedFile);
@@ -246,7 +264,7 @@ public class ProfileController {
         boolean isVisible = friendsListContainer.isVisible();
         friendsListContainer.setVisible(!isVisible);
         friendsListContainer.setManaged(!isVisible);
-
+        
         if (!isVisible) {
             cargarAmigosPropios(1);
         }
@@ -278,13 +296,13 @@ public class ProfileController {
     
     @FXML
     private void handleSuspender() {
-        java.util.List<String> choices = new java.util.ArrayList<>(translationMap.keySet());
-        javafx.scene.control.ChoiceDialog<String> dialog = new javafx.scene.control.ChoiceDialog<>(choices.get(0), choices);
+        List<String> choices = new ArrayList<>(translationMap.keySet());
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(choices.get(0), choices);
         
-        dialog.setTitle(com.src.filmtracker.utils.AppConstants.MESSAGE_TITLE_SUSPEND);
-        dialog.setHeaderText(com.src.filmtracker.utils.AppConstants.MESSAGE_HEADER_SUSPEND);
+        dialog.setTitle(AppConstants.MESSAGE_TITLE_SUSPEND);
+        dialog.setHeaderText(AppConstants.MESSAGE_HEADER_SUSPEND);
         
-        java.util.Optional<String> result = dialog.showAndWait();
+        Optional<String> result = dialog.showAndWait();
         
         if (result.isPresent()) {
             String backendValue = translationMap.get(result.get());
@@ -296,14 +314,14 @@ public class ProfileController {
 
     @FXML
     private void handleBanear() {
-        if (confirmarAccion(com.src.filmtracker.utils.AppConstants.MESSAGE_TITLE_BAN, com.src.filmtracker.utils.AppConstants.MESSAGE_CONTENT_BAN)) {
+        if (confirmarAccion(AppConstants.MESSAGE_TITLE_BAN, AppConstants.MESSAGE_CONTENT_BAN)) {
             ejecutarAccionAdmin(adminService.banUser(currentUserProfile.getSafeAuthId(), "Violación de términos (Admin)"));
         }
     }
 
     @FXML
     private void handleDesbanear() {
-        if (confirmarAccion(com.src.filmtracker.utils.AppConstants.MESSAGE_TITLE_UNBAN, com.src.filmtracker.utils.AppConstants.MESSAGE_CONTENT_UNBAN)) {
+        if (confirmarAccion(AppConstants.MESSAGE_TITLE_UNBAN, AppConstants.MESSAGE_CONTENT_UNBAN)) {
             ejecutarAccionAdmin(adminService.unbanUser(currentUserProfile.getSafeAuthId()));
         }
     }
@@ -320,9 +338,21 @@ public class ProfileController {
         cargarEstadisticas(user.getSafeAuthId());
         
         reviewsSection.getChildren().clear();
-        cargarResenasPropias(1, esUsuarioActual(user));
+        showCache.clear(); 
         
+        cargarResenasPropias(1, esUsuarioActual(user));
         evaluarAccionesAdmin();
+    }
+
+    private CompletableFuture<Show> getShowCached(Integer tvmazeId) {
+        if (showCache.containsKey(tvmazeId)) {
+            return showCache.get(tvmazeId);
+        }
+        
+        CompletableFuture<Show> future = showService.getShowDetails(tvmazeId);
+        showCache.put(tvmazeId, future);
+        
+        return future;
     }
 
     private void actualizarEtiquetasBasicas(UserDto user) {
@@ -338,8 +368,12 @@ public class ProfileController {
         }
         
         if (user.createdAt() != null) {
-            ZonedDateTime dt = ZonedDateTime.parse(user.createdAt());
-            dateLabel.setText("Miembro desde: " + dt.format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
+            try {
+                ZonedDateTime dt = ZonedDateTime.parse(user.createdAt());
+                dateLabel.setText("Miembro desde: " + dt.format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
+            } catch (Exception e) {
+                dateLabel.setText("Miembro desde: " + user.createdAt());
+            }
         }
         
         String imageUrl = "https://ui-avatars.com/api/?name=" + user.username() + "&background=e50914&color=fff";
@@ -383,7 +417,6 @@ public class ProfileController {
                 }
             }
         }
-        
         return false;
     }
 
@@ -413,7 +446,6 @@ public class ProfileController {
         editNameBtn.setManaged(isCurrentUser);
         editUsernameBtn.setVisible(isCurrentUser);
         editUsernameBtn.setManaged(isCurrentUser);
-        
         editAvatarBtn.setVisible(isCurrentUser);
         editAvatarBtn.setManaged(isCurrentUser);
 
@@ -424,20 +456,22 @@ public class ProfileController {
             
             reviewsTitleLabel.setText("Mis Reseñas Publicadas");
             favoritesTitleLabel.setText("Mis Series Favoritas");
-            cargarFavoritos(true);
-            cargarWatchlist();
-        } else {
-            friendActionsBox.setVisible(true);
-            friendActionsBox.setManaged(true);
-            reportProfileBtn.setVisible(true);
             
-            ocultarBotonesAmistad();
-            
-            reviewsTitleLabel.setText("Reseñas de @" + user.username());
-            favoritesTitleLabel.setText("Favoritos de @" + user.username());
-            cargarFavoritos(false);
-            cargarEstadoAmistad(user.getSafeAuthId());
-        }
+            cargarFavoritosRecursivo(true, 1, new ArrayList<>());
+            cargarWatchlistRecursivo(1, new ArrayList<>());
+            return;
+        } 
+        
+        friendActionsBox.setVisible(true);
+        friendActionsBox.setManaged(true);
+        reportProfileBtn.setVisible(true);
+        ocultarBotonesAmistad();
+        
+        reviewsTitleLabel.setText("Reseñas de @" + user.username());
+        favoritesTitleLabel.setText("Favoritos de @" + user.username());
+        
+        cargarFavoritosRecursivo(false, 1, new ArrayList<>());
+        cargarEstadoAmistad(user.getSafeAuthId());
     }
 
     private void ocultarBotonesAmistad() {
@@ -471,26 +505,33 @@ public class ProfileController {
 
     private void procesarEstadoAmistad(FriendStatusResponse res) {
         ocultarBotonesAmistad();
-
+        
         if (res == null) {
             return;
         }
         
-        String status = res.status();
-        
-        if (status == null) {
+        if (res.status() == null) {
             return;
         }
-
-        String safeStatus = status.trim().toUpperCase();
-
+        
+        String safeStatus = res.status().trim().toUpperCase();
+        
         if (safeStatus.equals("NONE")) {
             configurarBotonAgregar("Agregar amigo", false);
-        } else if (safeStatus.equals("FRIENDS")) {
+            return;
+        } 
+        
+        if (safeStatus.equals("FRIENDS")) {
             configurarBotonEliminar();
-        } else if (safeStatus.equals("PENDING_OUTGOING")) {
+            return;
+        } 
+        
+        if (safeStatus.equals("PENDING_OUTGOING")) {
             configurarBotonAgregar("Solicitud enviada", true);
-        } else if (safeStatus.equals("PENDING_INCOMING")) {
+            return;
+        } 
+        
+        if (safeStatus.equals("PENDING_INCOMING")) {
             configurarBotonAgregar("Responder solicitud", true);
         }
     }
@@ -578,12 +619,9 @@ public class ProfileController {
         sp.setFitToHeight(true);
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-
-        Button bI = new Button("<"); 
-        bI.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand;");
         
-        Button bD = new Button(">"); 
-        bD.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand;");
+        Button bI = crearBotonCarrusel("<"); 
+        Button bD = crearBotonCarrusel(">"); 
         
         bI.setOnAction(e -> {
             sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2));
@@ -604,13 +642,20 @@ public class ProfileController {
         friendsListSection.getChildren().add(bp);
     }
 
+    private Button crearBotonCarrusel(String texto) {
+        Button btn = new Button(texto);
+        btn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand;");
+        
+        return btn;
+    }
+
     private VBox buildFriendCard(UserDto friend) {
         VBox box = new VBox(10);
         box.setAlignment(Pos.CENTER);
         box.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-cursor: hand;");
         box.setPrefWidth(150);
         box.setMaxWidth(150);
-
+        
         ImageView iv = new ImageView();
         iv.setFitWidth(80);
         iv.setFitHeight(80);
@@ -624,47 +669,36 @@ public class ProfileController {
         }
         
         iv.setImage(new Image(imageUrl, true));
-
+        
         String nombreSeguro = "Desconocido";
+        
         if (friend.name() != null) {
             nombreSeguro = friend.name();
         }
-
+        
         Label name = new Label(nombreSeguro);
         name.setTextFill(Color.WHITE);
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-
+        
         String userSeguro = "usuario";
+        
         if (friend.username() != null) {
             userSeguro = friend.username();
         }
-
+        
         Label user = new Label("@" + userSeguro);
         user.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         user.setStyle("-fx-font-size: 12px;");
-
+        
         box.getChildren().add(iv);
         box.getChildren().add(name);
         box.getChildren().add(user);
-
+        
         box.setOnMouseClicked(e -> {
-            abrirPerfilAmigo(friend);
+            App.showProfileView(friend);
         });
-
+        
         return box;
-    }
-
-    private void abrirPerfilAmigo(UserDto amigo) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_PROFILE));
-            javafx.scene.Parent root = loader.load();
-            
-            ProfileController controller = loader.getController();
-            controller.initData(amigo);
-            
-            nameLabel.getScene().setRoot(root);
-        } catch (Exception e) {
-        }
     }
 
     private void cargarEstadisticas(String authId) {
@@ -684,7 +718,7 @@ public class ProfileController {
                 }
             });
         });
-
+        
         friendsService.getUserSummary(authId).thenAccept(summary -> {
             Platform.runLater(() -> {
                 if (summary != null) {
@@ -695,19 +729,25 @@ public class ProfileController {
     }
     
     private void evaluarAccionesAdmin() {
-        com.src.filmtracker.models.users.UserDto loggedUser = com.src.filmtracker.utils.SessionManager.getInstance().getCurrentUser();
+        UserDto loggedUser = SessionManager.getInstance().getCurrentUser();
         
-        if (loggedUser == null || currentUserProfile == null) {
+        if (loggedUser == null) {
             return;
         }
-
+        
+        if (currentUserProfile == null) {
+            return;
+        }
+        
         boolean isAdmin = "ADMIN".equals(loggedUser.role());
         boolean isSameUser = loggedUser.getSafeAuthId().equals(currentUserProfile.getSafeAuthId());
-
-        if (isAdmin && !isSameUser) {
-            adminMenu.setVisible(true);
-            adminMenu.setManaged(true);
-            verificarEstadoCuentaAdmin();
+        
+        if (isAdmin) {
+            if (!isSameUser) {
+                adminMenu.setVisible(true);
+                adminMenu.setManaged(true);
+                verificarEstadoCuentaAdmin();
+            }
         }
     }
 
@@ -721,11 +761,11 @@ public class ProfileController {
         });
     }
 
-    private void actualizarVisibilidadMenu(com.src.filmtracker.models.admin.AccountStatusDto status) {
+    private void actualizarVisibilidadMenu(AccountStatusDto status) {
         if (status == null) {
             return;
         }
-
+        
         boolean isBanned = "BANNED".equals(status.accountStatus());
         itemBanear.setVisible(!isBanned);
         itemSuspender.setVisible(!isBanned);
@@ -733,15 +773,15 @@ public class ProfileController {
     }
     
     private boolean confirmarAccion(String titulo, String contenido) {
-        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.CONFIRMATION);
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(titulo);
         alert.setHeaderText(null);
         alert.setContentText(contenido);
         
-        java.util.Optional<javafx.scene.control.ButtonType> result = alert.showAndWait();
+        Optional<ButtonType> result = alert.showAndWait();
         
         if (result.isPresent()) {
-            if (result.get() == javafx.scene.control.ButtonType.OK) {
+            if (result.get() == ButtonType.OK) {
                 return true;
             }
         }
@@ -749,15 +789,15 @@ public class ProfileController {
         return false;
     }
 
-    private void ejecutarAccionAdmin(java.util.concurrent.CompletableFuture<Void> futuro) {
+    private void ejecutarAccionAdmin(CompletableFuture<Void> futuro) {
         futuro.thenRun(() -> {
             Platform.runLater(() -> {
-                mostrarAlertaExito(com.src.filmtracker.utils.AppConstants.MESSAGE_SUCCESS_ADMIN_ACTION);
+                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_ADMIN_ACTION);
                 verificarEstadoCuentaAdmin();
             });
         }).exceptionally(err -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(com.src.filmtracker.utils.AppConstants.MESSAGE_ERROR_API);
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
             });
             return null;
         });
@@ -789,7 +829,9 @@ public class ProfileController {
         userService.updateProfile(req).thenAccept(updatedUser -> {
             Platform.runLater(() -> {
                 SessionManager.getInstance().updateUser(updatedUser);
-                initData(updatedUser);
+                this.currentUserProfile = updatedUser;
+                actualizarEtiquetasBasicas(updatedUser);
+                mostrarAlertaExito("Perfil actualizado correctamente.");
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
@@ -798,14 +840,13 @@ public class ProfileController {
             return null;
         });
     }
-    
-    
 
-    private void subirFotoPerfil(java.io.File file) {
+    private void subirFotoPerfil(File file) {
         userService.uploadProfilePhoto(file).thenAccept(updatedUser -> {
             Platform.runLater(() -> {
                 SessionManager.getInstance().updateUser(updatedUser);
-                initData(updatedUser);
+                this.currentUserProfile = updatedUser;
+                actualizarEtiquetasBasicas(updatedUser);
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_PHOTO);
             });
         }).exceptionally(e -> {
@@ -816,18 +857,30 @@ public class ProfileController {
         });
     }
 
-    private void cargarFavoritos(boolean isCurrentUser) {
+    private void cargarFavoritosRecursivo(boolean isCurrentUser, int page, List<LibraryItemDto> acumulado) {
         CompletableFuture<List<LibraryItemDto>> future;
         
         if (isCurrentUser) {
-            future = libraryService.getFavorites();
+            future = libraryService.getFavoritesPaged(page);
         } else {
-            future = libraryService.getFavoritesByUser(currentUserProfile.getSafeAuthId());
+            future = libraryService.getFavoritesByUserPaged(currentUserProfile.getSafeAuthId(), page);
         }
-
+        
         future.thenAccept(list -> {
+            if (list != null) {
+                if (!list.isEmpty()) {
+                    acumulado.addAll(list);
+                    if (list.size() == 10) {
+                        if (page < 3) {
+                            cargarFavoritosRecursivo(isCurrentUser, page + 1, acumulado);
+                            return;
+                        }
+                    }
+                }
+            }
+            
             Platform.runLater(() -> {
-                procesarListaFavoritos(list);
+                procesarListaBibliotecas(acumulado, favoritesSection, "No hay series en favoritos.");
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
@@ -837,50 +890,22 @@ public class ProfileController {
         });
     }
 
-    private void procesarListaFavoritos(List<LibraryItemDto> list) {
-        if (list == null) {
-            mostrarVacio(favoritesSection, "No hay series en favoritos.");
-            return;
-        }
-        
-        if (list.isEmpty()) {
-            mostrarVacio(favoritesSection, "No hay series en favoritos.");
-            return;
-        }
-        
-        List<Integer> ids = new ArrayList<>();
-        
-        for (LibraryItemDto item : list) {
-            if (item.tvmazeId() != null) {
-                ids.add(item.tvmazeId());
-            }
-        }
-        
-        cargarSeriesEnCarrusel(ids, favoritesSection);
-    }
-
-    private void cargarWatchlist() {
-        libraryService.getWatchlist().thenAccept(list -> {
-            Platform.runLater(() -> {
-                if (list == null) {
-                    mostrarVacio(watchlistSection, "No tienes series en tu Watchlist.");
-                    return;
-                }
-                
-                if (list.isEmpty()) {
-                    mostrarVacio(watchlistSection, "No tienes series en tu Watchlist.");
-                    return;
-                }
-                
-                List<Integer> ids = new ArrayList<>();
-                
-                for (LibraryItemDto item : list) {
-                    if (item.tvmazeId() != null) {
-                        ids.add(item.tvmazeId());
+    private void cargarWatchlistRecursivo(int page, List<LibraryItemDto> acumulado) {
+        libraryService.getWatchlistPaged(page).thenAccept(list -> {
+            if (list != null) {
+                if (!list.isEmpty()) {
+                    acumulado.addAll(list);
+                    if (list.size() == 10) {
+                        if (page < 3) {
+                            cargarWatchlistRecursivo(page + 1, acumulado);
+                            return;
+                        }
                     }
                 }
-                
-                cargarSeriesEnCarrusel(ids, watchlistSection);
+            }
+            
+            Platform.runLater(() -> {
+                procesarListaBibliotecas(acumulado, watchlistSection, "No tienes series en tu Watchlist.");
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
@@ -888,6 +913,31 @@ public class ProfileController {
             });
             return null;
         });
+    }
+
+    private void procesarListaBibliotecas(List<LibraryItemDto> list, VBox container, String emptyMsg) {
+        if (list == null) {
+            mostrarVacio(container, emptyMsg);
+            return;
+        }
+        
+        if (list.isEmpty()) {
+            mostrarVacio(container, emptyMsg);
+            return;
+        }
+        
+        List<Integer> ids = new ArrayList<>();
+        int limite = Math.min(list.size(), 30);
+        
+        for (int i = 0; i < limite; i++) {
+            LibraryItemDto item = list.get(i);
+            
+            if (item.tvmazeId() != null) {
+                ids.add(item.tvmazeId());
+            }
+        }
+        
+        cargarSeriesEnCarrusel(ids, container);
     }
 
     private void cargarResenasPropias(int page, boolean isCurrentUser) {
@@ -979,23 +1029,21 @@ public class ProfileController {
     }
 
     private void cargarSeriesEnCarrusel(List<Integer> ids, VBox container) {
-        List<CompletableFuture<ShowFullResponse>> futures = new ArrayList<>();
+        List<CompletableFuture<Show>> futures = new ArrayList<>();
         
         for (Integer id : ids) {
-            futures.add(showService.getFullShowDetails(id));
+            futures.add(getShowCached(id));
         }
         
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> {
             List<Show> shows = new ArrayList<>();
             
-            for (CompletableFuture<ShowFullResponse> f : futures) {
+            for (CompletableFuture<Show> f : futures) {
                 try {
-                    ShowFullResponse res = f.join();
+                    Show s = f.join();
                     
-                    if (res != null) {
-                        if (res.show() != null) {
-                            shows.add(res.show());
-                        }
+                    if (s != null) {
+                        shows.add(s);
                     }
                 } catch (Exception e) {
                 }
@@ -1018,7 +1066,7 @@ public class ProfileController {
         }
         
         HBox content = new HBox(15);
-        content.setPadding(new javafx.geometry.Insets(10));
+        content.setPadding(new Insets(10));
         
         for (Show s : shows) {
             injectShowCard(s, content);
@@ -1029,11 +1077,8 @@ public class ProfileController {
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         
-        Button bI = new Button("<"); 
-        bI.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
-        
-        Button bD = new Button(">"); 
-        bD.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
+        Button bI = crearBotonPaginacion("<"); 
+        Button bD = crearBotonPaginacion(">"); 
         
         bI.setOnAction(e -> {
             sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2));
@@ -1047,7 +1092,17 @@ public class ProfileController {
         bp.setLeft(bI); 
         bp.setRight(bD);
         
+        BorderPane.setAlignment(bI, Pos.CENTER);
+        BorderPane.setAlignment(bD, Pos.CENTER);
+        
         container.getChildren().add(bp);
+    }
+
+    private Button crearBotonPaginacion(String texto) {
+        Button btn = new Button(texto);
+        btn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
+        
+        return btn;
     }
 
     private void mostrarVacio(VBox section, String msj) {
@@ -1073,19 +1128,17 @@ public class ProfileController {
 
     private VBox buildReviewCard(ReviewDto review) {
         VBox card = new VBox(8);
-        card.setStyle("-fx-background-color: #151515; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
+        card.setStyle("-fx-background-color: #151515; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;");
         
         Label seriesLabel = new Label("Cargando Serie...");
         seriesLabel.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         
         if (review.tvmaze_id() != null) {
-            showService.getFullShowDetails(review.tvmaze_id()).thenAccept(res -> {
-                if (res != null) {
-                    if (res.show() != null) {
-                        Platform.runLater(() -> {
-                            seriesLabel.setText("Serie: " + res.show().name());
-                        });
-                    }
+            getShowCached(review.tvmaze_id()).thenAccept(show -> {
+                if (show != null) {
+                    Platform.runLater(() -> {
+                        seriesLabel.setText("Serie: " + show.name());
+                    });
                 }
             });
         }
@@ -1113,6 +1166,20 @@ public class ProfileController {
         card.getChildren().add(seriesLabel);
         card.getChildren().add(title);
         card.getChildren().add(content);
+        
+        card.setOnMouseClicked(e -> {
+            if (review.tvmaze_id() != null) {
+                getShowCached(review.tvmaze_id()).thenAccept(show -> {
+                    Platform.runLater(() -> {
+                        if (show != null) {
+                            App.showShowDetail(show);
+                        }
+                    });
+                }).exceptionally(ex -> {
+                    return null;
+                });
+            }
+        });
         
         return card;
     }

@@ -81,6 +81,32 @@ public class ShowService implements IShowService {
                     return response != null && response.episodes() != null ? response.episodes() : List.of();
                 });
     }
+    
+    @Override
+    public CompletableFuture<com.src.filmtracker.models.shows.Show> getShowDetails(Integer tvmazeId) {
+        String url = AppConstants.SHOWS_SERVICE_URL + "/" + tvmazeId;
+        
+        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        return client.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() >= 400) {
+                        throw new RuntimeException("Error: " + response.statusCode());
+                    }
+                    
+                    com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
+                    
+                    if (json.has("data")) {
+                        return gson.fromJson(json.get("data"), com.src.filmtracker.models.shows.Show.class);
+                    }
+                    
+                    return gson.fromJson(json, com.src.filmtracker.models.shows.Show.class);
+                });
+    }
 
     private <T> CompletableFuture<T> executeGet(String url, Class<T> responseClass) {
         return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())

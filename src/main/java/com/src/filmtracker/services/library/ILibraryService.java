@@ -13,4 +13,7 @@ public interface ILibraryService {
     CompletableFuture<List<LibraryItemDto>> getWatchlist();
     CompletableFuture<Void> addWatchlist(Integer tvmazeId);
     CompletableFuture<Void> removeWatchlist(Integer tvmazeId);
+    CompletableFuture<List<LibraryItemDto>> getFavoritesPaged(int page);
+    CompletableFuture<List<LibraryItemDto>> getFavoritesByUserPaged(String authId, int page);
+    CompletableFuture<List<LibraryItemDto>> getWatchlistPaged(int page);
 }
