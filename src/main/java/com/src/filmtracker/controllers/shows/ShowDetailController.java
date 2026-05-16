@@ -68,7 +68,7 @@ public class ShowDetailController {
     private final ILibraryService libraryService = new LibraryService();
     
     private final Map<Integer, List<EpisodeDto>> seasonEpisodesMap = new ConcurrentHashMap<>();
-    private final Map<String, String> usernameCache = new ConcurrentHashMap<>();
+    private final Map<String, UserDto> userCache = new ConcurrentHashMap<>();
     
     private Integer currentTvmazeId;
     private int currentReviewPage = 1;
@@ -77,28 +77,42 @@ public class ShowDetailController {
     private final Map<String, File> selectedCommentImages = new ConcurrentHashMap<>();
     private final Map<String, File> editReviewImages = new ConcurrentHashMap<>();
 
-    @FXML private void handleClose() {
+    public ShowDetailController() {
+    }
+
+    @FXML
+    public void initialize() {
+    }
+
+    @FXML 
+    private void handleClose() {
         Platform.exit(); 
         System.exit(0); 
     }
     
-    @FXML private void handleMinimize() {
-        ((Stage) titleLabel.getScene().getWindow()).setIconified(true); 
+    @FXML 
+    private void handleMinimize() {
+        Stage stage = (Stage) titleLabel.getScene().getWindow();
+        stage.setIconified(true); 
     }
     
-    @FXML private void handleBack() {
-        App.goBackFromDetail(); 
+    @FXML 
+    private void handleBack() {
+        App.goBackUniversal(); 
     }
     
-    @FXML private void handleHome() {
+    @FXML 
+    private void handleHome() {
         App.setRoot(AppConstants.FXML_DASHBOARD); 
     }
     
-    @FXML private void scrollIzqCast() {
+    @FXML 
+    private void scrollIzqCast() {
         moverCarruselDinamico(scrollCast, -1); 
     }
     
-    @FXML private void scrollDerCast() {
+    @FXML 
+    private void scrollDerCast() {
         moverCarruselDinamico(scrollCast, 1); 
     }
     
@@ -119,7 +133,9 @@ public class ShowDetailController {
             Platform.runLater(() -> {
                 procesarDatosDetallados(fullData);
             });
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> {
+            return null;
+        });
 
         apiService.getShowEpisodes(currentTvmazeId).thenAccept(episodes -> {
             if (episodes != null) {
@@ -160,8 +176,19 @@ public class ShowDetailController {
             return; 
         }
         
-        titleLabel.setText(show.name() != null ? show.name() : "Desconocido");
-        statusLabel.setText("Status: " + (show.status() != null ? show.status() : "N/A"));
+        String nombreSeguro = "Desconocido";
+        if (show.name() != null) {
+            nombreSeguro = show.name();
+        }
+        
+        titleLabel.setText(nombreSeguro);
+        
+        String statusSeguro = "N/A";
+        if (show.status() != null) {
+            statusSeguro = show.status();
+        }
+        
+        statusLabel.setText("Status: " + statusSeguro);
         
         if (show.genres() != null) {
             genresLabel.setText("Géneros: " + String.join(", ", show.genres()));
@@ -400,13 +427,7 @@ public class ShowDetailController {
                 
                 if (list != null) {
                     for (Show s : list) {
-                        if (s.tvmazeId() != null) {
-                            if (!s.tvmazeId().equals(currentTvmazeId)) {
-                                if (seen.add(s.tvmazeId())) {
-                                    result.add(s);
-                                }
-                            }
-                        }
+                        procesarShowSimilar(s, seen, result);
                     }
                 }
             } catch (Exception e) { 
@@ -414,6 +435,16 @@ public class ShowDetailController {
         }
         
         return result;
+    }
+
+    private void procesarShowSimilar(Show s, Set<Integer> seen, List<Show> result) {
+        if (s.tvmazeId() != null) {
+            if (!s.tvmazeId().equals(currentTvmazeId)) {
+                if (seen.add(s.tvmazeId())) {
+                    result.add(s);
+                }
+            }
+        }
     }
 
     private void renderSimilarCarousel(List<Show> shows) {
@@ -1016,12 +1047,12 @@ public class ShowDetailController {
         card.setStyle("-fx-background-color: #151515; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
 
         Label author = new Label("@Cargando..."); 
-        author.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         resolverNombreAutor(review.getOwnerId(), author);
         
         HBox header = buildHeaderWithDate(author, review.created_at(), review.updated_at());
         
         String tText = "Sin título";
+        
         if (review.title() != null) {
             tText = review.title();
         }
@@ -1031,6 +1062,7 @@ public class ShowDetailController {
         title.setTextFill(Color.WHITE);
         
         String cText = "";
+        
         if (review.content() != null) {
             cText = review.content();
         }
@@ -1080,6 +1112,58 @@ public class ShowDetailController {
         card.getChildren().add(commContainer);
         
         return card;
+    }
+
+    private void resolverNombreAutor(String ownerId, Label label) {
+        if (ownerId == null) {
+            label.setText("@Usuario");
+            return;
+        }
+        
+        if (ownerId.isEmpty()) {
+            label.setText("@Usuario");
+            return;
+        }
+        
+        if (userCache.containsKey(ownerId)) {
+            UserDto cachedUser = userCache.get(ownerId);
+            label.setText("@" + cachedUser.username());
+            configurarClicAutor(label, cachedUser);
+            return;
+        }
+        
+        userService.getUserById(ownerId).thenAccept(user -> {
+            Platform.runLater(() -> {
+                procesarUsuarioObtenido(user, ownerId, label);
+            });
+        });
+    }
+
+    private void procesarUsuarioObtenido(UserDto user, String ownerId, Label label) {
+        if (user != null) {
+            if (user.username() != null) {
+                userCache.put(ownerId, user);
+                label.setText("@" + user.username());
+                configurarClicAutor(label, user);
+                return;
+            }
+        }
+        
+        label.setText("@Usuario");
+    }
+
+    private void configurarClicAutor(Label label, UserDto user) {
+        String baseStyle = label.getStyle();
+        
+        if (baseStyle == null) {
+            baseStyle = "";
+        }
+        
+        label.setStyle(baseStyle + " -fx-cursor: hand; -fx-underline: true; -fx-text-fill: " + AppConstants.COLOR_ACCENT + ";");
+        
+        label.setOnMouseClicked(e -> {
+            App.showProfileView(user);
+        });
     }
 
     private void cargarComentariosUI(String rId, VBox container, int page) {
@@ -1218,7 +1302,6 @@ public class ShowDetailController {
         box.setStyle("-fx-background-color: #1a1a1a; -fx-padding: 8; -fx-background-radius: 5;");
         
         Label user = new Label("@Cargando..."); 
-        user.setTextFill(Color.GRAY);
         resolverNombreAutor(c.getOwnerId(), user);
         
         HBox header = buildHeaderWithDate(user, c.created_at(), c.updated_at());
@@ -1341,47 +1424,6 @@ public class ShowDetailController {
         } catch (Exception e) { 
             return 0; 
         }
-    }
-
-    private void resolverNombreAutor(String ownerId, Label label) {
-        if (ownerId == null) { 
-            label.setText("@Usuario"); 
-            return; 
-        }
-        
-        if (ownerId.isEmpty()) {
-            label.setText("@Usuario"); 
-            return; 
-        }
-        
-        if (SessionManager.getInstance().isAuthenticated()) {
-            String currAuth = SessionManager.getInstance().getCurrentUser().getSafeAuthId();
-            
-            if (ownerId.equals(currAuth)) {
-                label.setText("@" + SessionManager.getInstance().getCurrentUser().username()); 
-                return;
-            }
-        }
-        
-        if (usernameCache.containsKey(ownerId)) {
-            label.setText("@" + usernameCache.get(ownerId)); 
-            return;
-        }
-        
-        userService.getUserById(ownerId).thenAccept(user -> {
-            if (user != null) {
-                if (user.username() != null) {
-                    usernameCache.put(ownerId, user.username());
-                    Platform.runLater(() -> {
-                        label.setText("@" + user.username());
-                    });
-                    return;
-                }
-            }
-            Platform.runLater(() -> {
-                label.setText("@Usuario");
-            });
-        });
     }
 
     private boolean isWithinEditWindow(String createdAtStr) {

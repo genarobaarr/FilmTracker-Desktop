@@ -356,31 +356,75 @@ public class ProfileController {
     }
 
     private void actualizarEtiquetasBasicas(UserDto user) {
-        nameLabel.setText(user.name());
-        usernameLabel.setText("@" + user.username());
+        String[] datosFusionados = fusionarDatosSesion(user);
         
-        if (user.email() != null) {
-            emailLabel.setText(user.email());
-        }
+        nameLabel.setText(datosFusionados[0] != null ? datosFusionados[0] : "");
+        emailLabel.setText(datosFusionados[1] != null ? datosFusionados[1] : "");
+        roleLabel.setText(datosFusionados[2] != null ? datosFusionados[2] : "");
+        usernameLabel.setText("@" + (user.username() != null ? user.username() : ""));
         
-        if (user.role() != null) {
-            roleLabel.setText(user.role());
-        }
+        configurarFechaMiembro(datosFusionados[4]);
+        configurarAvatar(user.username(), datosFusionados[3]);
+    }
+
+    private String[] fusionarDatosSesion(UserDto user) {
+        String[] datos = new String[]{
+            user.name(), 
+            user.email(), 
+            user.role(), 
+            user.profileImage(), 
+            user.createdAt()
+        };
         
-        if (user.createdAt() != null) {
-            try {
-                ZonedDateTime dt = ZonedDateTime.parse(user.createdAt());
-                dateLabel.setText("Miembro desde: " + dt.format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
-            } catch (Exception e) {
-                dateLabel.setText("Miembro desde: " + user.createdAt());
+        if (esUsuarioActual(user)) {
+            UserDto sessionUser = SessionManager.getInstance().getCurrentUser();
+            
+            if (sessionUser != null) {
+                if (datos[0] == null) {
+                    datos[0] = sessionUser.name();
+                }
+                
+                if (datos[1] == null) {
+                    datos[1] = sessionUser.email();
+                }
+                
+                if (datos[2] == null) {
+                    datos[2] = sessionUser.role();
+                }
+                
+                if (datos[3] == null) {
+                    datos[3] = sessionUser.profileImage();
+                }
+                
+                if (datos[4] == null) {
+                    datos[4] = sessionUser.createdAt();
+                }
             }
         }
         
-        String imageUrl = "https://ui-avatars.com/api/?name=" + user.username() + "&background=e50914&color=fff";
+        return datos;
+    }
+
+    private void configurarFechaMiembro(String createdAt) {
+        if (createdAt == null) {
+            return;
+        }
         
-        if (user.profileImage() != null) {
-            if (!user.profileImage().isEmpty()) {
-                imageUrl = user.profileImage();
+        try {
+            ZonedDateTime dt = ZonedDateTime.parse(createdAt);
+            dateLabel.setText("Miembro desde: " + dt.format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
+        } catch (Exception e) {
+            dateLabel.setText("Miembro desde: " + createdAt);
+        }
+    }
+
+    private void configurarAvatar(String username, String profileImage) {
+        String usr = username != null ? username : "user";
+        String imageUrl = "https://ui-avatars.com/api/?name=" + usr + "&background=e50914&color=fff";
+        
+        if (profileImage != null) {
+            if (!profileImage.isEmpty()) {
+                imageUrl = profileImage;
             }
         }
         
