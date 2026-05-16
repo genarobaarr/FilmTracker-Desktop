@@ -63,9 +63,7 @@ public class AuthService implements IAuthService {
 
         return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
-                    if (response.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + response.statusCode());
-                    }
+                    evaluarErrorGenerico(response);
                     
                     return gson.fromJson(response.body(), ApiResponse.class);
                 });
@@ -93,29 +91,45 @@ public class AuthService implements IAuthService {
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> {
-                if (response.statusCode() == 403) {
-                    com.google.gson.JsonObject jsonResponse = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
-                    
-                    if (jsonResponse.has("data")) {
-                        com.google.gson.JsonObject data = jsonResponse.getAsJsonObject("data");
-                        String status = data.has("accountStatus") && !data.get("accountStatus").isJsonNull() ? data.get("accountStatus").getAsString() : "UNKNOWN";
-                        String reason = data.has("moderationReason") && !data.get("moderationReason").isJsonNull() ? data.get("moderationReason").getAsString() : "Violación de reglas.";
-                        String suspendedUntil = data.has("suspendedUntil") && !data.get("suspendedUntil").isJsonNull() ? data.get("suspendedUntil").getAsString() : null;
-                        
-                        throw new AccountModeratedException(
-                            jsonResponse.has("message") ? jsonResponse.get("message").getAsString() : "Acceso denegado.",
-                            status,
-                            reason,
-                            suspendedUntil
-                        );
-                    }
-                }
-                
-                if (response.statusCode() >= 400) {
-                    throw new RuntimeException("Auth error: " + response.statusCode());
-                }
+                evaluarErrorAutenticacion(response);
                 
                 return gson.fromJson(response.body(), responseClass);
             });
+    }
+
+    private void evaluarErrorAutenticacion(HttpResponse<String> response) {
+        int status = response.statusCode();
+        
+        if (status == 401 || status == 403) {
+            lanzarExcepcionAuth(response.body());
+        }
+        
+        evaluarErrorGenerico(response);
+    }
+
+    private void evaluarErrorGenerico(HttpResponse<String> response) {
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Error del servidor: " + response.statusCode());
+        }
+    }
+
+    private void lanzarExcepcionAuth(String responseBody) {
+        com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(responseBody).getAsJsonObject();
+        String message = AppConstants.MESSAGE_ERROR_AUTH;
+        
+        if (json.has("message")) {
+            message = json.get("message").getAsString();
+        }
+        
+        String status = "UNKNOWN";
+        String msgLower = message.toLowerCase();
+        
+        if (msgLower.contains("baneada")) {
+            status = "BANNED";
+        } else if (msgLower.contains("suspendida")) {
+            status = "SUSPENDED";
+        }
+        
+        throw new AccountModeratedException(message, status, message, null);
     }
 }

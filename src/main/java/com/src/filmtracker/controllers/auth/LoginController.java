@@ -24,7 +24,15 @@ public class LoginController {
     @FXML private PasswordField passwordField;
     @FXML private Label errorLabel;
 
-    private final IAuthService authService = new AuthService();
+    private final IAuthService authService;
+
+    public LoginController() {
+        this.authService = new AuthService();
+    }
+
+    @FXML
+    public void initialize() {
+    }
 
     @FXML 
     private void handleClose() { 
@@ -106,33 +114,27 @@ public class LoginController {
             return;
         }
 
-        showError(modEx.getMessage());
+        showError("❌ " + modEx.getMessage());
     }
 
     private void mostrarErrorBaneo(AccountModeratedException modEx) {
-        String mensaje = "Tu cuenta ha sido baneada.\nMotivo: " + modEx.getModerationReason();
-        showError(mensaje);
+        showError("❌ " + modEx.getMessage());
     }
 
     private void mostrarErrorSuspension(AccountModeratedException modEx) {
         String untilStr = modEx.getSuspendedUntil();
 
         if (untilStr == null) {
-            construirMensajeSuspensionBasico(modEx);
+            showError("⏳ " + modEx.getMessage());
             return;
         }
 
         if (untilStr.isEmpty()) {
-            construirMensajeSuspensionBasico(modEx);
+            showError("⏳ " + modEx.getMessage());
             return;
         }
 
         construirMensajeSuspensionDetallado(modEx, untilStr);
-    }
-
-    private void construirMensajeSuspensionBasico(AccountModeratedException modEx) {
-        String mensaje = "Tu cuenta está suspendida temporalmente.\nMotivo: " + modEx.getModerationReason();
-        showError(mensaje);
     }
 
     private void construirMensajeSuspensionDetallado(AccountModeratedException modEx, String untilStr) {
@@ -147,11 +149,11 @@ public class LoginController {
             }
 
             String fechaFormateada = fechaSuspension.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            String mensaje = "Cuenta suspendida temporalmente.\nMotivo: " + modEx.getModerationReason() + "\nDisponible el " + fechaFormateada + " (Faltan " + diasRestantes + " días)";
+            String mensaje = "⏳ " + modEx.getMessage() + "\nDisponible el " + fechaFormateada + " (Faltan " + diasRestantes + " días)";
             
             showError(mensaje);
         } catch (Exception ex) {
-            construirMensajeSuspensionBasico(modEx);
+            showError("⏳ " + modEx.getMessage());
         }
     }
 
@@ -163,7 +165,7 @@ public class LoginController {
         }
         
         String fechaFormateada = fechaSuspension.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-        String mensaje = "Cuenta suspendida temporalmente.\nMotivo: " + modEx.getModerationReason() + "\nDisponible el " + fechaFormateada + " (Faltan aprox. " + horasRestantes + " horas)";
+        String mensaje = "⏳ " + modEx.getMessage() + "\nDisponible el " + fechaFormateada + " (Faltan aprox. " + horasRestantes + " horas)";
         
         showError(mensaje);
     }
