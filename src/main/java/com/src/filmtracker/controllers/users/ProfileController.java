@@ -270,6 +270,30 @@ public class ProfileController {
     }
     
     @FXML
+    private void handleFriendsHoverEnter(javafx.scene.input.MouseEvent event) {
+        javafx.scene.Node node = (javafx.scene.Node) event.getSource();
+        String currentStyle = node.getStyle();
+        
+        if (currentStyle == null) {
+            currentStyle = "";
+        }
+        
+        if (!currentStyle.contains("-fx-background-color: #2a2a2a;")) {
+            node.setStyle(currentStyle + " -fx-background-color: #2a2a2a; -fx-cursor: hand; -fx-background-radius: 5;");
+        }
+    }
+
+    @FXML
+    private void handleFriendsHoverExit(javafx.scene.input.MouseEvent event) {
+        javafx.scene.Node node = (javafx.scene.Node) event.getSource();
+        String currentStyle = node.getStyle();
+        
+        if (currentStyle != null) {
+            node.setStyle(currentStyle.replace(" -fx-background-color: #2a2a2a; -fx-cursor: hand; -fx-background-radius: 5;", ""));
+        }
+    }
+    
+    @FXML
     private void handleReportProfile() {
         if (currentUserProfile == null) {
             return;

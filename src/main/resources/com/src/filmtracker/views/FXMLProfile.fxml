@@ -94,7 +94,7 @@
                                     <Label fx:id="likesReceivedLabel" text="0" textFill="WHITE"><font><Font name="System Bold" size="20.0" /></font></Label>
                                     <Label text="Likes" textFill="#888888"><font><Font size="12.0" /></font></Label>
                                 </VBox>
-                                <VBox alignment="CENTER" spacing="5.0" onMouseClicked="#handleShowFriends" style="-fx-cursor: hand;">
+                                <VBox alignment="CENTER" spacing="5.0" onMouseClicked="#handleShowFriends" onMouseEntered="#handleFriendsHoverEnter" onMouseExited="#handleFriendsHoverExit" style="-fx-cursor: hand;">
                                     <Label fx:id="friendsCountLabel" text="0" textFill="WHITE"><font><Font name="System Bold" size="20.0" /></font></Label>
                                     <Label text="Amigos" textFill="#888888"><font><Font size="12.0" /></font></Label>
                                 </VBox>
