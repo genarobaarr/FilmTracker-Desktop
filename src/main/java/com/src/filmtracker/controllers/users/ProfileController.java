@@ -165,7 +165,7 @@ public class ProfileController {
             return;
         }
         
-        UpdateProfileRequest req = new UpdateProfileRequest(newName, currentUserProfile.username(), currentUserProfile.profileImage());
+        UpdateProfileRequest req = new UpdateProfileRequest(newName, null, null);
         ejecutarActualizacion(req);
         toggleNameEdit(false);
     }
@@ -178,8 +178,7 @@ public class ProfileController {
             return;
         }
         
-        UpdateProfileRequest req = new UpdateProfileRequest(currentUserProfile.name(), newUsername, currentUserProfile.profileImage());
-        ejecutarActualizacion(req);
+        ejecutarActualizacionUsername(newUsername);
         toggleUsernameEdit(false);
     }
     
@@ -876,6 +875,53 @@ public class ProfileController {
                 this.currentUserProfile = updatedUser;
                 actualizarEtiquetasBasicas(updatedUser);
                 mostrarAlertaExito("Perfil actualizado correctamente.");
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            });
+            return null;
+        });
+    }
+    
+    private void ejecutarActualizacionUsername(String newUsername) {
+        String url = AppConstants.AUTH_SERVICE_URL + "/username";
+        String jsonBody = "{\"username\":\"" + newUsername + "\"}";
+        
+        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+            .uri(java.net.URI.create(url))
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+            .PUT(java.net.http.HttpRequest.BodyPublishers.ofString(jsonBody))
+            .build();
+            
+        java.net.http.HttpClient.newHttpClient().sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+            .thenAccept(this::procesarRespuestaUsername)
+            .exceptionally(e -> {
+                Platform.runLater(() -> {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                });
+                return null;
+            });
+    }
+
+    private void procesarRespuestaUsername(java.net.http.HttpResponse<String> response) {
+        if (response.statusCode() >= 400) {
+            Platform.runLater(() -> {
+                mostrarAlertaError("Error al actualizar usuario. Puede que el nombre ya esté en uso.");
+            });
+            return;
+        }
+        
+        userService.getProfile().thenAccept(updatedUser -> {
+            Platform.runLater(() -> {
+                if (updatedUser != null) {
+                    SessionManager.getInstance().updateUser(updatedUser);
+                    this.currentUserProfile = updatedUser;
+                    actualizarEtiquetasBasicas(updatedUser);
+                    mostrarAlertaExito("Nombre de usuario actualizado correctamente.");
+                }
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
