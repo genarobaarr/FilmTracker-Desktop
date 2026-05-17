@@ -79,12 +79,14 @@ public class ShowDetailController {
     private File selectedReviewImage;
     private final Map<String, File> selectedCommentImages = new ConcurrentHashMap<>();
     private final Map<String, File> editReviewImages = new ConcurrentHashMap<>();
+    private Image fallbackErrorImage;
 
     public ShowDetailController() {
     }
 
     @FXML
     public void initialize() {
+        cargarImagenErrorEnCache();
     }
 
     @FXML 
@@ -180,6 +182,7 @@ public class ShowDetailController {
         }
         
         String nombreSeguro = "Desconocido";
+        
         if (show.name() != null) {
             nombreSeguro = show.name();
         }
@@ -187,6 +190,7 @@ public class ShowDetailController {
         titleLabel.setText(nombreSeguro);
         
         String statusSeguro = "N/A";
+        
         if (show.status() != null) {
             statusSeguro = show.status();
         }
@@ -213,7 +217,7 @@ public class ShowDetailController {
         
         if (show.image() != null) {
             if (show.image().original() != null) {
-                posterDetail.setImage(new Image(show.image().original(), true));
+                cargarImagenConRespaldo(show.image().original(), posterDetail);
             }
         }
     }
@@ -597,10 +601,19 @@ public class ShowDetailController {
         iv.setFitWidth(236); 
         iv.setFitHeight(133);
         
+        boolean tieneImagen = false;
+        
         if (ep.image() != null) {
             if (ep.image().medium() != null) {
-                iv.setImage(new Image(ep.image().medium(), true));
+                if (!ep.image().medium().isEmpty()) {
+                    cargarImagenConRespaldo(ep.image().medium(), iv);
+                    tieneImagen = true;
+                }
             }
+        }
+        
+        if (!tieneImagen) {
+            ponerImagenError(iv);
         }
 
         String name = "Desconocido";
@@ -750,15 +763,25 @@ public class ShowDetailController {
     }
 
     private void inyectarImagenSiExiste(String url, VBox card) {
+        ImageView iv = new ImageView();
+        iv.setFitWidth(300);
+        iv.setPreserveRatio(true);
+        iv.setStyle("-fx-background-radius: 5;");
+        
+        boolean tieneImagenUrl = false;
+        
         if (url != null) {
             if (!url.isEmpty()) {
-                ImageView iv = new ImageView(new Image(url, true));
-                iv.setFitWidth(300);
-                iv.setPreserveRatio(true);
-                iv.setStyle("-fx-background-radius: 5;");
-                card.getChildren().add(iv);
+                cargarImagenConRespaldo(url, iv);
+                tieneImagenUrl = true;
             }
         }
+        
+        if (!tieneImagenUrl) {
+            ponerImagenError(iv);
+        }
+        
+        card.getChildren().add(iv);
     }
 
     private VBox buildReviewForm() {
@@ -1752,13 +1775,25 @@ public class ShowDetailController {
         iv.setFitHeight(150); 
         iv.setFitWidth(110);
         
+        boolean tieneImagenPerson = false;
+        
         if (m.person() != null) {
             if (m.person().image() != null) {
-                iv.setImage(new Image(m.person().image().medium(), true));
+                if (m.person().image().medium() != null) {
+                    if (!m.person().image().medium().isEmpty()) {
+                        cargarImagenConRespaldo(m.person().image().medium(), iv);
+                        tieneImagenPerson = true;
+                    }
+                }
             }
         }
         
+        if (!tieneImagenPerson) {
+            ponerImagenError(iv);
+        }
+        
         String actorName = "Desconocido";
+        
         if (m.person() != null) {
             if (m.person().name() != null) {
                 actorName = m.person().name();
@@ -1772,6 +1807,7 @@ public class ShowDetailController {
         n.setTextAlignment(TextAlignment.CENTER);
         
         String charName = "";
+        
         if (m.character() != null) {
             if (m.character().name() != null) {
                 charName = m.character().name();
@@ -1793,5 +1829,37 @@ public class ShowDetailController {
 
     private void moverCarruselDinamico(ScrollPane sp, int dir) {
         sp.setHvalue(Math.max(0, Math.min(sp.getHvalue() + (dir * 0.2), 1)));
+    }
+    
+    private void cargarImagenConRespaldo(String url, ImageView imageView) {
+        try {
+            Image img = new Image(url, true);
+            
+            img.errorProperty().addListener((obs, oldVal, isError) -> {
+                if (isError) {
+                    Platform.runLater(() -> {
+                        ponerImagenError(imageView);
+                    });
+                }
+            });
+            
+            imageView.setImage(img);
+        } catch (Exception e) {
+            ponerImagenError(imageView);
+        }
+    }
+
+    private void cargarImagenErrorEnCache() {
+        try {
+            String errorPath = getClass().getResource("/com/src/filmtracker/images/error.png").toExternalForm();
+            this.fallbackErrorImage = new Image(errorPath, true);
+        } catch (Exception ex) {
+        }
+    }
+
+    private void ponerImagenError(ImageView imageView) {
+        if (this.fallbackErrorImage != null) {
+            imageView.setImage(this.fallbackErrorImage);
+        }
     }
 }
