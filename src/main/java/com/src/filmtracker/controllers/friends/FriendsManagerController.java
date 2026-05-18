@@ -220,15 +220,8 @@ public class FriendsManagerController {
     }
 
     private void abrirPerfilAmigo(UserDto amigo) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_PROFILE));
-            javafx.scene.Parent root = loader.load();
-            
-            ProfileController controller = loader.getController();
-            controller.initData(amigo);
-            
-            incomingBox.getScene().setRoot(root);
-        } catch (Exception e) {
+        if (amigo != null) {
+            App.showProfileView(amigo);
         }
     }
 
