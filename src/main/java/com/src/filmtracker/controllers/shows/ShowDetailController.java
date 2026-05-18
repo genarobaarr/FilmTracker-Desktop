@@ -247,27 +247,46 @@ public class ShowDetailController {
     }
 
     private void configurarBtnFavoritos(Button btn) {
-        libraryService.getFavorites().thenAccept(list -> {
-            boolean isFav = false;
-            
-            if (list != null) {
-                for (LibraryItemDto item : list) {
-                    if (item.tvmazeId() != null) {
-                        if (item.tvmazeId().equals(currentTvmazeId)) {
-                            isFav = true;
-                            break;
-                        }
-                    }
-                }
+        buscarEnFavoritosRecursivo(1, btn);
+    }
+
+    private void buscarEnFavoritosRecursivo(int page, Button btn) {
+        libraryService.getFavoritesPaged(page).thenAccept(list -> {
+            if (list == null) {
+                finalizarConfiguracionFav(btn, false);
+                return;
             }
             
-            final boolean finalFav = isFav;
+            if (list.isEmpty()) {
+                finalizarConfiguracionFav(btn, false);
+                return;
+            }
             
-            Platform.runLater(() -> {
-                actualizarAparienciaFav(btn, finalFav);
-                btn.setOnAction(e -> {
-                    handleToggleFav(btn);
-                });
+            boolean encontrado = evaluarListaParaId(list, currentTvmazeId);
+            
+            if (encontrado) {
+                finalizarConfiguracionFav(btn, true);
+                return;
+            }
+            
+            if (list.size() == 10) {
+                buscarEnFavoritosRecursivo(page + 1, btn);
+                return;
+            }
+            
+            finalizarConfiguracionFav(btn, false);
+        }).exceptionally(err -> {
+            finalizarConfiguracionFav(btn, false);
+            return null;
+        });
+    }
+
+    private void finalizarConfiguracionFav(Button btn, boolean isFav) {
+        Platform.runLater(() -> {
+            actualizarAparienciaFav(btn, isFav);
+            
+            btn.setOnAction(e -> {
+                handleToggleFav(btn);
             });
         });
     }
@@ -310,29 +329,60 @@ public class ShowDetailController {
     }
 
     private void configurarBtnWatchlist(Button btn) {
-        libraryService.getWatchlist().thenAccept(list -> {
-            boolean isWatch = false;
-            
-            if (list != null) {
-                for (LibraryItemDto item : list) {
-                    if (item.tvmazeId() != null) {
-                        if (item.tvmazeId().equals(currentTvmazeId)) {
-                            isWatch = true;
-                            break;
-                        }
-                    }
-                }
+        buscarEnWatchlistRecursivo(1, btn);
+    }
+
+    private void buscarEnWatchlistRecursivo(int page, Button btn) {
+        libraryService.getWatchlistPaged(page).thenAccept(list -> {
+            if (list == null) {
+                finalizarConfiguracionWatch(btn, false);
+                return;
             }
             
-            final boolean finalWatch = isWatch;
+            if (list.isEmpty()) {
+                finalizarConfiguracionWatch(btn, false);
+                return;
+            }
             
-            Platform.runLater(() -> {
-                actualizarAparienciaWatch(btn, finalWatch);
-                btn.setOnAction(e -> {
-                    handleToggleWatch(btn);
-                });
+            boolean encontrado = evaluarListaParaId(list, currentTvmazeId);
+            
+            if (encontrado) {
+                finalizarConfiguracionWatch(btn, true);
+                return;
+            }
+            
+            if (list.size() == 10) {
+                buscarEnWatchlistRecursivo(page + 1, btn);
+                return;
+            }
+            
+            finalizarConfiguracionWatch(btn, false);
+        }).exceptionally(err -> {
+            finalizarConfiguracionWatch(btn, false);
+            return null;
+        });
+    }
+
+    private void finalizarConfiguracionWatch(Button btn, boolean isWatch) {
+        Platform.runLater(() -> {
+            actualizarAparienciaWatch(btn, isWatch);
+            
+            btn.setOnAction(e -> {
+                handleToggleWatch(btn);
             });
         });
+    }
+    
+    private boolean evaluarListaParaId(List<LibraryItemDto> list, Integer targetId) {
+        for (LibraryItemDto item : list) {
+            if (item.tvmazeId() != null) {
+                if (item.tvmazeId().equals(targetId)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 
     private void handleToggleWatch(Button btn) {
