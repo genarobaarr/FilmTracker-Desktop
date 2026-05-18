@@ -763,23 +763,20 @@ public class ShowDetailController {
     }
 
     private void inyectarImagenSiExiste(String url, VBox card) {
+        if (url == null) {
+            return;
+        }
+        
+        if (url.isEmpty()) {
+            return;
+        }
+        
         ImageView iv = new ImageView();
         iv.setFitWidth(300);
         iv.setPreserveRatio(true);
         iv.setStyle("-fx-background-radius: 5;");
         
-        boolean tieneImagenUrl = false;
-        
-        if (url != null) {
-            if (!url.isEmpty()) {
-                cargarImagenConRespaldo(url, iv);
-                tieneImagenUrl = true;
-            }
-        }
-        
-        if (!tieneImagenUrl) {
-            ponerImagenError(iv);
-        }
+        cargarImagenConRespaldo(url, iv);
         
         card.getChildren().add(iv);
     }
