@@ -176,18 +176,97 @@ public class NotificationsController {
     }
 
     private void cargarDatosAdicionales(NotificationDto notif, ImageView imageView, Label bodyLbl) {
-        if (notif.metadata() == null) {
+        if (notif.metadata() != null) {
+            if (notif.metadata().tvmazeId() != null) {
+                showService.getShowDetails(notif.metadata().tvmazeId()).thenAccept(show -> {
+                    Platform.runLater(() -> {
+                        actualizarDatosSerie(show, imageView, bodyLbl, notif.type());
+                    });
+                }).exceptionally(e -> {
+                    return null;
+                });
+                
+                return;
+            }
+        }
+        
+        if (notif.actorAuthId() != null) {
+            if (esValidaParaFotoPerfil(notif.type())) {
+                userService.getUserById(notif.actorAuthId()).thenAccept(user -> {
+                    Platform.runLater(() -> {
+                        actualizarDatosUsuario(user, imageView);
+                    });
+                }).exceptionally(e -> {
+                    return null;
+                });
+            }
+        }
+    }
+
+    private boolean esValidaParaFotoPerfil(String type) {
+        if (type == null) {
+            return false;
+        }
+        
+        if (type.startsWith("moderation")) {
+            return false;
+        }
+        
+        if (type.contains("photo")) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    private void actualizarDatosUsuario(com.src.filmtracker.models.users.UserDto user, ImageView imageView) {
+        if (user == null) {
             return;
         }
         
-        if (notif.metadata().tvmazeId() != null) {
-            showService.getShowDetails(notif.metadata().tvmazeId()).thenAccept(show -> {
-                Platform.runLater(() -> {
-                    actualizarDatosSerie(show, imageView, bodyLbl, notif.type());
-                });
-            }).exceptionally(e -> {
-                return null;
-            });
+        String nameParam = "User";
+        
+        if (user.username() != null) {
+            nameParam = user.username();
+        }
+        
+        String imageUrl = "https://ui-avatars.com/api/?name=" + nameParam + "&background=e50914&color=fff";
+        
+        if (user.profileImage() != null) {
+            if (!user.profileImage().isEmpty()) {
+                imageUrl = user.profileImage();
+            }
+        }
+        
+        try {
+            imageView.setImage(new Image(imageUrl, true));
+            imageView.setFitHeight(40);
+            imageView.setFitWidth(40);
+        } catch (Exception e) {
+        }
+    }
+
+    private void procesarRedireccion(NotificationDto notif) {
+        if (notif.type() != null) {
+            if (notif.type().startsWith("moderation.")) {
+                return;
+            }
+            
+            if (notif.type().contains("photo")) {
+                return;
+            }
+        }
+
+        if (notif.metadata() != null) {
+            if (notif.metadata().tvmazeId() != null) {
+                abrirDetalleSerie(notif.metadata().tvmazeId());
+                return;
+            }
+        }
+
+        if (notif.actorAuthId() != null) {
+            abrirPerfilUsuario(notif.actorAuthId());
+            return;
         }
     }
     
@@ -236,28 +315,6 @@ public class NotificationsController {
             
             procesarRedireccion(notif);
         });
-    }
-
-    private void procesarRedireccion(NotificationDto notif) {
-        if (notif.type() != null) {
-            if (notif.type().startsWith("moderation.")) {
-                return;
-            }
-        }
-
-        if (notif.metadata() == null) {
-            return;
-        }
-
-        if (notif.metadata().tvmazeId() != null) {
-            abrirDetalleSerie(notif.metadata().tvmazeId());
-            return;
-        }
-
-        if (notif.actorAuthId() != null) {
-            abrirPerfilUsuario(notif.actorAuthId());
-            return;
-        }
     }
 
     private void abrirDetalleSerie(Integer tvmazeId) {
