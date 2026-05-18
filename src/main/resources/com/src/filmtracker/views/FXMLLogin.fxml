@@ -33,6 +33,7 @@
                        <Image url="@../images/logotipo.png" />
                     </image>
                     <VBox.margin><Insets bottom="10.0" /></VBox.margin>
+                    <HBox.margin><Insets left="5.0" top="20.0" bottom="10.0" /></HBox.margin>
                  </ImageView>
              </HBox>
             
