@@ -22,8 +22,9 @@ public class ChangePasswordController {
 
     private final IAuthService authService = new AuthService();
     
-    @FXML private void handleBack() { 
-        App.setRoot(AppConstants.FXML_PROFILE); 
+    @FXML
+    private void handleBack() {
+        App.goBackUniversal();
     }
     
     @FXML private void handleMinimize() { 
