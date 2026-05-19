@@ -11,6 +11,7 @@ import com.src.filmtracker.services.shows.ShowService;
 import com.src.filmtracker.services.users.IUserService;
 import com.src.filmtracker.services.users.UserService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.CustomAlertHelper;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -710,18 +711,10 @@ public class AdminPanelController {
     }
 
     private void mostrarAlertaError(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarError(mensaje);
     }
     
     private void mostrarAlertaExito(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Éxito");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarExito(mensaje);
     }
 }

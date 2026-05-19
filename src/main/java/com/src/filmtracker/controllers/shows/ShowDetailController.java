@@ -25,6 +25,7 @@ import com.src.filmtracker.services.shows.ShowService;
 import com.src.filmtracker.services.users.IUserService;
 import com.src.filmtracker.services.users.UserService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.CustomAlertHelper;
 import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -49,6 +50,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import javafx.stage.Window;
 
 public class ShowDetailController {
 
@@ -1033,57 +1035,24 @@ public class ShowDetailController {
     }
     
     private boolean confirmarAccion(String titulo, String contenido) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(contenido);
-        
-        Optional<ButtonType> result = alert.showAndWait();
-        
-        if (result.isPresent()) {
-            if (result.get() == ButtonType.OK) {
-                return true;
-            }
-        }
-        
-        return false;
+        Window owner = titleLabel.getScene().getWindow();
+        return CustomAlertHelper.mostrarConfirmacion(titulo, contenido, owner);
     }
 
     private void mostrarAlertaError(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarError(mensaje);
     }
     
     private void mostrarAlertaExito(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Éxito");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarExito(mensaje);
     }
     
     private void mostrarAlertaPrecaucion(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle("Atención");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
+        javafx.stage.Window owner = titleLabel.getScene().getWindow();
+        boolean confirmar = com.src.filmtracker.utils.CustomAlertHelper.mostrarPrecaucion("Atención", mensaje, "Verificar ahora", "Cancelar", owner);
         
-        ButtonType btnVerify = new ButtonType("Verificar ahora");
-        ButtonType btnCancel = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        
-        alert.getButtonTypes().clear();
-        alert.getButtonTypes().add(btnVerify);
-        alert.getButtonTypes().add(btnCancel);
-        
-        Optional<ButtonType> result = alert.showAndWait();
-        
-        if (result.isPresent()) {
-            if (result.get() == btnVerify) {
-                App.setRoot(AppConstants.FXML_VERIFY_EMAIL);
-            }
+        if (confirmar) {
+            App.setRoot(AppConstants.FXML_VERIFY_EMAIL);
         }
     }
 

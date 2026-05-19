@@ -5,9 +5,9 @@ import com.src.filmtracker.models.auth.ResetPasswordRequest;
 import com.src.filmtracker.services.auth.AuthService;
 import com.src.filmtracker.services.auth.IAuthService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.CustomAlertHelper;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
@@ -57,8 +57,6 @@ public class ResetPasswordController {
     }
 
     private void mostrarExito() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setContentText(AppConstants.MESSAGE_SUCCESS_RESET);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarInformacion(AppConstants.MESSAGE_SUCCESS_RESET);
     }
 }

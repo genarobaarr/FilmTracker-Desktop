@@ -5,10 +5,9 @@ import com.src.filmtracker.models.auth.ChangePasswordRequest;
 import com.src.filmtracker.services.auth.AuthService;
 import com.src.filmtracker.services.auth.IAuthService;
 import com.src.filmtracker.utils.AppConstants;
-import com.src.filmtracker.utils.SessionManager;
+import com.src.filmtracker.utils.CustomAlertHelper;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.stage.Stage;
@@ -84,10 +83,6 @@ public class ChangePasswordController {
     }
 
     private void mostrarAlertaExito() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Éxito");
-        alert.setHeaderText(null);
-        alert.setContentText(AppConstants.MESSAGE_SUCCESS_PASSWORD);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarExito(AppConstants.MESSAGE_SUCCESS_PASSWORD);
     }
 }

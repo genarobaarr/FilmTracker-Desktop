@@ -11,13 +11,13 @@ import com.src.filmtracker.services.users.IUserService;
 import com.src.filmtracker.services.shows.ShowService;
 import com.src.filmtracker.services.users.UserService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.CustomAlertHelper;
 import com.src.filmtracker.utils.SessionManager;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -300,7 +300,7 @@ public class DashboardController implements Initializable {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarErrorDeRed(e);
+                mostrarErrorDeRed();
             });
             return null;
         });
@@ -342,12 +342,8 @@ public class DashboardController implements Initializable {
         }
     }
 
-    private void mostrarErrorDeRed(Throwable error) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error de Conexión");
-        alert.setHeaderText(AppConstants.MESSAGE_ERROR_API);
-        alert.setContentText("Detalles: " + error.getMessage());
-        alert.showAndWait();
+    private void mostrarErrorDeRed() {
+        CustomAlertHelper.mostrarError(AppConstants.MESSAGE_ERROR_API);
     }
     
     private void moverCarrusel(ScrollPane scrollPane, double cantidad) {

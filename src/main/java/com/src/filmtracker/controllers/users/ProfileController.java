@@ -26,6 +26,7 @@ import com.src.filmtracker.services.users.UserService;
 import com.src.filmtracker.services.friends.IFriendsService;
 import com.src.filmtracker.services.friends.FriendsService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.CustomAlertHelper;
 import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -50,6 +51,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import javafx.stage.Window;
 
 public class ProfileController {
 
@@ -840,20 +842,8 @@ public class ProfileController {
     }
     
     private boolean confirmarAccion(String titulo, String contenido) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(contenido);
-        
-        Optional<ButtonType> result = alert.showAndWait();
-        
-        if (result.isPresent()) {
-            if (result.get() == ButtonType.OK) {
-                return true;
-            }
-        }
-        
-        return false;
+        Window owner = nameLabel.getScene().getWindow();
+        return CustomAlertHelper.mostrarConfirmacion(titulo, contenido, owner);
     }
 
     private void ejecutarAccionAdmin(CompletableFuture<Void> futuro) {
@@ -1299,18 +1289,12 @@ public class ProfileController {
     }
 
     private void mostrarAlertaError(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarError(mensaje);
+
     }
     
     private void mostrarAlertaExito(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Éxito");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarExito(mensaje);
+
     }
 }

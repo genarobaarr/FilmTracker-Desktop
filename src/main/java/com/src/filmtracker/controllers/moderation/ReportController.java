@@ -4,9 +4,9 @@ import com.src.filmtracker.models.moderation.ReportRequest;
 import com.src.filmtracker.services.moderation.IModerationService;
 import com.src.filmtracker.services.moderation.ModerationService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.CustomAlertHelper;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -106,10 +106,6 @@ public class ReportController {
     }
 
     private void mostrarAlertaExito(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Éxito");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarExito(mensaje);
     }
 }

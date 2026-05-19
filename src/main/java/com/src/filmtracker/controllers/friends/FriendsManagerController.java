@@ -1,21 +1,19 @@
 package com.src.filmtracker.controllers.friends;
 
 import com.src.filmtracker.App;
-import com.src.filmtracker.controllers.users.ProfileController;
 import com.src.filmtracker.models.friends.FriendItemDto;
 import com.src.filmtracker.models.friends.FriendPaginationResponse;
 import com.src.filmtracker.models.friends.FriendRequestItemDto;
-import com.src.filmtracker.models.friends.FriendRequestPaginationResponse;
 import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.services.friends.FriendsService;
 import com.src.filmtracker.services.friends.IFriendsService;
 import com.src.filmtracker.services.users.IUserService;
 import com.src.filmtracker.services.users.UserService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.CustomAlertHelper;
 import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -464,18 +462,10 @@ public class FriendsManagerController {
     }
 
     private void mostrarAlertaError(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarError(mensaje);
     }
 
     private void mostrarAlertaExito(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Éxito");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        CustomAlertHelper.mostrarExito(mensaje);
     }
 }
