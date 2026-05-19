@@ -58,6 +58,7 @@ public class AdminPanelController {
     public void initialize() {
         inicializarDiccionarios();
         prepararFiltrosReportes();
+        configurarBuscadorUsuarios();
 
         tabDashboard.setOnSelectionChanged(e -> {
             if (tabDashboard.isSelected()) {
@@ -289,13 +290,20 @@ public class AdminPanelController {
             });
         }).exceptionally(e -> null);
     }
+    
+    private void configurarBuscadorUsuarios() {
+        if (searchUserField != null) {
+            searchUserField.setOnAction(e -> {
+                handleSearchUsers();
+            });
+        }
+    }
 
     private void dibujarPanelDetalleUsuario(UserDto user, AccountStatusDto status, AdminUserDetailDto details, String authId) {
         userDetailPane.getChildren().clear();
 
         Label header = new Label("Detalles de Usuario: @" + user.username());
-        header.setTextFill(Color.WHITE);
-        header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        configurarClicPerfil(header, user);
 
         VBox infoBox = new VBox(5);
         
@@ -303,7 +311,12 @@ public class AdminPanelController {
             Label lblName = new Label("Nombre: " + details.name());
             lblName.setTextFill(Color.LIGHTGRAY);
             
-            String verificadoStr = details.isEmailVerified() ? " (Verificado)" : " (No Verificado)";
+            String verificadoStr = " (No Verificado)";
+            
+            if (details.isEmailVerified()) {
+                verificadoStr = " (Verificado)";
+            }
+            
             Label lblEmail = new Label("Email: " + details.email() + verificadoStr);
             lblEmail.setTextFill(Color.LIGHTGRAY);
             
@@ -313,15 +326,27 @@ public class AdminPanelController {
             Label lblCreated = new Label("Miembro desde: " + formatearFecha(details.createdAt()));
             lblCreated.setTextFill(Color.LIGHTGRAY);
             
-            infoBox.getChildren().addAll(lblName, lblEmail, lblRole, lblCreated);
+            infoBox.getChildren().add(lblName);
+            infoBox.getChildren().add(lblEmail);
+            infoBox.getChildren().add(lblRole);
+            infoBox.getChildren().add(lblCreated);
         }
 
-        String stStr = (status != null) ? status.accountStatus() : "Desconocido";
+        String stStr = "Desconocido";
+        
+        if (status != null) {
+            if (status.accountStatus() != null) {
+                stStr = status.accountStatus();
+            }
+        }
+        
         Label statusLbl = new Label("Estado: " + traducirEstadoUsuario(stStr));
         statusLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         statusLbl.setStyle("-fx-font-weight: bold;");
 
-        userDetailPane.getChildren().addAll(header, infoBox, statusLbl);
+        userDetailPane.getChildren().add(header);
+        userDetailPane.getChildren().add(infoBox);
+        userDetailPane.getChildren().add(statusLbl);
 
         if ("SUSPENDED".equals(stStr)) {
             if (status != null) {
@@ -333,6 +358,10 @@ public class AdminPanelController {
             }
         }
 
+        inyectarBotonesUsuario(stStr, authId, user, details);
+    }
+
+    private void inyectarBotonesUsuario(String stStr, String authId, UserDto user, AdminUserDetailDto details) {
         FlowPane actions = new FlowPane();
         actions.setHgap(10);
         actions.setVgap(10);
@@ -369,7 +398,9 @@ public class AdminPanelController {
                 }
             });
 
-            actions.getChildren().addAll(ban, dur, susp);
+            actions.getChildren().add(ban);
+            actions.getChildren().add(dur);
+            actions.getChildren().add(susp);
         }
 
         if (details != null) {
@@ -394,6 +425,15 @@ public class AdminPanelController {
         }
 
         userDetailPane.getChildren().add(actions);
+    }
+
+    private void configurarClicPerfil(Label label, UserDto user) {
+        label.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        label.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-underline: true;");
+        
+        label.setOnMouseClicked(e -> {
+            App.showProfileView(user);
+        });
     }
 
     private String traducirEstadoUsuario(String status) {
