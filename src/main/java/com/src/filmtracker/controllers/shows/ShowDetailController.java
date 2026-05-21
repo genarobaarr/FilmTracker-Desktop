@@ -565,29 +565,55 @@ public class ShowDetailController {
 
     private VBox createSeasonAccordion(SeasonDto s) {
         VBox c = new VBox();
-        HBox h = new HBox(new Label("Temp " + s.number()));
-        h.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 10; -fx-cursor: hand; -fx-text-fill: white;");
+        
+        HBox h = new HBox();
+        h.setAlignment(Pos.CENTER_LEFT);
+        h.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 10; -fx-cursor: hand;");
+        
+        Label lblTitle = new Label("Temporada " + s.number());
+        lblTitle.setTextFill(Color.WHITE);
+        lblTitle.setStyle("-fx-font-weight: bold;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        Label lblIndicator = new Label("Episodios ▼");
+        lblIndicator.setTextFill(Color.LIGHTGRAY);
+        
+        h.getChildren().add(lblTitle);
+        h.getChildren().add(spacer);
+        h.getChildren().add(lblIndicator);
         
         VBox eps = new VBox(); 
         eps.setVisible(false); 
         eps.setManaged(false);
         eps.setStyle("-fx-padding: 15; -fx-background-color: #151515; -fx-background-radius: 0 0 5 5;");
         
-        h.setOnMouseClicked(e -> {
-            eps.setVisible(!eps.isVisible()); 
-            eps.setManaged(eps.isVisible());
-            
-            if (eps.isVisible()) {
-                if (eps.getChildren().isEmpty()) {
-                    renderEpisodes(s.number(), eps);
-                }
-            }
-        });
+        configurarEventoAcordeon(h, eps, lblIndicator, s.number());
         
         c.getChildren().add(h);
         c.getChildren().add(eps);
         
         return c;
+    }
+
+    private void configurarEventoAcordeon(HBox header, VBox eps, Label lblIndicator, int seasonNumber) {
+        header.setOnMouseClicked(e -> {
+            boolean mostrar = !eps.isVisible();
+            
+            eps.setVisible(mostrar);
+            eps.setManaged(mostrar);
+            
+            if (mostrar) {
+                lblIndicator.setText("Episodios ▲");
+                
+                if (eps.getChildren().isEmpty()) {
+                    renderEpisodes(seasonNumber, eps);
+                }
+            } else {
+                lblIndicator.setText("Episodios ▼");
+            }
+        });
     }
 
     private void renderEpisodes(int num, VBox container) {
