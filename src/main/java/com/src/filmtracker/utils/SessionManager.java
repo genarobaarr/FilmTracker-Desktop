@@ -2,12 +2,15 @@ package com.src.filmtracker.utils;
 
 import com.src.filmtracker.models.auth.AuthResponse;
 import com.src.filmtracker.models.users.UserDto;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class SessionManager {
     
     private static SessionManager instance;
     private UserDto currentUser;
     private String token;
+    private ScheduledExecutorService scheduler;
+    private Runnable onExpirationCallback;
 
     private SessionManager() {
     }
@@ -20,11 +23,35 @@ public class SessionManager {
         return instance;
     }
 
+    public void setOnExpirationCallback(Runnable callback) {
+        this.onExpirationCallback = callback;
+    }
+
     public void login(AuthResponse authResponse) {
         if (authResponse != null) {
             if (authResponse.data() != null) {
                 this.currentUser = authResponse.data().user();
                 this.token = authResponse.data().token();
+                iniciarTemporizadorSesion();
+            }
+        }
+    }
+    
+    private void iniciarTemporizadorSesion() {
+        detenerTemporizadorSesion();
+        
+        this.scheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+        this.scheduler.schedule(() -> {
+            if (this.onExpirationCallback != null) {
+                this.onExpirationCallback.run();
+            }
+        }, 1, java.util.concurrent.TimeUnit.HOURS);
+    }
+    
+    private void detenerTemporizadorSesion() {
+        if (this.scheduler != null) {
+            if (!this.scheduler.isShutdown()) {
+                this.scheduler.shutdownNow();
             }
         }
     }
@@ -38,6 +65,7 @@ public class SessionManager {
     public void logout() {
         this.currentUser = null;
         this.token = null;
+        detenerTemporizadorSesion();
     }
 
     public UserDto getCurrentUser() { 

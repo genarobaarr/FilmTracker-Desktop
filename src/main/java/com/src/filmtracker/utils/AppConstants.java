@@ -115,6 +115,7 @@ public final class AppConstants {
     public static final String MESSAGE_CONTENT_BAN = "¿Estás seguro de que deseas banear permanentemente a este usuario?";
     public static final String MESSAGE_TITLE_UNBAN = "Desbanear Usuario";
     public static final String MESSAGE_CONTENT_UNBAN = "¿Deseas reactivar la cuenta de este usuario?";
+    public static final String MESSAGE_ERROR_SESSION_EXPIRED = "Tu sesión ha expirado por seguridad. Por favor, inicia sesión nuevamente.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;

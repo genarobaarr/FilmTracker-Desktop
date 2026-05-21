@@ -24,6 +24,10 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
+        com.src.filmtracker.utils.SessionManager.getInstance().setOnExpirationCallback(() -> {
+            forzarCierreSesionPorExpiracion();
+        });
+        
         FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_LOGIN));
         Parent root = loader.load();
         
@@ -118,6 +122,22 @@ public class App extends Application {
             } catch (IOException e) {
             }
         }
+    }
+    
+    public static void forzarCierreSesionPorExpiracion() {
+        javafx.application.Platform.runLater(() -> {
+            com.src.filmtracker.utils.SessionManager.getInstance().logout();
+            navigationHistory.clear();
+            currentViewState = AppConstants.FXML_LOGIN;
+            
+            try {
+                FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_LOGIN));
+                scene.setRoot(loader.load());
+            } catch (IOException e) {
+            }
+            
+            com.src.filmtracker.utils.CustomAlertHelper.mostrarInformacion(AppConstants.MESSAGE_ERROR_SESSION_EXPIRED);
+        });
     }
 
     private static void loadShowDetailTemplate(Show show) {
