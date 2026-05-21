@@ -846,13 +846,8 @@ public class ShowDetailController {
         titleIn.setPromptText("Título");
         titleIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
         
-        ComboBox<Integer> rateIn = new ComboBox<>(); 
-        rateIn.getItems().add(1);
-        rateIn.getItems().add(2);
-        rateIn.getItems().add(3);
-        rateIn.getItems().add(4);
-        rateIn.getItems().add(5);
-        rateIn.setPromptText("Calificación");
+        int[] ratingState = new int[]{0};
+        HBox starBox = buildStarRatingComponent(ratingState, 0);
         
         TextArea contIn = new TextArea(); 
         contIn.setPromptText("Tu reseña..."); 
@@ -882,13 +877,13 @@ public class ShowDetailController {
         btn.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-cursor: hand;");
         
         btn.setOnAction(e -> {
-            enviarResena(rateIn, titleIn, contIn, errLbl);
+            enviarResena(ratingState, titleIn, contIn, errLbl);
         });
         
         form.getChildren().add(new Label("Escribe una reseña:"));
         form.getChildren().add(errLbl);
         form.getChildren().add(titleIn);
-        form.getChildren().add(rateIn);
+        form.getChildren().add(starBox);
         form.getChildren().add(contIn);
         form.getChildren().add(fileBox);
         form.getChildren().add(btn);
@@ -896,7 +891,7 @@ public class ShowDetailController {
         return form;
     }
 
-    private void enviarResena(ComboBox<Integer> rateIn, TextField titleIn, TextArea contIn, Label errLbl) {
+    private void enviarResena(int[] ratingState, TextField titleIn, TextArea contIn, Label errLbl) {
         UserDto currentUser = SessionManager.getInstance().getCurrentUser();
         
         if (currentUser != null) {
@@ -906,7 +901,7 @@ public class ShowDetailController {
             }
         }
         
-        if (rateIn.getValue() == null) {
+        if (ratingState[0] == 0) {
             return;
         }
         
@@ -921,7 +916,7 @@ public class ShowDetailController {
         errLbl.setVisible(false); 
         errLbl.setManaged(false);
         
-        ReviewRequest req = new ReviewRequest(currentTvmazeId, rateIn.getValue(), titleIn.getText().trim(), contIn.getText().trim());
+        ReviewRequest req = new ReviewRequest(currentTvmazeId, ratingState[0], titleIn.getText().trim(), contIn.getText().trim());
         
         reviewService.createReview(req).thenAccept(review -> {
             if (selectedReviewImage != null) {
@@ -1661,13 +1656,14 @@ public class ShowDetailController {
         TextField titleIn = new TextField(review.title() != null ? review.title() : "");
         titleIn.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
         
-        ComboBox<Integer> rateIn = new ComboBox<>();
-        rateIn.getItems().add(1);
-        rateIn.getItems().add(2);
-        rateIn.getItems().add(3);
-        rateIn.getItems().add(4);
-        rateIn.getItems().add(5);
-        rateIn.setValue(review.rating());
+        int initialRating = 0;
+        
+        if (review.rating() != null) {
+            initialRating = review.rating();
+        }
+        
+        int[] ratingState = new int[]{initialRating};
+        HBox starBox = buildStarRatingComponent(ratingState, initialRating);
         
         TextArea contIn = new TextArea(review.content() != null ? review.content() : "");
         contIn.setPrefRowCount(3);
@@ -1696,7 +1692,7 @@ public class ShowDetailController {
         saveBtn.setStyle("-fx-background-color: #4caf50; -fx-text-fill: white; -fx-cursor: hand;");
         
         saveBtn.setOnAction(e -> {
-            procesarEdicionResena(review.getSafeId(), rateIn, titleIn, contIn, errLbl);
+            procesarEdicionResena(review.getSafeId(), ratingState, titleIn, contIn, errLbl);
         });
         
         Button cancelBtn = new Button("Cancelar");
@@ -1713,14 +1709,14 @@ public class ShowDetailController {
         card.getChildren().add(new Label("Editar reseña:"));
         card.getChildren().add(errLbl);
         card.getChildren().add(titleIn);
-        card.getChildren().add(rateIn);
+        card.getChildren().add(starBox);
         card.getChildren().add(contIn);
         card.getChildren().add(fileBox);
         card.getChildren().add(actionsBox);
     }
 
-    private void procesarEdicionResena(String rId, ComboBox<Integer> rateIn, TextField titleIn, TextArea contIn, Label errLbl) {
-        if (rateIn.getValue() == null) {
+    private void procesarEdicionResena(String rId, int[] ratingState, TextField titleIn, TextArea contIn, Label errLbl) {
+        if (ratingState[0] == 0) {
             return;
         }
         
@@ -1735,7 +1731,7 @@ public class ShowDetailController {
         errLbl.setVisible(false);
         errLbl.setManaged(false);
         
-        ReviewRequest req = new ReviewRequest(currentTvmazeId, rateIn.getValue(), titleIn.getText().trim(), contIn.getText().trim());
+        ReviewRequest req = new ReviewRequest(currentTvmazeId, ratingState[0], titleIn.getText().trim(), contIn.getText().trim());
         
         reviewService.updateReview(rId, req).thenAccept(review -> {
             File img = editReviewImages.get(rId);
@@ -1876,6 +1872,66 @@ public class ShowDetailController {
     private void ponerImagenError(ImageView imageView) {
         if (this.fallbackErrorImage != null) {
             imageView.setImage(this.fallbackErrorImage);
+        }
+    }
+    
+    private HBox buildStarRatingComponent(int[] ratingState, int initialValue) {
+        HBox starContainer = new HBox(5);
+        starContainer.setAlignment(Pos.CENTER_LEFT);
+        
+        List<Label> stars = new ArrayList<>();
+        
+        for (int i = 1; i <= 5; i++) {
+            Label star = new Label("★");
+            star.setStyle("-fx-font-size: 28px; -fx-text-fill: #555555; -fx-cursor: hand;");
+            stars.add(star);
+            starContainer.getChildren().add(star);
+        }
+        
+        configurarInteraccionesEstrellas(stars, ratingState, initialValue);
+        
+        return starContainer;
+    }
+
+    private void configurarInteraccionesEstrellas(List<Label> stars, int[] ratingState, int initialValue) {
+        if (initialValue > 0) {
+            ratingState[0] = initialValue;
+            actualizarColorEstrellas(stars, initialValue);
+        }
+        
+        int index = 1;
+        
+        for (Label star : stars) {
+            final int starValue = index;
+            
+            star.setOnMouseEntered(e -> {
+                actualizarColorEstrellas(stars, starValue);
+            });
+            
+            star.setOnMouseExited(e -> {
+                actualizarColorEstrellas(stars, ratingState[0]);
+            });
+            
+            star.setOnMouseClicked(e -> {
+                ratingState[0] = starValue;
+                actualizarColorEstrellas(stars, starValue);
+            });
+            
+            index++;
+        }
+    }
+
+    private void actualizarColorEstrellas(List<Label> stars, int limit) {
+        int index = 1;
+        
+        for (Label star : stars) {
+            if (index <= limit) {
+                star.setStyle("-fx-font-size: 28px; -fx-text-fill: #ff9800; -fx-cursor: hand;");
+            } else {
+                star.setStyle("-fx-font-size: 28px; -fx-text-fill: #555555; -fx-cursor: hand;");
+            }
+            
+            index++;
         }
     }
 }
