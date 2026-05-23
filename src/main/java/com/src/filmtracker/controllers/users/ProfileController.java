@@ -241,19 +241,10 @@ public class ProfileController {
             mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
             return;
         }
-
-        friendsService.removeFriend(friendId).thenRun(() -> {
-            Platform.runLater(() -> {
-                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_REMOVE);
-                cargarEstadoAmistad(friendId);
-                cargarEstadisticas(friendId);
-            });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
-            });
-            return null;
-        });
+        
+        if (confirmarAccion("Eliminar amigo", "¿Estás seguro de que deseas eliminar a este usuario de tu lista de amigos?")) {
+            procesarEliminacionAmigo(friendId);
+        }
     }
 
     @FXML
@@ -685,6 +676,21 @@ public class ProfileController {
                     content.getChildren().add(card);
                 });
             }
+        });
+    }
+    
+    private void procesarEliminacionAmigo(String friendId) {
+        friendsService.removeFriend(friendId).thenRun(() -> {
+            Platform.runLater(() -> {
+                mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_REMOVE);
+                cargarEstadoAmistad(friendId);
+                cargarEstadisticas(friendId);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+            });
+            return null;
         });
     }
 
