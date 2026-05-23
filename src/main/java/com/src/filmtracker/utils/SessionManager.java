@@ -2,6 +2,7 @@ package com.src.filmtracker.utils;
 
 import com.src.filmtracker.models.auth.AuthResponse;
 import com.src.filmtracker.models.users.UserDto;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class SessionManager {
@@ -40,12 +41,12 @@ public class SessionManager {
     private void iniciarTemporizadorSesion() {
         detenerTemporizadorSesion();
         
-        this.scheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+        this.scheduler = newSingleThreadScheduledExecutor();
         this.scheduler.schedule(() -> {
             if (this.onExpirationCallback != null) {
                 this.onExpirationCallback.run();
             }
-        }, 1, java.util.concurrent.TimeUnit.HOURS);
+        }, 15, java.util.concurrent.TimeUnit.MINUTES);
     }
     
     private void detenerTemporizadorSesion() {

@@ -201,6 +201,11 @@ public class ProfileController {
 
     @FXML
     private void handleAddFriend() {
+        if ("Responder solicitud".equals(addFriendBtn.getText())) {
+            App.setRoot(AppConstants.FXML_FRIENDS_MANAGER);
+            return;
+        }
+        
         String receiverId = currentUserProfile.getSafeAuthId();
         
         if (receiverId == null) {
@@ -597,7 +602,7 @@ public class ProfileController {
         } 
         
         if (safeStatus.equals("PENDING_INCOMING")) {
-            configurarBotonAgregar("Responder solicitud", true);
+            configurarBotonAgregar("Responder solicitud", false);
         }
     }
 

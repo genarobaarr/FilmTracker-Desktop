@@ -43,8 +43,9 @@ public class FriendsManagerController {
         cargarSolicitudesEnviadas(1);
     }
 
-    @FXML private void handleBack() { 
-        App.setRoot(AppConstants.FXML_DASHBOARD); 
+    @FXML 
+    private void handleBack() { 
+        App.goBackUniversal(); 
     }
     
     @FXML private void handleMinimize() { 
@@ -286,11 +287,11 @@ public class FriendsManagerController {
         VBox infoBox = new VBox(5);
         Label name = new Label(user.name());
         name.setTextFill(Color.WHITE);
-        name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
         Label username = new Label("@" + user.username());
         username.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        username.setStyle("-fx-font-size: 12px;");
+
+        configurarInformacionClicable(iv, name, username, user);
 
         infoBox.getChildren().add(name);
         infoBox.getChildren().add(username);
@@ -412,11 +413,11 @@ public class FriendsManagerController {
         VBox infoBox = new VBox(5);
         Label name = new Label(user.name());
         name.setTextFill(Color.WHITE);
-        name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
         Label username = new Label("@" + user.username());
         username.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        username.setStyle("-fx-font-size: 12px;");
+
+        configurarInformacionClicable(iv, name, username, user);
 
         infoBox.getChildren().add(name);
         infoBox.getChildren().add(username);
@@ -437,6 +438,24 @@ public class FriendsManagerController {
         box.getChildren().add(cancelBtn);
 
         return box;
+    }
+    
+    private void configurarInformacionClicable(ImageView iv, Label name, Label username, UserDto user) {
+        name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand; -fx-underline: true;");
+        username.setStyle("-fx-font-size: 12px; -fx-cursor: hand; -fx-underline: true;");
+        iv.setStyle("-fx-cursor: hand;");
+        
+        name.setOnMouseClicked(e -> {
+            abrirPerfilAmigo(user);
+        });
+        
+        username.setOnMouseClicked(e -> {
+            abrirPerfilAmigo(user);
+        });
+        
+        iv.setOnMouseClicked(e -> {
+            abrirPerfilAmigo(user);
+        });
     }
 
     private void procesarCancelar(Integer reqId) {
