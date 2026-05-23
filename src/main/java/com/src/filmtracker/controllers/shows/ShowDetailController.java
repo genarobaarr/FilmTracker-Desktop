@@ -1164,9 +1164,7 @@ public class ShowDetailController {
         HBox actions = new HBox(15); 
         actions.setAlignment(Pos.CENTER_LEFT);
         
-        Button likeBtn = new Button("Me gusta (" + review.getLikesCount() + ")");
-        likeBtn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
-        configurarBotonLikeResena(rId, likeBtn, review.getLikesCount(), review.getIsLikedValue());
+        HBox likeContainer = buildLikeButtonsResena(rId, review.getLikesCount(), review.getIsLikedValue());
 
         VBox commContainer = new VBox(10); 
         commContainer.setManaged(false); 
@@ -1187,7 +1185,7 @@ public class ShowDetailController {
             }
         });
 
-        actions.getChildren().add(likeBtn);
+        actions.getChildren().add(likeContainer);
         actions.getChildren().add(commBtn);
         
         injectReviewActions(review, actions, card);
@@ -1405,110 +1403,173 @@ public class ShowDetailController {
         inyectarImagenSiExiste(c.getImageUrl(), box);
         
         HBox actions = new HBox(10);
-        Button lk = new Button("Me gusta (" + c.getLikesCount() + ")");
-        lk.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
-        configurarBotonLikeComentario(cId, lk, c.getLikesCount(), c.getIsLikedValue(), rId, parent);
         
-        actions.getChildren().add(lk);
+        HBox likeContainer = buildLikeButtonsComentario(cId, c.getLikesCount(), c.getIsLikedValue());
+        
+        actions.getChildren().add(likeContainer);
         injectCommentActions(c, actions, rId, parent);
         
         box.getChildren().add(actions);
         
         return box;
     }
-
-    private void configurarBotonLikeResena(String rId, Button likeBtn, int initialCount, boolean isLiked) {
+    
+    private HBox buildLikeButtonsResena(String rId, int initialCount, boolean isLiked) {
+        HBox container = new HBox(5);
+        container.setAlignment(Pos.CENTER_LEFT);
+        
+        Button btnLike = new Button("👍 " + initialCount);
+        Button btnUnlike = new Button("👎");
+        
+        actualizarEstadoBotonesLike(btnLike, btnUnlike, isLiked);
+        
         if (!SessionManager.getInstance().isAuthenticated()) {
-            likeBtn.setDisable(true); 
-            return;
+            deshabilitarBotonesCompletamente(btnLike, btnUnlike);
+            container.getChildren().addAll(btnLike, btnUnlike);
+            return container;
         }
         
         if (rId.isEmpty()) {
-            likeBtn.setDisable(true); 
-            return;
+            deshabilitarBotonesCompletamente(btnLike, btnUnlike);
+            container.getChildren().addAll(btnLike, btnUnlike);
+            return container;
         }
         
-        likeBtn.setDisable(false);
-        actualizarAparienciaLike(likeBtn, isLiked, initialCount);
+        int[] countState = new int[]{initialCount};
         
-        likeBtn.setOnAction(e -> {
-            handleLikeToggleResena(rId, likeBtn);
+        btnLike.setOnAction(e -> {
+            procesarLikeResena(rId, btnLike, btnUnlike, countState);
         });
+        
+        btnUnlike.setOnAction(e -> {
+            procesarUnlikeResena(rId, btnLike, btnUnlike, countState);
+        });
+        
+        container.getChildren().add(btnLike);
+        container.getChildren().add(btnUnlike);
+        
+        return container;
     }
 
-    private void handleLikeToggleResena(String rId, Button likeBtn) {
-        boolean currState = likeBtn.getText().startsWith("Quitar");
-        int count = extraerConteoLike(likeBtn.getText());
-        int newCount = count + 1;
+    private void procesarLikeResena(String rId, Button btnLike, Button btnUnlike, int[] countState) {
+        btnLike.setDisable(true);
         
-        if (currState) {
-            newCount = Math.max(0, count - 1);
-        }
-        
-        actualizarAparienciaLike(likeBtn, !currState, newCount);
-        
-        reviewService.toggleReviewLike(rId, currState).exceptionally(err -> {
+        reviewService.toggleReviewLike(rId, false).thenRun(() -> {
             Platform.runLater(() -> {
-                actualizarAparienciaLike(likeBtn, currState, count);
+                countState[0]++;
+                btnLike.setText("👍 " + countState[0]);
+                actualizarEstadoBotonesLike(btnLike, btnUnlike, true);
             });
+        }).exceptionally(err -> {
+            Platform.runLater(() -> btnLike.setDisable(false));
             return null;
         });
     }
 
-    private void configurarBotonLikeComentario(String cId, Button lk, int initialCount, boolean isLiked, String rId, VBox parent) {
+    private void procesarUnlikeResena(String rId, Button btnLike, Button btnUnlike, int[] countState) {
+        btnUnlike.setDisable(true);
+        
+        reviewService.toggleReviewLike(rId, true).thenRun(() -> {
+            Platform.runLater(() -> {
+                countState[0] = Math.max(0, countState[0] - 1);
+                btnLike.setText("👍 " + countState[0]);
+                actualizarEstadoBotonesLike(btnLike, btnUnlike, false);
+            });
+        }).exceptionally(err -> {
+            Platform.runLater(() -> btnUnlike.setDisable(false));
+            return null;
+        });
+    }
+
+    private HBox buildLikeButtonsComentario(String cId, int initialCount, boolean isLiked) {
+        HBox container = new HBox(5);
+        container.setAlignment(Pos.CENTER_LEFT);
+        
+        Button btnLike = new Button("👍 " + initialCount);
+        Button btnUnlike = new Button("👎");
+        
+        actualizarEstadoBotonesLike(btnLike, btnUnlike, isLiked);
+        
         if (!SessionManager.getInstance().isAuthenticated()) {
-            lk.setDisable(true); 
-            return;
+            deshabilitarBotonesCompletamente(btnLike, btnUnlike);
+            container.getChildren().addAll(btnLike, btnUnlike);
+            return container;
         }
         
         if (cId.isEmpty()) {
-            lk.setDisable(true); 
-            return;
+            deshabilitarBotonesCompletamente(btnLike, btnUnlike);
+            container.getChildren().addAll(btnLike, btnUnlike);
+            return container;
         }
         
-        lk.setDisable(false);
-        actualizarAparienciaLike(lk, isLiked, initialCount);
+        int[] countState = new int[]{initialCount};
         
-        lk.setOnAction(e -> {
-            handleLikeToggleComentario(cId, lk, rId, parent);
+        btnLike.setOnAction(e -> {
+            procesarLikeComentario(cId, btnLike, btnUnlike, countState);
         });
+        
+        btnUnlike.setOnAction(e -> {
+            procesarUnlikeComentario(cId, btnLike, btnUnlike, countState);
+        });
+        
+        container.getChildren().add(btnLike);
+        container.getChildren().add(btnUnlike);
+        
+        return container;
     }
 
-    private void handleLikeToggleComentario(String cId, Button lk, String rId, VBox parent) {
-        boolean currState = lk.getText().startsWith("Quitar");
-        int count = extraerConteoLike(lk.getText());
-        int newCount = count + 1;
+    private void procesarLikeComentario(String cId, Button btnLike, Button btnUnlike, int[] countState) {
+        btnLike.setDisable(true);
         
-        if (currState) {
-            newCount = Math.max(0, count - 1);
-        }
-
-        actualizarAparienciaLike(lk, !currState, newCount);
-        
-        reviewService.toggleCommentLike(cId, currState).exceptionally(err -> {
+        reviewService.toggleCommentLike(cId, false).thenRun(() -> {
             Platform.runLater(() -> {
-                actualizarAparienciaLike(lk, currState, count);
+                countState[0]++;
+                btnLike.setText("👍 " + countState[0]);
+                actualizarEstadoBotonesLike(btnLike, btnUnlike, true);
             });
+        }).exceptionally(err -> {
+            Platform.runLater(() -> btnLike.setDisable(false));
             return null;
         });
     }
 
-    private void actualizarAparienciaLike(Button btn, boolean isLiked, int count) {
+    private void procesarUnlikeComentario(String cId, Button btnLike, Button btnUnlike, int[] countState) {
+        btnUnlike.setDisable(true);
+        
+        reviewService.toggleCommentLike(cId, true).thenRun(() -> {
+            Platform.runLater(() -> {
+                countState[0] = Math.max(0, countState[0] - 1);
+                btnLike.setText("👍 " + countState[0]);
+                actualizarEstadoBotonesLike(btnLike, btnUnlike, false);
+            });
+        }).exceptionally(err -> {
+            Platform.runLater(() -> btnUnlike.setDisable(false));
+            return null;
+        });
+    }
+
+    private void actualizarEstadoBotonesLike(Button btnLike, Button btnUnlike, boolean isLiked) {
         if (isLiked) {
-            btn.setText("Quitar Like (" + count + ")");
-            btn.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
+            btnLike.setDisable(true);
+            btnLike.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-background-radius: 4; -fx-opacity: 1; -fx-font-weight: bold;");
+            
+            btnUnlike.setDisable(false);
+            btnUnlike.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
         } else {
-            btn.setText("Me gusta (" + count + ")");
-            btn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
+            btnLike.setDisable(false);
+            btnLike.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4;");
+            
+            btnUnlike.setDisable(true);
+            btnUnlike.setStyle("-fx-background-color: #1a1a1a; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-opacity: 1;");
         }
     }
 
-    private int extraerConteoLike(String text) {
-        try { 
-            return Integer.parseInt(text.replaceAll("[^0-9]", "")); 
-        } catch (Exception e) { 
-            return 0; 
-        }
+    private void deshabilitarBotonesCompletamente(Button btnLike, Button btnUnlike) {
+        btnLike.setDisable(true);
+        btnUnlike.setDisable(true);
+        
+        btnLike.setStyle("-fx-background-color: #1a1a1a; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-opacity: 1;");
+        btnUnlike.setStyle("-fx-background-color: #1a1a1a; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-opacity: 1;");
     }
 
     private boolean isWithinEditWindow(String createdAtStr) {

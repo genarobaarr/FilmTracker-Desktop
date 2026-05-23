@@ -61,12 +61,29 @@ public class ReviewService implements IReviewService {
     @Override
     public CompletableFuture<Void> toggleReviewLike(String reviewId, boolean isCurrentlyLiked) {
         String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/like";
+        HttpRequest.Builder builder = createRequestBuilder(url);
         
-        HttpRequest req = createRequestBuilder(url)
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-                
-        return sendAndIgnore(req);
+        if (isCurrentlyLiked) {
+            builder.DELETE();
+        } else {
+            builder.POST(HttpRequest.BodyPublishers.noBody());
+        }
+        
+        return sendAndIgnore(builder.build());
+    }
+
+    @Override
+    public CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked) {
+        String url = AppConstants.COMMENTS_URL + "/" + commentId + "/like";
+        HttpRequest.Builder builder = createRequestBuilder(url);
+        
+        if (isCurrentlyLiked) {
+            builder.DELETE();
+        } else {
+            builder.POST(HttpRequest.BodyPublishers.noBody());
+        }
+        
+        return sendAndIgnore(builder.build());
     }
 
     @Override
@@ -114,17 +131,6 @@ public class ReviewService implements IReviewService {
         
         HttpRequest req = createRequestBuilder(url)
                 .DELETE()
-                .build();
-                
-        return sendAndIgnore(req);
-    }
-
-    @Override
-    public CompletableFuture<Void> toggleCommentLike(String commentId, boolean isCurrentlyLiked) {
-        String url = AppConstants.COMMENTS_URL + "/" + commentId + "/like";
-        
-        HttpRequest req = createRequestBuilder(url)
-                .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
                 
         return sendAndIgnore(req);
