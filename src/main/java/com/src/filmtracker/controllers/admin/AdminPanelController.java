@@ -1,6 +1,5 @@
 package com.src.filmtracker.controllers.admin;
 
-import com.google.gson.GsonBuilder;
 import com.src.filmtracker.App;
 import com.src.filmtracker.models.admin.*;
 import com.src.filmtracker.models.users.UserDto;
@@ -540,74 +539,172 @@ public class AdminPanelController {
         reportDetailPane.getChildren().add(noteArea);
         reportDetailPane.getChildren().add(actionsPane);
     }
-
+    
     private void resolverYDibujarExplicacion(AdminReportDto r, VBox container) {
-        Label lbl = new Label("Construyendo informe del reporte...");
-        lbl.setTextFill(Color.LIGHTGRAY);
-        lbl.setWrapText(true);
-        container.getChildren().add(lbl);
+        Label loading = new Label("Construyendo informe del reporte...");
+        loading.setTextFill(Color.LIGHTGRAY);
+        loading.setWrapText(true);
+        container.getChildren().add(loading);
 
-        userService.getUserById(r.reporterAuthId()).thenAccept(reporter -> {
-            String reporterName = (reporter != null) ? "@" + reporter.username() : "Usuario desconocido";
-            
-            if ("REVIEW".equals(r.targetType())) {
-                procesarExplicacionResena(r, reporterName, lbl);
-                return;
-            }
-            
-            if ("USER".equals(r.targetType())) {
-                procesarExplicacionUsuario(r, reporterName, lbl);
-                return;
-            }
+        CompletableFuture<UserDto> reporterFuture = userService.getUserById(r.reporterAuthId());
+        CompletableFuture<UserDto> reportedFuture = obtenerUsuarioReportado(r);
 
-            if ("COMMENT".equals(r.targetType())) {
-                procesarExplicacionComentario(r, reporterName, lbl);
-                return;
-            }
-
-            Platform.runLater(() -> lbl.setText(String.format("El usuario %s reporta un elemento de tipo %s por %s.", 
-                    reporterName, r.targetType(), traducirRazon(r.reason()))));
+        reporterFuture.thenAcceptBoth(reportedFuture, (reporter, reported) -> {
+            Platform.runLater(() -> {
+                container.getChildren().clear();
+                
+                if ("REVIEW".equals(r.targetType())) {
+                    procesarExplicacionResenaFlujo(r, reporter, reported, container);
+                    return;
+                }
+                
+                if ("USER".equals(r.targetType())) {
+                    procesarExplicacionUsuarioFlujo(r, reporter, reported, container);
+                    return;
+                }
+                
+                if ("COMMENT".equals(r.targetType())) {
+                    procesarExplicacionComentarioFlujo(r, reporter, reported, container);
+                    return;
+                }
+                
+                procesarExplicacionGenericaFlujo(r, reporter, reported, container);
+            });
+        }).exceptionally(err -> {
+            Platform.runLater(() -> {
+                container.getChildren().clear();
+                Label errLbl = new Label("Error al cargar la información del reporte.");
+                errLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+                container.getChildren().add(errLbl);
+            });
+            return null;
         });
     }
 
-    private void procesarExplicacionResena(AdminReportDto r, String repName, Label lbl) {
+    private CompletableFuture<UserDto> obtenerUsuarioReportado(AdminReportDto r) {
+        if ("USER".equals(r.targetType())) {
+            return userService.getUserById(r.targetId());
+        }
+        
+        Map<String, Object> snap = r.targetSnapshot();
+        
+        if (snap != null) {
+            if (snap.containsKey("ownerId")) {
+                return userService.getUserById(String.valueOf(snap.get("ownerId")));
+            }
+            
+            if (snap.containsKey("username")) {
+                return userService.getUserByUsername(String.valueOf(snap.get("username")));
+            }
+        }
+        
+        return CompletableFuture.completedFuture(null);
+    }
+
+    private javafx.scene.text.Text crearTextoPlano(String contenido) {
+        javafx.scene.text.Text text = new javafx.scene.text.Text(contenido);
+        text.setFill(Color.LIGHTGRAY);
+        
+        return text;
+    }
+
+    private javafx.scene.text.Text crearEnlacePerfil(UserDto user, String fallbackName) {
+        String name = fallbackName;
+        
+        if (user != null) {
+            if (user.username() != null) {
+                name = "@" + user.username();
+            }
+        }
+        
+        javafx.scene.text.Text link = new javafx.scene.text.Text(name);
+        link.setFill(Color.web(AppConstants.COLOR_ACCENT));
+        link.setStyle("-fx-font-weight: bold; -fx-cursor: hand; -fx-underline: true;");
+        
+        if (user != null) {
+            link.setOnMouseClicked(e -> {
+                App.showProfileView(user);
+            });
+        }
+        
+        return link;
+    }
+
+    private void procesarExplicacionResenaFlujo(AdminReportDto r, UserDto reporter, UserDto reported, VBox container) {
+        javafx.scene.text.TextFlow flow = new javafx.scene.text.TextFlow();
+        
+        flow.getChildren().add(crearTextoPlano("El usuario "));
+        flow.getChildren().add(crearEnlacePerfil(reporter, "@Desconocido"));
+        flow.getChildren().add(crearTextoPlano(" reporta una RESEÑA del usuario "));
+        flow.getChildren().add(crearEnlacePerfil(reported, "@Desconocido"));
+        flow.getChildren().add(crearTextoPlano(" por " + traducirRazon(r.reason()) + " justificando que \"" + r.description() + "\".\n\n"));
+        
         Map<String, Object> snap = r.targetSnapshot();
         String content = String.valueOf(snap.getOrDefault("content", "Sin contenido"));
+        flow.getChildren().add(crearTextoPlano("Contenido original de la reseña: \"" + content + "\""));
+        
         Object tvIdObj = snap.get("tvmazeId");
         
-        String base = String.format("El usuario %s reporta una RESEÑA por %s justificando que \"%s\".\n\nContenido original: \"%s\"",
-                repName, traducirRazon(r.reason()), r.description(), content);
-
         if (tvIdObj != null) {
             Integer tvId = ((Double) tvIdObj).intValue();
             showService.getFullShowDetails(tvId).thenAccept(full -> {
-                String series = (full != null && full.show() != null) ? full.show().name() : "Serie desconocida";
-                Platform.runLater(() -> lbl.setText(base + "\n\nEn la serie: " + series));
+                String series = "Serie desconocida";
+                
+                if (full != null) {
+                    if (full.show() != null) {
+                        series = full.show().name();
+                    }
+                }
+                
+                final String finalSeries = series;
+                
+                Platform.runLater(() -> {
+                    flow.getChildren().add(crearTextoPlano("\n\nEn la serie: " + finalSeries));
+                });
             });
-            return;
         }
         
-        Platform.runLater(() -> lbl.setText(base));
+        container.getChildren().add(flow);
     }
 
-    private void procesarExplicacionUsuario(AdminReportDto r, String repName, Label lbl) {
-        Map<String, Object> snap = r.targetSnapshot();
-        String targetUser = String.valueOf(snap.getOrDefault("username", "desconocido"));
+    private void procesarExplicacionUsuarioFlujo(AdminReportDto r, UserDto reporter, UserDto reported, VBox container) {
+        javafx.scene.text.TextFlow flow = new javafx.scene.text.TextFlow();
         
-        String text = String.format("El usuario %s reporta al perfil de @%s por %s justificando que \"%s\".",
-                repName, targetUser, traducirRazon(r.reason()), r.description());
-                
-        Platform.runLater(() -> lbl.setText(text));
+        flow.getChildren().add(crearTextoPlano("El usuario "));
+        flow.getChildren().add(crearEnlacePerfil(reporter, "@Desconocido"));
+        flow.getChildren().add(crearTextoPlano(" reporta al perfil de "));
+        flow.getChildren().add(crearEnlacePerfil(reported, "@Desconocido"));
+        flow.getChildren().add(crearTextoPlano(" por " + traducirRazon(r.reason()) + " justificando que \"" + r.description() + "\"."));
+        
+        container.getChildren().add(flow);
     }
 
-    private void procesarExplicacionComentario(AdminReportDto r, String repName, Label lbl) {
+    private void procesarExplicacionComentarioFlujo(AdminReportDto r, UserDto reporter, UserDto reported, VBox container) {
+        javafx.scene.text.TextFlow flow = new javafx.scene.text.TextFlow();
+        
+        flow.getChildren().add(crearTextoPlano("El usuario "));
+        flow.getChildren().add(crearEnlacePerfil(reporter, "@Desconocido"));
+        flow.getChildren().add(crearTextoPlano(" reporta un COMENTARIO del usuario "));
+        flow.getChildren().add(crearEnlacePerfil(reported, "@Desconocido"));
+        flow.getChildren().add(crearTextoPlano(" por " + traducirRazon(r.reason()) + " justificando que \"" + r.description() + "\".\n\n"));
+        
         Map<String, Object> snap = r.targetSnapshot();
         String content = String.valueOf(snap.getOrDefault("content", "Sin contenido"));
+        flow.getChildren().add(crearTextoPlano("Contenido original del comentario: \"" + content + "\""));
         
-        String text = String.format("El usuario %s reporta un COMENTARIO por %s justificando que \"%s\".\n\nContenido original: \"%s\"",
-                repName, traducirRazon(r.reason()), r.description(), content);
-                
-        Platform.runLater(() -> lbl.setText(text));
+        container.getChildren().add(flow);
+    }
+
+    private void procesarExplicacionGenericaFlujo(AdminReportDto r, UserDto reporter, UserDto reported, VBox container) {
+        javafx.scene.text.TextFlow flow = new javafx.scene.text.TextFlow();
+        
+        flow.getChildren().add(crearTextoPlano("El usuario "));
+        flow.getChildren().add(crearEnlacePerfil(reporter, "@Desconocido"));
+        flow.getChildren().add(crearTextoPlano(" reporta un elemento de tipo " + r.targetType() + " del usuario "));
+        flow.getChildren().add(crearEnlacePerfil(reported, "@Desconocido"));
+        flow.getChildren().add(crearTextoPlano(" por " + traducirRazon(r.reason()) + "."));
+        
+        container.getChildren().add(flow);
     }
 
     private void inyectarBotonesDeAccionReporte(AdminReportDto r, FlowPane container, TextArea noteArea) {
