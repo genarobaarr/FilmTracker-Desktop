@@ -115,6 +115,8 @@
                             </children>
                         </VBox>
                         
+                        <Label fx:id="adminStatusLabel" managed="false" visible="false" />
+                        
                         <Label fx:id="dateLabel" textFill="#555555"><font><Font size="12.0" /></font></Label>
 
                         <VBox fx:id="friendsListContainer" maxWidth="1000" spacing="10.0" visible="false" managed="false">

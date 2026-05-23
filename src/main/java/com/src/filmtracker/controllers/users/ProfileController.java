@@ -6,7 +6,6 @@ import com.src.filmtracker.models.library.LibraryItemDto;
 import com.src.filmtracker.models.reviews.ReviewDto;
 import com.src.filmtracker.models.reviews.ReviewPaginationResponse;
 import com.src.filmtracker.models.shows.Show;
-import com.src.filmtracker.models.shows.ShowFullResponse;
 import com.src.filmtracker.models.users.UpdateProfileRequest;
 import com.src.filmtracker.models.friends.FriendItemDto;
 import com.src.filmtracker.models.friends.FriendPaginationResponse;
@@ -92,6 +91,7 @@ public class ProfileController {
     @FXML private MenuItem itemSuspender;
     @FXML private MenuItem itemBanear;
     @FXML private MenuItem itemDesbanear;
+    @FXML private Label adminStatusLabel;
 
     private final ILibraryService libraryService = new LibraryService();
     private final IShowService showService = new ShowService();
@@ -357,6 +357,11 @@ public class ProfileController {
         }
         
         this.currentUserProfile = user;
+        
+        if (adminStatusLabel != null) {
+            adminStatusLabel.setVisible(false);
+            adminStatusLabel.setManaged(false);
+        }
         
         actualizarEtiquetasBasicas(user);
         configurarVisibilidadPublica(esUsuarioActual(user), user);
@@ -824,10 +829,57 @@ public class ProfileController {
         adminService.getAccountStatus(currentUserProfile.getSafeAuthId()).thenAccept(status -> {
             Platform.runLater(() -> {
                 actualizarVisibilidadMenu(status);
+                mostrarEstadoCuentaParaAdmin(status);
             });
         }).exceptionally(e -> {
             return null;
         });
+    }
+    
+    private void mostrarEstadoCuentaParaAdmin(AccountStatusDto status) {
+        if (status == null) {
+            return;
+        }
+
+        if (adminStatusLabel == null) {
+            return;
+        }
+        
+        adminStatusLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        adminStatusLabel.setVisible(false);
+        adminStatusLabel.setManaged(false);
+
+        String accountStatus = status.accountStatus();
+
+        if ("BANNED".equals(accountStatus)) {
+            adminStatusLabel.setText("ESTADO: BANEADO");
+            adminStatusLabel.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+            adminStatusLabel.setVisible(true);
+            adminStatusLabel.setManaged(true);
+            return;
+        }
+
+        if ("SUSPENDED".equals(accountStatus)) {
+            String dateStr = "Desconocida";
+            
+            if (status.suspendedUntil() != null) {
+                dateStr = formatearFechaSuspension(status.suspendedUntil());
+            }
+            
+            adminStatusLabel.setText("ESTADO: SUSPENDIDO (Hasta: " + dateStr + ")");
+            adminStatusLabel.setTextFill(Color.ORANGE);
+            adminStatusLabel.setVisible(true);
+            adminStatusLabel.setManaged(true);
+        }
+    }
+
+    private String formatearFechaSuspension(String iso) {
+        try {
+            ZonedDateTime zdt = ZonedDateTime.parse(iso);
+            return zdt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        } catch (Exception e) {
+            return iso;
+        }
     }
 
     private void actualizarVisibilidadMenu(AccountStatusDto status) {
