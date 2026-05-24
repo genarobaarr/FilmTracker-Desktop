@@ -68,7 +68,7 @@ public class LeaderboardsController {
 
             loadUsers();
         } catch (Exception e) {
-            // Protección de inicialización
+            
         }
     }
 
@@ -77,6 +77,22 @@ public class LeaderboardsController {
         loadUsers();
         loadReviews();
         loadComments();
+    }
+
+    @FXML 
+    private void handleBack() { 
+        App.setRoot(AppConstants.FXML_DASHBOARD); 
+    }
+    
+    @FXML 
+    private void handleMinimize() { 
+        ((Stage) usersContainer.getScene().getWindow()).setIconified(true); 
+    }
+    
+    @FXML 
+    private void handleClose() { 
+        Platform.exit(); 
+        System.exit(0); 
     }
 
     private void loadUsers() {
@@ -283,7 +299,7 @@ public class LeaderboardsController {
         
         Label authorLbl = new Label("Cargando usuario...");
         authorLbl.setTextFill(Color.WHITE);
-        authorLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        authorLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand; -fx-underline: true;");
 
         if (comment.authId() != null) {
             userService.getUserById(comment.authId()).thenAccept(user -> {
@@ -292,6 +308,10 @@ public class LeaderboardsController {
                         if (user.username() != null) {
                             authorLbl.setText("@" + user.username());
                         }
+                        
+                        authorLbl.setOnMouseClicked(e -> {
+                            App.showProfileView(user);
+                        });
                     }
                 });
             }).exceptionally(e -> null);
@@ -319,21 +339,5 @@ public class LeaderboardsController {
         row.getChildren().add(contentBox);
         
         commentsContainer.getChildren().add(row);
-    }
-
-    @FXML 
-    private void handleBack() { 
-        App.setRoot(AppConstants.FXML_DASHBOARD); 
-    }
-    
-    @FXML 
-    private void handleMinimize() { 
-        ((Stage) usersContainer.getScene().getWindow()).setIconified(true); 
-    }
-    
-    @FXML 
-    private void handleClose() { 
-        Platform.exit(); 
-        System.exit(0); 
     }
 }
