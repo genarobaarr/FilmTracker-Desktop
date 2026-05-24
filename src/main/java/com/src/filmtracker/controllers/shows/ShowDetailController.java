@@ -124,11 +124,7 @@ public class ShowDetailController {
     }
     
     public void initData(Show basicShow) {
-        if (basicShow == null) {
-            return;
-        }
-        
-        if (basicShow.tvmazeId() == null) {
+        if (basicShow == null || basicShow.tvmazeId() == null) {
             return;
         }
         
@@ -137,10 +133,9 @@ public class ShowDetailController {
         inyectarBotonesLibreria();
 
         apiService.getFullShowDetails(currentTvmazeId).thenAccept(fullData -> {
-            Platform.runLater(() -> {
-                procesarDatosDetallados(fullData);
-            });
+            Platform.runLater(() -> procesarDatosDetallados(fullData));
         }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
             return null;
         });
 
@@ -152,6 +147,9 @@ public class ShowDetailController {
                     }
                 }
             }
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
         });
 
         this.currentReviewPage = 1;
@@ -254,19 +252,12 @@ public class ShowDetailController {
 
     private void buscarEnFavoritosRecursivo(int page, Button btn) {
         libraryService.getFavoritesPaged(page).thenAccept(list -> {
-            if (list == null) {
+            if (list == null || list.isEmpty()) {
                 finalizarConfiguracionFav(btn, false);
                 return;
             }
             
-            if (list.isEmpty()) {
-                finalizarConfiguracionFav(btn, false);
-                return;
-            }
-            
-            boolean encontrado = evaluarListaParaId(list, currentTvmazeId);
-            
-            if (encontrado) {
+            if (evaluarListaParaId(list, currentTvmazeId)) {
                 finalizarConfiguracionFav(btn, true);
                 return;
             }
@@ -278,6 +269,7 @@ public class ShowDetailController {
             
             finalizarConfiguracionFav(btn, false);
         }).exceptionally(err -> {
+            App.procesarErrorCritico(err);
             finalizarConfiguracionFav(btn, false);
             return null;
         });
@@ -300,19 +292,23 @@ public class ShowDetailController {
         if (currFav) {
             libraryService.removeFavorite(currentTvmazeId).exceptionally(err -> {
                 Platform.runLater(() -> {
-                    actualizarAparienciaFav(btn, true);
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                    if (!App.procesarErrorCritico(err)) {
+                        actualizarAparienciaFav(btn, true);
+                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                    }
                 });
                 return null;
             });
         } else {
             libraryService.addFavorite(currentTvmazeId).exceptionally(err -> {
                 Platform.runLater(() -> {
-                    actualizarAparienciaFav(btn, false);
-                    if (err.toString().contains("409")) {
-                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_DUPLICATE_LIB);
-                    } else {
-                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                    if (!App.procesarErrorCritico(err)) {
+                        actualizarAparienciaFav(btn, false);
+                        if (err.toString().contains("409")) {
+                            mostrarAlertaError(AppConstants.MESSAGE_ERROR_DUPLICATE_LIB);
+                        } else {
+                            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                        }
                     }
                 });
                 return null;
@@ -336,19 +332,12 @@ public class ShowDetailController {
 
     private void buscarEnWatchlistRecursivo(int page, Button btn) {
         libraryService.getWatchlistPaged(page).thenAccept(list -> {
-            if (list == null) {
+            if (list == null || list.isEmpty()) {
                 finalizarConfiguracionWatch(btn, false);
                 return;
             }
             
-            if (list.isEmpty()) {
-                finalizarConfiguracionWatch(btn, false);
-                return;
-            }
-            
-            boolean encontrado = evaluarListaParaId(list, currentTvmazeId);
-            
-            if (encontrado) {
+            if (evaluarListaParaId(list, currentTvmazeId)) {
                 finalizarConfiguracionWatch(btn, true);
                 return;
             }
@@ -360,6 +349,7 @@ public class ShowDetailController {
             
             finalizarConfiguracionWatch(btn, false);
         }).exceptionally(err -> {
+            App.procesarErrorCritico(err);
             finalizarConfiguracionWatch(btn, false);
             return null;
         });
@@ -394,19 +384,23 @@ public class ShowDetailController {
         if (currWatch) {
             libraryService.removeWatchlist(currentTvmazeId).exceptionally(err -> {
                 Platform.runLater(() -> {
-                    actualizarAparienciaWatch(btn, true);
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                    if (!App.procesarErrorCritico(err)) {
+                        actualizarAparienciaWatch(btn, true);
+                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                    }
                 });
                 return null;
             });
         } else {
             libraryService.addWatchlist(currentTvmazeId).exceptionally(err -> {
                 Platform.runLater(() -> {
-                    actualizarAparienciaWatch(btn, false);
-                    if (err.toString().contains("409")) {
-                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_DUPLICATE_LIB);
-                    } else {
-                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                    if (!App.procesarErrorCritico(err)) {
+                        actualizarAparienciaWatch(btn, false);
+                        if (err.toString().contains("409")) {
+                            mostrarAlertaError(AppConstants.MESSAGE_ERROR_DUPLICATE_LIB);
+                        } else {
+                            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                        }
                     }
                 });
                 return null;
@@ -742,12 +736,12 @@ public class ShowDetailController {
 
     private void cargarResenas(int page) {
         reviewService.getShowReviews(currentTvmazeId, page).thenAccept(res -> {
-            Platform.runLater(() -> {
-                dibujarSeccionResenas(res, page, false);
-            });
+            Platform.runLater(() -> dibujarSeccionResenas(res, page, false));
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                dibujarSeccionResenas(null, page, true);
+                if (!App.procesarErrorCritico(e)) {
+                    dibujarSeccionResenas(null, page, true);
+                }
             });
             return null;
         });
@@ -919,49 +913,35 @@ public class ShowDetailController {
 
     private void enviarResena(int[] ratingState, TextField titleIn, TextArea contIn, Label errLbl) {
         UserDto currentUser = SessionManager.getInstance().getCurrentUser();
-        
-        if (currentUser != null) {
-            if (!currentUser.isVerified()) {
-                mostrarAlertaPrecaucion(AppConstants.MESSAGE_ERROR_UNVERIFIED);
-                return;
-            }
-        }
-        
-        if (ratingState[0] == 0) {
+        if (currentUser != null && !currentUser.isVerified()) {
+            mostrarAlertaPrecaucion(AppConstants.MESSAGE_ERROR_UNVERIFIED);
             return;
         }
         
-        if (titleIn.getText().isBlank()) {
+        if (ratingState[0] == 0 || titleIn.getText().isBlank() || contIn.getText().isBlank()) {
             return;
         }
-        
-        if (contIn.getText().isBlank()) {
-            return;
-        }
-        
         errLbl.setVisible(false); 
         errLbl.setManaged(false);
         
         ReviewRequest req = new ReviewRequest(currentTvmazeId, ratingState[0], titleIn.getText().trim(), contIn.getText().trim());
         
         reviewService.createReview(req).thenAccept(review -> {
-            if (selectedReviewImage != null) {
-                if (review != null) {
-                    reviewService.uploadReviewImage(review.getSafeId(), selectedReviewImage).thenRun(() -> {
-                        limpiarYRefrescarResenas();
-                    });
-                    return;
-                }
+            if (selectedReviewImage != null && review != null) {
+                reviewService.uploadReviewImage(review.getSafeId(), selectedReviewImage).thenRun(this::limpiarYRefrescarResenas);
+                return;
             }
             
             limpiarYRefrescarResenas();
             
         }).exceptionally(err -> {
             Platform.runLater(() -> {
-                if (err.toString().contains("409")) {
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_DUPLICATE_REVIEW);
-                } else {
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
+                if (!App.procesarErrorCritico(err)) {
+                    if (err.toString().contains("409")) {
+                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_DUPLICATE_REVIEW);
+                    } else {
+                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
+                    }
                 }
             });
             return null;
@@ -1346,18 +1326,14 @@ public class ShowDetailController {
     
     private void procesarEnvioComentario(TextField in, String rId, VBox container) {
         UserDto currentUser = SessionManager.getInstance().getCurrentUser();
-        
-        if (currentUser != null) {
-            if (!currentUser.isVerified()) {
-                mostrarAlertaPrecaucion(AppConstants.MESSAGE_ERROR_UNVERIFIED);
-                return;
-            }
+        if (currentUser != null && !currentUser.isVerified()) {
+            mostrarAlertaPrecaucion(AppConstants.MESSAGE_ERROR_UNVERIFIED);
+            return;
         }
         
         if (in.getText().isBlank()) {
             return;
         }
-        
         CommentRequest req = new CommentRequest(in.getText().trim());
         File img = selectedCommentImages.get(rId);
         
@@ -1365,7 +1341,9 @@ public class ShowDetailController {
             refrescarComentarios(rId, container);
         }).exceptionally(err -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
+                if (!App.procesarErrorCritico(err)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
+                }
             });
             return null;
         });
@@ -1461,7 +1439,11 @@ public class ShowDetailController {
                 actualizarEstadoBotonesLike(btnLike, btnUnlike, true);
             });
         }).exceptionally(err -> {
-            Platform.runLater(() -> btnLike.setDisable(false));
+            Platform.runLater(() -> {
+                if (!App.procesarErrorCritico(err)) {
+                    btnLike.setDisable(false);
+                }
+            });
             return null;
         });
     }
@@ -1476,7 +1458,11 @@ public class ShowDetailController {
                 actualizarEstadoBotonesLike(btnLike, btnUnlike, false);
             });
         }).exceptionally(err -> {
-            Platform.runLater(() -> btnUnlike.setDisable(false));
+            Platform.runLater(() -> {
+                if (!App.procesarErrorCritico(err)) {
+                    btnUnlike.setDisable(false);
+                }
+            });
             return null;
         });
     }
@@ -1528,7 +1514,11 @@ public class ShowDetailController {
                 actualizarEstadoBotonesLike(btnLike, btnUnlike, true);
             });
         }).exceptionally(err -> {
-            Platform.runLater(() -> btnLike.setDisable(false));
+            Platform.runLater(() -> {
+                if (!App.procesarErrorCritico(err)) {
+                    btnLike.setDisable(false);
+                }
+            });
             return null;
         });
     }
@@ -1543,7 +1533,11 @@ public class ShowDetailController {
                 actualizarEstadoBotonesLike(btnLike, btnUnlike, false);
             });
         }).exceptionally(err -> {
-            Platform.runLater(() -> btnUnlike.setDisable(false));
+            Platform.runLater(() -> {
+                if (!App.procesarErrorCritico(err)) {
+                    btnUnlike.setDisable(false);
+                }
+            });
             return null;
         });
     }
@@ -1607,6 +1601,9 @@ public class ShowDetailController {
                         this.currentReviewPage = 1;
                         cargarResenas(1);
                     });
+                }).exceptionally(err -> {
+                    App.procesarErrorCritico(err);
+                    return null;
                 });
             }
         });
@@ -1627,7 +1624,11 @@ public class ShowDetailController {
                         cargarResenas(1);
                     });
                 }).exceptionally(err -> {
-                    Platform.runLater(() -> mostrarAlertaError(AppConstants.MESSAGE_ERROR_API));
+                    Platform.runLater(() -> {
+                        if (!App.procesarErrorCritico(err)) {
+                            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                        }
+                    });
                     return null;
                 });
             }
@@ -1635,28 +1636,30 @@ public class ShowDetailController {
 
         actions.getChildren().add(delAdmin);
 
-        if (review.getImageUrl() != null) {
-            if (!review.getImageUrl().isEmpty()) {
-                Button delImgAdmin = new Button("Quitar Imagen");
-                delImgAdmin.setStyle("-fx-background-color: transparent; -fx-text-fill: #ff9800; -fx-cursor: hand; -fx-underline: true;");
+        if (review.getImageUrl() != null && !review.getImageUrl().isEmpty()) {
+            Button delImgAdmin = new Button("Quitar Imagen");
+            delImgAdmin.setStyle("-fx-background-color: transparent; -fx-text-fill: #ff9800; -fx-cursor: hand; -fx-underline: true;");
 
-                delImgAdmin.setOnAction(e -> {
-                    if (confirmarAccion("Quitar Imagen", "¿Deseas eliminar la imagen de esta reseña?")) {
-                        adminService.removeReviewImageDirectly(review.getSafeId()).thenRun(() -> {
-                            Platform.runLater(() -> {
-                                mostrarAlertaExito("Imagen eliminada administrativamente.");
-                                this.currentReviewPage = 1;
-                                cargarResenas(1);
-                            });
-                        }).exceptionally(err -> {
-                            Platform.runLater(() -> mostrarAlertaError(AppConstants.MESSAGE_ERROR_API));
-                            return null;
+            delImgAdmin.setOnAction(e -> {
+                if (confirmarAccion("Quitar Imagen", "¿Deseas eliminar la imagen de esta reseña?")) {
+                    adminService.removeReviewImageDirectly(review.getSafeId()).thenRun(() -> {
+                        Platform.runLater(() -> {
+                            mostrarAlertaExito("Imagen eliminada administrativamente.");
+                            this.currentReviewPage = 1;
+                            cargarResenas(1);
                         });
-                    }
-                });
+                    }).exceptionally(err -> {
+                        Platform.runLater(() -> {
+                            if (!App.procesarErrorCritico(err)) {
+                                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                            }
+                        });
+                        return null;
+                    });
+                }
+            });
 
-                actions.getChildren().add(delImgAdmin);
-            }
+            actions.getChildren().add(delImgAdmin);
         }
     }
     
@@ -1667,9 +1670,10 @@ public class ShowDetailController {
         del.setOnAction(e -> {
             if (confirmarAccion("Eliminar Comentario", "¿Estás seguro de que deseas eliminar tu comentario?")) {
                 reviewService.deleteComment(cId).thenRun(() -> {
-                    Platform.runLater(() -> {
-                        cargarComentariosUI(rId, parent, 1);
-                    });
+                    Platform.runLater(() -> cargarComentariosUI(rId, parent, 1));
+                }).exceptionally(err -> {
+                    App.procesarErrorCritico(err);
+                    return null;
                 });
             }
         });
@@ -1689,7 +1693,11 @@ public class ShowDetailController {
                         cargarComentariosUI(rId, parent, 1);
                     });
                 }).exceptionally(err -> {
-                    Platform.runLater(() -> mostrarAlertaError(AppConstants.MESSAGE_ERROR_API));
+                    Platform.runLater(() -> {
+                        if (!App.procesarErrorCritico(err)) {
+                            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                        }
+                    });
                     return null;
                 });
             }
@@ -1697,27 +1705,29 @@ public class ShowDetailController {
 
         actions.getChildren().add(delAdmin);
 
-        if (c.getImageUrl() != null) {
-            if (!c.getImageUrl().isEmpty()) {
-                Button delImgAdmin = new Button("Quitar Imagen");
-                delImgAdmin.setStyle("-fx-background-color: transparent; -fx-text-fill: #ff9800; -fx-cursor: hand; -fx-underline: true;");
+        if (c.getImageUrl() != null && !c.getImageUrl().isEmpty()) {
+            Button delImgAdmin = new Button("Quitar Imagen");
+            delImgAdmin.setStyle("-fx-background-color: transparent; -fx-text-fill: #ff9800; -fx-cursor: hand; -fx-underline: true;");
 
-                delImgAdmin.setOnAction(e -> {
-                    if (confirmarAccion("Quitar Imagen", "¿Deseas eliminar la imagen de este comentario?")) {
-                        adminService.removeCommentImageDirectly(c.getSafeId()).thenRun(() -> {
-                            Platform.runLater(() -> {
-                                mostrarAlertaExito("Imagen eliminada administrativamente.");
-                                cargarComentariosUI(rId, parent, 1);
-                            });
-                        }).exceptionally(err -> {
-                            Platform.runLater(() -> mostrarAlertaError(AppConstants.MESSAGE_ERROR_API));
-                            return null;
+            delImgAdmin.setOnAction(e -> {
+                if (confirmarAccion("Quitar Imagen", "¿Deseas eliminar la imagen de este comentario?")) {
+                    adminService.removeCommentImageDirectly(c.getSafeId()).thenRun(() -> {
+                        Platform.runLater(() -> {
+                            mostrarAlertaExito("Imagen eliminada administrativamente.");
+                            cargarComentariosUI(rId, parent, 1);
                         });
-                    }
-                });
+                    }).exceptionally(err -> {
+                        Platform.runLater(() -> {
+                            if (!App.procesarErrorCritico(err)) {
+                                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                            }
+                        });
+                        return null;
+                    });
+                }
+            });
 
-                actions.getChildren().add(delImgAdmin);
-            }
+            actions.getChildren().add(delImgAdmin);
         }
     }
 
@@ -1803,15 +1813,7 @@ public class ShowDetailController {
     }
 
     private void procesarEdicionResena(String rId, int[] ratingState, TextField titleIn, TextArea contIn, Label errLbl) {
-        if (ratingState[0] == 0) {
-            return;
-        }
-        
-        if (titleIn.getText().isBlank()) {
-            return;
-        }
-        
-        if (contIn.getText().isBlank()) {
+        if (ratingState[0] == 0 || titleIn.getText().isBlank() || contIn.getText().isBlank()) {
             return;
         }
         
@@ -1822,21 +1824,18 @@ public class ShowDetailController {
         
         reviewService.updateReview(rId, req).thenAccept(review -> {
             File img = editReviewImages.get(rId);
-            
-            if (img != null) {
-                if (review != null) {
-                    reviewService.uploadReviewImage(review.getSafeId(), img).thenRun(() -> {
-                        finalizarEdicionResena(rId);
-                    });
-                    return;
-                }
+            if (img != null && review != null) {
+                reviewService.uploadReviewImage(review.getSafeId(), img).thenRun(() -> finalizarEdicionResena(rId));
+                return;
             }
             
             finalizarEdicionResena(rId);
             
         }).exceptionally(err -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
+                if (!App.procesarErrorCritico(err)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_REVIEW_ACTION);
+                }
             });
             return null;
         });

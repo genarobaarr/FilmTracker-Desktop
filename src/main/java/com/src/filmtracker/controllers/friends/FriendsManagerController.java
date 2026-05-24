@@ -65,22 +65,17 @@ public class FriendsManagerController {
         }
         
         String authId = currentUser.getSafeAuthId();
-        
-        if (authId == null) {
-            return;
-        }
-        
-        if (authId.isEmpty()) {
+        if (authId == null || authId.isEmpty()) {
             return;
         }
         
         friendsService.getFriends(authId, page).thenAccept(res -> {
-            Platform.runLater(() -> {
-                procesarPaginacionAmigos(res);
-            });
+            Platform.runLater(() -> procesarPaginacionAmigos(res));
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarVacio(friendsListSection, AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarVacio(friendsListSection, AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -226,42 +221,31 @@ public class FriendsManagerController {
 
     private void cargarSolicitudesRecibidas(int page) {
         incomingBox.getChildren().clear();
-        
         friendsService.getIncomingRequests(page).thenAccept(res -> {
-            if (res == null) {
+            if (res == null || res.data() == null || res.data().isEmpty()) {
                 Platform.runLater(() -> mostrarVacio(incomingBox, "No hay solicitudes recibidas."));
                 return;
             }
-            
-            if (res.data() == null) {
-                Platform.runLater(() -> mostrarVacio(incomingBox, "No hay solicitudes recibidas."));
-                return;
-            }
-            
-            if (res.data().isEmpty()) {
-                Platform.runLater(() -> mostrarVacio(incomingBox, "No hay solicitudes recibidas."));
-                return;
-            }
-            
             for (FriendRequestItemDto req : res.data()) {
                 resolverUsuarioRecibido(req);
             }
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
         });
     }
 
     private void resolverUsuarioRecibido(FriendRequestItemDto req) {
         String requesterId = req.getSafeRequester();
-        
-        if (requesterId != null) {
-            if (!requesterId.isEmpty()) {
-                userService.getUserById(requesterId).thenAccept(user -> {
-                    if (user != null) {
-                        Platform.runLater(() -> {
-                            incomingBox.getChildren().add(buildIncomingCard(req, user));
-                        });
-                    }
-                });
-            }
+        if (requesterId != null && !requesterId.isEmpty()) {
+            userService.getUserById(requesterId).thenAccept(user -> {
+                if (user != null) {
+                    Platform.runLater(() -> incomingBox.getChildren().add(buildIncomingCard(req, user)));
+                }
+            }).exceptionally(e -> {
+                App.procesarErrorCritico(e);
+                return null;
+            });
         }
     }
 
@@ -330,7 +314,9 @@ public class FriendsManagerController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -344,7 +330,9 @@ public class FriendsManagerController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -352,42 +340,31 @@ public class FriendsManagerController {
 
     private void cargarSolicitudesEnviadas(int page) {
         outgoingBox.getChildren().clear();
-        
         friendsService.getOutgoingRequests(page).thenAccept(res -> {
-            if (res == null) {
+            if (res == null || res.data() == null || res.data().isEmpty()) {
                 Platform.runLater(() -> mostrarVacio(outgoingBox, "No hay solicitudes enviadas."));
                 return;
             }
-            
-            if (res.data() == null) {
-                Platform.runLater(() -> mostrarVacio(outgoingBox, "No hay solicitudes enviadas."));
-                return;
-            }
-            
-            if (res.data().isEmpty()) {
-                Platform.runLater(() -> mostrarVacio(outgoingBox, "No hay solicitudes enviadas."));
-                return;
-            }
-            
             for (FriendRequestItemDto req : res.data()) {
                 resolverUsuarioEnviado(req);
             }
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
         });
     }
 
     private void resolverUsuarioEnviado(FriendRequestItemDto req) {
         String receiverId = req.getSafeReceiver();
-        
-        if (receiverId != null) {
-            if (!receiverId.isEmpty()) {
-                userService.getUserById(receiverId).thenAccept(user -> {
-                    if (user != null) {
-                        Platform.runLater(() -> {
-                            outgoingBox.getChildren().add(buildOutgoingCard(req, user));
-                        });
-                    }
-                });
-            }
+        if (receiverId != null && !receiverId.isEmpty()) {
+            userService.getUserById(receiverId).thenAccept(user -> {
+                if (user != null) {
+                    Platform.runLater(() -> outgoingBox.getChildren().add(buildOutgoingCard(req, user)));
+                }
+            }).exceptionally(e -> {
+                App.procesarErrorCritico(e);
+                return null;
+            });
         }
     }
 
@@ -466,7 +443,9 @@ public class FriendsManagerController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });

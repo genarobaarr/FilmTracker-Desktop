@@ -106,18 +106,27 @@ public class AdminPanelController {
         }
         
         statsCardsContainer.getChildren().clear();
-
+        
         adminService.getAuthStats().thenAccept(stats -> {
             Platform.runLater(() -> renderAuthStats(stats));
-        }).exceptionally(e -> null);
-
+        }).exceptionally(e -> { 
+            App.procesarErrorCritico(e); 
+            return null; 
+        });
+        
         adminService.getReviewStats().thenAccept(stats -> {
             Platform.runLater(() -> renderReviewStats(stats));
-        }).exceptionally(e -> null);
-
+        }).exceptionally(e -> { 
+            App.procesarErrorCritico(e); 
+            return null; 
+        });
+        
         adminService.getModerationStats().thenAccept(stats -> {
             Platform.runLater(() -> renderModerationStats(stats));
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> { 
+            App.procesarErrorCritico(e); 
+            return null; 
+        });
     }
     
     @FXML private void handleBack() { 
@@ -139,10 +148,10 @@ public class AdminPanelController {
         if (query.isEmpty()) {
             return;
         }
-
+        
         usersListContainer.getChildren().clear();
         userDetailPane.getChildren().clear();
-
+        
         adminService.searchUsers(query).thenAccept(users -> {
             Platform.runLater(() -> {
                 if (users != null) {
@@ -151,7 +160,10 @@ public class AdminPanelController {
                     }
                 }
             });
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
+        });
     }
 
     @FXML
@@ -279,15 +291,16 @@ public class AdminPanelController {
     private void cargarDetalleUsuario(UserDto user) {
         userDetailPane.getChildren().clear();
         String authId = user.getSafeAuthId();
-
+        
         CompletableFuture<AccountStatusDto> statusFuture = adminService.getAccountStatus(authId);
         CompletableFuture<AdminUserDetailDto> detailsFuture = adminService.getAdminUserDetails(authId);
-
+        
         statusFuture.thenAcceptBoth(detailsFuture, (status, details) -> {
-            Platform.runLater(() -> {
-                dibujarPanelDetalleUsuario(user, status, details, authId);
-            });
-        }).exceptionally(e -> null);
+            Platform.runLater(() -> dibujarPanelDetalleUsuario(user, status, details, authId));
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
+        });
     }
     
     private void configurarBuscadorUsuarios() {
@@ -458,7 +471,11 @@ public class AdminPanelController {
                 cargarDetalleUsuario(user);
             });
         }).exceptionally(e -> {
-            Platform.runLater(() -> mostrarAlertaError("Error al modificar estado."));
+            Platform.runLater(() -> {
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError("Error al modificar estado.");
+                }
+            });
             return null;
         });
     }
@@ -466,18 +483,19 @@ public class AdminPanelController {
     private void peticionReportes(int page) {
         String filterUi = reportStatusFilter.getValue();
         String filterBackend = statusMapUiToBackend.get(filterUi);
-
+        
         adminService.getAdminReports(filterBackend, page).thenAccept(res -> {
             Platform.runLater(() -> {
-                if (res != null) {
-                    if (res.reports() != null) {
-                        for (AdminReportDto r : res.reports()) {
-                            reportsListContainer.getChildren().add(construirFilaReporte(r));
-                        }
+                if (res != null && res.reports() != null) {
+                    for (AdminReportDto r : res.reports()) {
+                        reportsListContainer.getChildren().add(construirFilaReporte(r));
                     }
                 }
             });
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
+        });
     }
 
     private HBox construirFilaReporte(AdminReportDto r) {
@@ -601,10 +619,12 @@ public class AdminPanelController {
             });
         }).exceptionally(err -> {
             Platform.runLater(() -> {
-                container.getChildren().clear();
-                Label errLbl = new Label("Error al cargar la información del reporte.");
-                errLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-                container.getChildren().add(errLbl);
+                if (!App.procesarErrorCritico(err)) {
+                    container.getChildren().clear();
+                    Label errLbl = new Label("Error al cargar la información del reporte.");
+                    errLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+                    container.getChildren().add(errLbl);
+                }
             });
             return null;
         });
@@ -777,7 +797,11 @@ public class AdminPanelController {
         adminService.dismissReport(String.valueOf(reportId), note)
             .thenRun(this::finalizarAccionExito)
             .exceptionally(e -> {
-                Platform.runLater(() -> mostrarAlertaError("Error descartando reporte."));
+                Platform.runLater(() -> {
+                    if (!App.procesarErrorCritico(e)) {
+                        mostrarAlertaError("Error descartando reporte.");
+                    }
+                });
                 return null;
             });
     }
@@ -806,28 +830,41 @@ public class AdminPanelController {
         String targetId = r.targetId();
         java.util.concurrent.CompletableFuture<Void> future = null;
         String defaultNote = "";
-
-        if ("DELETE_REVIEW".equals(action)) {
-            future = adminService.deleteReviewDirectly(targetId);
-            defaultNote = "Reseña eliminada administrativamente.";
-        } else if ("DELETE_COMMENT".equals(action)) {
-            future = adminService.deleteCommentDirectly(targetId);
-            defaultNote = "Comentario eliminado administrativamente.";
-        } else if ("REMOVE_REVIEW_IMAGE".equals(action)) {
-            future = adminService.removeReviewImageDirectly(targetId);
-            defaultNote = "Imagen de reseña eliminada administrativamente.";
-        } else if ("REMOVE_COMMENT_IMAGE".equals(action)) {
-            future = adminService.removeCommentImageDirectly(targetId);
-            defaultNote = "Imagen de comentario eliminada administrativamente.";
+        
+        if (action != null){ 
+            switch (action) {
+                case "DELETE_REVIEW":
+                    future = adminService.deleteReviewDirectly(targetId);
+                    defaultNote = "Reseña eliminada administrativamente.";
+                    break;
+                case "DELETE_COMMENT":
+                    future = adminService.deleteCommentDirectly(targetId);
+                    defaultNote = "Comentario eliminado administrativamente.";
+                    break;
+                case "REMOVE_REVIEW_IMAGE":
+                    future = adminService.removeReviewImageDirectly(targetId);
+                    defaultNote = "Imagen de reseña eliminada administrativamente.";
+                    break;
+                case "REMOVE_COMMENT_IMAGE":
+                    future = adminService.removeCommentImageDirectly(targetId);
+                    defaultNote = "Imagen de comentario eliminada administrativamente.";
+                    break;
+                default:
+                    break;
+            }
         }
-
+        
         if (future != null) {
             String finalNote = (note == null || note.trim().isEmpty()) ? defaultNote : note;
             future.whenComplete((res, ex) -> {
                 adminService.dismissReport(String.valueOf(r.id()), finalNote)
                     .thenRun(this::finalizarAccionExito)
                     .exceptionally(e2 -> {
-                        Platform.runLater(() -> mostrarAlertaError("Error cerrando el reporte."));
+                        Platform.runLater(() -> {
+                            if (!App.procesarErrorCritico(e2)) {
+                                mostrarAlertaError("Error cerrando el reporte.");
+                            }
+                        });
                         return null;
                     });
             });
@@ -855,7 +892,11 @@ public class AdminPanelController {
         adminService.executeReportAction(String.valueOf(id), req)
             .thenRun(this::finalizarAccionExito)
             .exceptionally(e -> {
-                Platform.runLater(() -> mostrarAlertaError("Error ejecutando acción."));
+                Platform.runLater(() -> {
+                    if (!App.procesarErrorCritico(e)) {
+                        mostrarAlertaError("Error ejecutando acción.");
+                    }
+                });
                 return null;
             });
     }

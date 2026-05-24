@@ -50,7 +50,9 @@ public class MyReportsController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarVacio("No se pudieron cargar tus reportes.");
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarVacio("No se pudieron cargar tus reportes.");
+                }
             });
             return null;
         });

@@ -72,7 +72,9 @@ public class NotificationsController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_NOTIFICATIONS);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_NOTIFICATIONS);
+                }
             });
             return null;
         });
@@ -85,7 +87,9 @@ public class NotificationsController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_NOTIFICATIONS);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_NOTIFICATIONS);
+                }
             });
             return null;
         });
@@ -183,9 +187,9 @@ public class NotificationsController {
                         actualizarDatosSerie(show, imageView, bodyLbl, notif.type());
                     });
                 }).exceptionally(e -> {
+                    App.procesarErrorCritico(e);
                     return null;
                 });
-                
                 return;
             }
         }
@@ -197,6 +201,7 @@ public class NotificationsController {
                         actualizarDatosUsuario(user, imageView);
                     });
                 }).exceptionally(e -> {
+                    App.procesarErrorCritico(e);
                     return null;
                 });
             }
@@ -325,6 +330,7 @@ public class NotificationsController {
                 }
             });
         }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
             return null;
         });
     }
@@ -337,6 +343,7 @@ public class NotificationsController {
                 }
             });
         }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
             return null;
         });
     }

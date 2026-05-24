@@ -207,17 +207,10 @@ public class ProfileController {
         }
         
         String receiverId = currentUserProfile.getSafeAuthId();
-        
-        if (receiverId == null) {
+        if (receiverId == null || receiverId.isEmpty()) {
             mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
             return;
         }
-        
-        if (receiverId.isEmpty()) {
-            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-            return;
-        }
-
         SendFriendRequest req = new SendFriendRequest(receiverId);
         
         friendsService.sendFriendRequest(req).thenRun(() -> {
@@ -227,7 +220,9 @@ public class ProfileController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+                }
             });
             return null;
         });
@@ -565,10 +560,9 @@ public class ProfileController {
 
     private void cargarEstadoAmistad(String otherAuthId) {
         friendsService.getRelationshipStatus(otherAuthId).thenAccept(res -> {
-            Platform.runLater(() -> {
-                procesarEstadoAmistad(res);
-            });
+            Platform.runLater(() -> procesarEstadoAmistad(res));
         }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
             return null;
         });
     }
@@ -612,22 +606,17 @@ public class ProfileController {
         }
         
         String authId = currentUserProfile.getSafeAuthId();
-        
-        if (authId == null) {
-            return;
-        }
-        
-        if (authId.isEmpty()) {
+        if (authId == null || authId.isEmpty()) {
             return;
         }
         
         friendsService.getFriends(authId, page).thenAccept(res -> {
-            Platform.runLater(() -> {
-                procesarPaginacionAmigos(res);
-            });
+            Platform.runLater(() -> procesarPaginacionAmigos(res));
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarVacio(friendsListSection, AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarVacio(friendsListSection, AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -693,7 +682,9 @@ public class ProfileController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
+                }
             });
             return null;
         });
@@ -843,6 +834,7 @@ public class ProfileController {
                 mostrarEstadoCuentaParaAdmin(status);
             });
         }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
             return null;
         });
     }
@@ -917,7 +909,9 @@ public class ProfileController {
             });
         }).exceptionally(err -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(err)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -955,7 +949,9 @@ public class ProfileController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -977,7 +973,9 @@ public class ProfileController {
             .thenAccept(this::procesarRespuestaUsername)
             .exceptionally(e -> {
                 Platform.runLater(() -> {
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                    if (!App.procesarErrorCritico(e)) {
+                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                    }
                 });
                 return null;
             });
@@ -985,9 +983,7 @@ public class ProfileController {
 
     private void procesarRespuestaUsername(java.net.http.HttpResponse<String> response) {
         if (response.statusCode() >= 400) {
-            Platform.runLater(() -> {
-                mostrarAlertaError("Error al actualizar usuario. Puede que el nombre ya esté en uso.");
-            });
+            Platform.runLater(() -> mostrarAlertaError("Error al actualizar usuario. Puede que el nombre ya esté en uso."));
             return;
         }
         
@@ -1002,7 +998,9 @@ public class ProfileController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -1018,7 +1016,9 @@ public class ProfileController {
             });
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarAlertaError(AppConstants.MESSAGE_ERROR_PHOTO);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_PHOTO);
+                }
             });
             return null;
         });
@@ -1034,24 +1034,19 @@ public class ProfileController {
         }
         
         future.thenAccept(list -> {
-            if (list != null) {
-                if (!list.isEmpty()) {
-                    acumulado.addAll(list);
-                    if (list.size() == 10) {
-                        if (page < 3) {
-                            cargarFavoritosRecursivo(isCurrentUser, page + 1, acumulado);
-                            return;
-                        }
-                    }
+            if (list != null && !list.isEmpty()) {
+                acumulado.addAll(list);
+                if (list.size() == 10 && page < 3) {
+                    cargarFavoritosRecursivo(isCurrentUser, page + 1, acumulado);
+                    return;
                 }
             }
-            
-            Platform.runLater(() -> {
-                procesarListaBibliotecas(acumulado, favoritesSection, "No hay series en favoritos.");
-            });
+            Platform.runLater(() -> procesarListaBibliotecas(acumulado, favoritesSection, "No hay series en favoritos."));
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarVacio(favoritesSection, AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarVacio(favoritesSection, AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -1059,24 +1054,19 @@ public class ProfileController {
 
     private void cargarWatchlistRecursivo(int page, List<LibraryItemDto> acumulado) {
         libraryService.getWatchlistPaged(page).thenAccept(list -> {
-            if (list != null) {
-                if (!list.isEmpty()) {
-                    acumulado.addAll(list);
-                    if (list.size() == 10) {
-                        if (page < 3) {
-                            cargarWatchlistRecursivo(page + 1, acumulado);
-                            return;
-                        }
-                    }
+            if (list != null && !list.isEmpty()) {
+                acumulado.addAll(list);
+                if (list.size() == 10 && page < 3) {
+                    cargarWatchlistRecursivo(page + 1, acumulado);
+                    return;
                 }
             }
-            
-            Platform.runLater(() -> {
-                procesarListaBibliotecas(acumulado, watchlistSection, "No tienes series en tu Watchlist.");
-            });
+            Platform.runLater(() -> procesarListaBibliotecas(acumulado, watchlistSection, "No tienes series en tu Watchlist."));
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarVacio(watchlistSection, AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarVacio(watchlistSection, AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });
@@ -1109,24 +1099,18 @@ public class ProfileController {
 
     private void cargarResenasPropias(int page, boolean isCurrentUser) {
         String authId = currentUserProfile.getSafeAuthId();
-        
-        if (authId == null) {
-            mostrarVacio(reviewsSection, "ID de usuario no disponible.");
-            return;
-        }
-        
-        if (authId.isEmpty()) {
+        if (authId == null || authId.isEmpty()) {
             mostrarVacio(reviewsSection, "ID de usuario no disponible.");
             return;
         }
         
         reviewService.getUserReviews(authId, page).thenAccept(res -> {
-            Platform.runLater(() -> {
-                procesarPaginacionResenas(res, isCurrentUser);
-            });
+            Platform.runLater(() -> procesarPaginacionResenas(res, isCurrentUser));
         }).exceptionally(e -> {
             Platform.runLater(() -> {
-                mostrarVacio(reviewsSection, AppConstants.MESSAGE_ERROR_API);
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarVacio(reviewsSection, AppConstants.MESSAGE_ERROR_API);
+                }
             });
             return null;
         });

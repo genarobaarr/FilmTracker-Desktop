@@ -96,22 +96,23 @@ public class LeaderboardsController {
     }
 
     private void loadUsers() {
-        if (usersContainer == null) { 
-            return; 
-        }
+        if (usersContainer == null) {
+            return;
+        } 
         
         usersContainer.getChildren().clear();
         String period = periodMap.get(periodComboBox.getValue());
         
         leaderboardService.getTopUsers(period).thenAccept(res -> {
             Platform.runLater(() -> {
-                if (res != null) {
-                    if (res.top() != null) {
-                        res.top().forEach(this::renderUserRank);
-                    }
+                if (res != null && res.top() != null) {
+                    res.top().forEach(this::renderUserRank);
                 }
             });
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
+        });
     }
 
     private void renderUserRank(UserRankDto rank) {
@@ -134,17 +135,13 @@ public class LeaderboardsController {
         if (rank.authId() != null) {
             userService.getUserById(rank.authId()).thenAccept(user -> {
                 Platform.runLater(() -> {
-                    if (user != null) {
-                        if (user.username() != null) {
-                            titleLbl.setText(user.name() + " (@" + user.username() + ")");
-                        }
-                        
-                        row.setOnMouseClicked(e -> {
-                            App.showProfileView(user);
-                        });
+                    if (user != null && user.username() != null) {
+                        titleLbl.setText(user.name() + " (@" + user.username() + ")");
+                        row.setOnMouseClicked(e -> App.showProfileView(user));
                     }
                 });
             }).exceptionally(e -> {
+                App.procesarErrorCritico(e);
                 return null;
             });
         }
@@ -163,22 +160,23 @@ public class LeaderboardsController {
     }
 
     private void loadReviews() {
-        if (reviewsContainer == null) { 
-            return; 
+        if (reviewsContainer == null) {
+            return;
         }
         
         reviewsContainer.getChildren().clear();
         String period = periodMap.get(periodComboBox.getValue());
-
+        
         leaderboardService.getTopReviews(period).thenAccept(res -> {
             Platform.runLater(() -> {
-                if (res != null) {
-                    if (res.top() != null) {
-                        res.top().forEach(this::renderReviewRank);
-                    }
+                if (res != null && res.top() != null) {
+                    res.top().forEach(this::renderReviewRank);
                 }
             });
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
+        });
     }
 
     private void renderReviewRank(ReviewRankDto review) {
@@ -201,37 +199,23 @@ public class LeaderboardsController {
         if (review.tvmazeId() != null) {
             showService.getShowDetails(review.tvmazeId()).thenAccept(show -> {
                 Platform.runLater(() -> {
-                    if (show != null) {
-                        if (show.name() != null) {
-                            seriesLbl.setText(show.name());
-                        }
-                        
-                        row.setOnMouseClicked(e -> {
-                            App.showShowDetail(show);
-                        });
+                    if (show != null && show.name() != null) {
+                        seriesLbl.setText(show.name());
+                        row.setOnMouseClicked(e -> App.showShowDetail(show));
                     }
                 });
             }).exceptionally(e -> {
+                App.procesarErrorCritico(e);
                 return null;
             });
         }
 
-        String titleStr = "Sin título";
-        
-        if (review.title() != null) {
-            titleStr = review.title();
-        }
-
+        String titleStr = review.title() != null ? review.title() : "Sin título";
         Label titleLbl = new Label(titleStr);
         titleLbl.setTextFill(Color.WHITE);
         titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 15px;");
 
-        String contentStr = "";
-        
-        if (review.content() != null) {
-            contentStr = review.content();
-        }
-
+        String contentStr = review.content() != null ? review.content() : "";
         Label descLbl = new Label(contentStr);
         descLbl.setTextFill(Color.LIGHTGRAY);
         descLbl.setWrapText(true);
@@ -243,45 +227,39 @@ public class LeaderboardsController {
         if (review.authId() != null) {
             userService.getUserById(review.authId()).thenAccept(user -> {
                 Platform.runLater(() -> {
-                    if (user != null) {
-                        if (user.username() != null) {
-                            metaLbl.setText("@" + user.username() + " • ❤️ " + review.getSafeLikesCount() + " likes");
-                        }
+                    if (user != null && user.username() != null) {
+                        metaLbl.setText("@" + user.username() + " • ❤️ " + review.getSafeLikesCount() + " likes");
                     }
                 });
             }).exceptionally(e -> {
+                App.procesarErrorCritico(e);
                 return null;
             });
         }
 
-        contentBox.getChildren().add(seriesLbl);
-        contentBox.getChildren().add(titleLbl);
-        contentBox.getChildren().add(descLbl);
-        contentBox.getChildren().add(metaLbl);
-        
-        row.getChildren().add(rankLbl);
-        row.getChildren().add(contentBox);
-        
+        contentBox.getChildren().addAll(seriesLbl, titleLbl, descLbl, metaLbl);
+        row.getChildren().addAll(rankLbl, contentBox);
         reviewsContainer.getChildren().add(row);
     }
 
     private void loadComments() {
-        if (commentsContainer == null) { 
-            return; 
+        if (commentsContainer == null) {
+            return;
         }
         
         commentsContainer.getChildren().clear();
         String period = periodMap.get(periodComboBox.getValue());
-
+        
         leaderboardService.getTopComments(period).thenAccept(res -> {
             Platform.runLater(() -> {
-                if (res != null) {
-                    if (res.top() != null) {
-                        res.top().forEach(this::renderCommentRank);
-                    }
+                if (res != null && res.top() != null) {
+                    res.top().forEach(this::renderCommentRank);
                 }
             });
-        }).exceptionally(e -> null);
+        }).exceptionally(e -> {
+            App.procesarErrorCritico(e);
+            return null;
+        });
     }
 
     private void renderCommentRank(CommentRankDto comment) {
@@ -304,25 +282,19 @@ public class LeaderboardsController {
         if (comment.authId() != null) {
             userService.getUserById(comment.authId()).thenAccept(user -> {
                 Platform.runLater(() -> {
-                    if (user != null) {
-                        if (user.username() != null) {
-                            authorLbl.setText("@" + user.username());
-                        }
-                        
-                        authorLbl.setOnMouseClicked(e -> {
-                            App.showProfileView(user);
-                        });
+                    if (user != null && user.username() != null) {
+                        authorLbl.setText("@" + user.username());
+                        authorLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+                        authorLbl.setOnMouseClicked(e -> App.showProfileView(user));
                     }
                 });
-            }).exceptionally(e -> null);
+            }).exceptionally(e -> {
+                App.procesarErrorCritico(e);
+                return null;
+            });
         }
 
-        String contentStr = "";
-        
-        if (comment.content() != null) {
-            contentStr = comment.content();
-        }
-
+        String contentStr = comment.content() != null ? comment.content() : "";
         Label descLbl = new Label(contentStr);
         descLbl.setTextFill(Color.LIGHTGRAY);
         descLbl.setWrapText(true);
@@ -331,13 +303,8 @@ public class LeaderboardsController {
         metaLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         metaLbl.setStyle("-fx-font-size: 11px; -fx-font-weight: bold;");
 
-        contentBox.getChildren().add(authorLbl);
-        contentBox.getChildren().add(descLbl);
-        contentBox.getChildren().add(metaLbl);
-        
-        row.getChildren().add(rankLbl);
-        row.getChildren().add(contentBox);
-        
+        contentBox.getChildren().addAll(authorLbl, descLbl, metaLbl);
+        row.getChildren().addAll(rankLbl, contentBox);
         commentsContainer.getChildren().add(row);
     }
 }
