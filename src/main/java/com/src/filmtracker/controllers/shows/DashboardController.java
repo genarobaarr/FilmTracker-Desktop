@@ -204,6 +204,24 @@ public class DashboardController implements Initializable {
     private void handleOpenLeaderboards() {
         App.setRoot(AppConstants.FXML_LEADERBOARDS);
     }
+    
+    private void cargarDatosHome() {
+        showService.getHomeData().thenAccept(homeResponse -> {
+            Platform.runLater(() -> {
+                poblarCarrusel(homeResponse.featured(), carruselDestacados);
+                poblarCarrusel(homeResponse.topRated(), carruselMejorPuntuadas);
+                poblarCarrusel(homeResponse.recent(), carruselRecientes);
+                poblarCarrusel(homeResponse.ended(), carruselTerminadas);
+            });
+        }).exceptionally(e -> {
+            Platform.runLater(() -> {
+                if (!App.procesarErrorCritico(e)) {
+                    mostrarErrorDeRed();
+                }
+            });
+            return null;
+        });
+    }
 
     private void procesarResultadosBusqueda(String query, CompletableFuture<List<Show>> showsFuture, CompletableFuture<UserDto> userFuture) {
         carruselResultados.getChildren().clear();
@@ -288,22 +306,6 @@ public class DashboardController implements Initializable {
         
         unreadBadgeLabel.setVisible(false);
         unreadBadgeLabel.setManaged(false);
-    }
-
-    private void cargarDatosHome() {
-        showService.getHomeData().thenAccept(homeResponse -> {
-            Platform.runLater(() -> {
-                poblarCarrusel(homeResponse.featured(), carruselDestacados);
-                poblarCarrusel(homeResponse.topRated(), carruselMejorPuntuadas);
-                poblarCarrusel(homeResponse.recent(), carruselRecientes);
-                poblarCarrusel(homeResponse.ended(), carruselTerminadas);
-            });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                mostrarErrorDeRed();
-            });
-            return null;
-        });
     }
 
     private void poblarCarrusel(List<Show> shows, HBox contenedor) {

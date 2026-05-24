@@ -116,6 +116,8 @@ public final class AppConstants {
     public static final String MESSAGE_TITLE_UNBAN = "Desbanear Usuario";
     public static final String MESSAGE_CONTENT_UNBAN = "¿Deseas reactivar la cuenta de este usuario?";
     public static final String MESSAGE_ERROR_SESSION_EXPIRED = "Tu sesión ha expirado por seguridad. Por favor, inicia sesión nuevamente.";
+    public static final String MESSAGE_ERROR_SERVER_DOWN_LOGIN = "No hay conexión con el servidor. Se ha cerrado la sesión por seguridad.";
+    public static final String MESSAGE_ERROR_SERVER_DOWN_HOME = "Error de conexión. Se ha regresado al panel principal por seguridad.";
     
     public static final String COLOR_ACCENT = "#e50914";
     public static final double CARD_ANCHOR_WIDTH = 275.0;
