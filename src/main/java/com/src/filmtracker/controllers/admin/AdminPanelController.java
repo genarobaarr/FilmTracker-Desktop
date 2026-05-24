@@ -236,16 +236,16 @@ public class AdminPanelController {
         }
         
         switch (reasonCode) {
-            case "SPAM": return "Spam o comercial";
-            case "OFFENSIVE_CONTENT": return "Contenido ofensivo";
-            case "HARASSMENT": return "Acoso";
-            case "HATE_SPEECH": return "Discurso de odio";
-            case "SEXUAL_CONTENT": return "Contenido sexual";
-            case "VIOLENCE": return "Violencia";
-            case "SPOILER": return "Spoiler sin aviso";
-            case "FAKE_PROFILE": return "Perfil falso";
-            case "INAPPROPRIATE_IMAGE": return "Imagen inapropiada";
-            default: return "Otro";
+            case "SPAM": return "Spam o contenido comercial no deseado";
+            case "OFFENSIVE_CONTENT": return "Contenido ofensivo o abusivo";
+            case "HARASSMENT": return "Acoso o intimidación";
+            case "HATE_SPEECH": return "Incitación al odio o discriminación";
+            case "SEXUAL_CONTENT": return "Contenido sexual o explícito";
+            case "VIOLENCE": return "Violencia o daño físico";
+            case "SPOILER": return "Spoiler sin advertencia previa";
+            case "FAKE_PROFILE": return "Perfil falso o suplantación de identidad";
+            case "Imagen de perfil o contenido inapropiado": return "Imagen inapropiada";
+            default: return "Otro motivo";
         }
     }
 

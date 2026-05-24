@@ -124,12 +124,16 @@ public class MyReportsController {
         }
         
         switch (code) {
-            case "SPAM": return "Spam";
-            case "OFFENSIVE_CONTENT": return "Contenido Ofensivo";
-            case "HARASSMENT": return "Acoso";
-            case "HATE_SPEECH": return "Incitación al Odio";
-            case "INAPPROPRIATE_IMAGE": return "Imagen Inapropiada";
-            default: return code;
+            case "SPAM": return "Spam o contenido comercial no deseado";
+            case "OFFENSIVE_CONTENT": return "Contenido ofensivo o abusivo";
+            case "HARASSMENT": return "Acoso o intimidación";
+            case "HATE_SPEECH": return "Incitación al odio o discriminación";
+            case "SEXUAL_CONTENT": return "Contenido sexual o explícito";
+            case "VIOLENCE": return "Violencia o daño físico";
+            case "SPOILER": return "Spoiler sin advertencia previa";
+            case "FAKE_PROFILE": return "Perfil falso o suplantación de identidad";
+            case "Imagen de perfil o contenido inapropiado": return "Imagen inapropiada";
+            default: return "Otro motivo";
         }
     }
 
