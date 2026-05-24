@@ -507,6 +507,7 @@ public class AdminPanelController {
         reportDetailPane.getChildren().clear();
 
         String translatedStatus = "Desconocido";
+        
         for (Map.Entry<String, String> entry : statusMapUiToBackend.entrySet()) {
             if (entry.getValue().equals(r.status())) {
                 translatedStatus = entry.getKey();
@@ -523,21 +524,49 @@ public class AdminPanelController {
         
         resolverYDibujarExplicacion(r, explanationBox);
 
-        TextArea noteArea = new TextArea();
-        noteArea.setPromptText("Nota administrativa (opcional)...");
-        noteArea.setPrefRowCount(2);
-        noteArea.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
-
-        FlowPane actionsPane = new FlowPane();
-        actionsPane.setHgap(10);
-        actionsPane.setVgap(10);
-
-        inyectarBotonesDeAccionReporte(r, actionsPane, noteArea);
-
         reportDetailPane.getChildren().add(header);
         reportDetailPane.getChildren().add(explanationBox);
-        reportDetailPane.getChildren().add(noteArea);
-        reportDetailPane.getChildren().add(actionsPane);
+
+        dibujarInteraccionesReporte(r, reportDetailPane);
+    }
+
+    private void dibujarInteraccionesReporte(AdminReportDto r, VBox parent) {
+        if ("PENDING".equals(r.status())) {
+            TextArea noteArea = new TextArea();
+            noteArea.setPromptText("Nota administrativa (opcional)...");
+            noteArea.setPrefRowCount(2);
+            noteArea.setStyle("-fx-control-inner-background: #2a2a2a; -fx-text-inner-color: white;");
+
+            FlowPane actionsPane = new FlowPane();
+            actionsPane.setHgap(10);
+            actionsPane.setVgap(10);
+
+            inyectarBotonesDeAccionReporte(r, actionsPane, noteArea);
+
+            parent.getChildren().add(noteArea);
+            parent.getChildren().add(actionsPane);
+            return;
+        }
+
+        if (r.adminNote() != null) {
+            if (!r.adminNote().trim().isEmpty()) {
+                VBox noteBox = new VBox(5);
+                noteBox.setStyle("-fx-background-color: #2a2a2a; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #ff9800; -fx-border-width: 0 0 0 4;");
+                
+                Label noteTitle = new Label("Nota de resolución:");
+                noteTitle.setTextFill(Color.web("#ff9800"));
+                noteTitle.setStyle("-fx-font-weight: bold;");
+                
+                Label noteContent = new Label(r.adminNote());
+                noteContent.setTextFill(Color.WHITE);
+                noteContent.setWrapText(true);
+                
+                noteBox.getChildren().add(noteTitle);
+                noteBox.getChildren().add(noteContent);
+                
+                parent.getChildren().add(noteBox);
+            }
+        }
     }
     
     private void resolverYDibujarExplicacion(AdminReportDto r, VBox container) {

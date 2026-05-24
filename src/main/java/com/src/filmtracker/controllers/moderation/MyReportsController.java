@@ -115,7 +115,36 @@ public class MyReportsController {
         date.setStyle("-fx-font-size: 11px;");
 
         card.getChildren().addAll(header, reason, status, desc, date);
+        
+        inyectarNotaAdminSiAplica(report, card);
+        
         return card;
+    }
+
+    private void inyectarNotaAdminSiAplica(ReportDto report, VBox card) {
+        if ("PENDING".equals(report.status())) {
+            return;
+        }
+        
+        if (report.adminNote() != null) {
+            if (!report.adminNote().trim().isEmpty()) {
+                VBox noteBox = new VBox(5);
+                noteBox.setStyle("-fx-background-color: #2a2a2a; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #4caf50; -fx-border-width: 0 0 0 4;");
+                
+                Label noteTitle = new Label("Nota del Administrador:");
+                noteTitle.setTextFill(Color.web("#4caf50"));
+                noteTitle.setStyle("-fx-font-weight: bold;");
+                
+                Label noteContent = new Label(report.adminNote());
+                noteContent.setTextFill(Color.WHITE);
+                noteContent.setWrapText(true);
+                
+                noteBox.getChildren().add(noteTitle);
+                noteBox.getChildren().add(noteContent);
+                
+                card.getChildren().add(noteBox);
+            }
+        }
     }
 
     private String traducirMotivo(String code) {

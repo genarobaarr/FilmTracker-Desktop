@@ -10,6 +10,8 @@ public record ReportDto(
     String targetType,
     @SerializedName(value = "target_id", alternate = {"targetId"})
     String targetId,
+    @SerializedName(value = "admin_note", alternate = {"adminNote"}) 
+    String adminNote,
     String reason,
     String description,
     String status,
