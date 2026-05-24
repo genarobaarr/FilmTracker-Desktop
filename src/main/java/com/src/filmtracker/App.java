@@ -18,6 +18,8 @@ import java.util.Stack;
 public class App extends Application {
 
     private static Scene scene;
+    private static long ultimoErrorRed = 0;
+    private static int fallosConsecutivosRed = 0;
     
     private static final Stack<Object> navigationHistory = new Stack<>();
     private static Object currentViewState = AppConstants.FXML_LOGIN;
@@ -143,13 +145,53 @@ public class App extends Application {
     public static void handleNetworkError() {
         javafx.application.Platform.runLater(() -> {
             if (AppConstants.FXML_DASHBOARD.equals(currentViewState)) {
-                ejecutarCaidaCritica();
+                com.src.filmtracker.utils.CustomAlertHelper.mostrarError("Error de conexión con el servicio solicitado. Operación interrumpida.");
                 return;
             }
             
             setRoot(AppConstants.FXML_DASHBOARD);
             com.src.filmtracker.utils.CustomAlertHelper.mostrarError(AppConstants.MESSAGE_ERROR_SERVER_DOWN_HOME);
         });
+    }
+
+    public static boolean procesarErrorCritico(Throwable e) {
+        if (e == null) {
+            return false;
+        }
+        
+        String errorStr = e.toString().toLowerCase();
+        
+        boolean fallaRed = errorStr.contains("connectexception") || 
+                           errorStr.contains("connection refused") || 
+                           errorStr.contains("timeout") || 
+                           errorStr.contains("httptimeoutexception") || 
+                           errorStr.contains("502") || 
+                           errorStr.contains("503");
+                           
+        if (fallaRed) {
+            long tiempoActual = System.currentTimeMillis();
+            
+            if (tiempoActual - ultimoErrorRed > 2000) {
+                if (tiempoActual - ultimoErrorRed > 60000) {
+                    fallosConsecutivosRed = 1;
+                } else {
+                    fallosConsecutivosRed++;
+                }
+                
+                ultimoErrorRed = tiempoActual;
+                
+                if (fallosConsecutivosRed >= 3) {
+                    fallosConsecutivosRed = 0;
+                    javafx.application.Platform.runLater(() -> ejecutarCaidaCritica());
+                } else {
+                    handleNetworkError();
+                }
+            }
+            
+            return true;
+        }
+        
+        return false;
     }
 
     private static void ejecutarCaidaCritica() {
@@ -190,30 +232,5 @@ public class App extends Application {
             scene.setRoot(root);
         } catch (IOException e) {
         }
-    }
-    
-    public static boolean procesarErrorCritico(Throwable e) {
-        if (e == null) {
-            return false;
-        }
-        
-        String errorStr = e.toString().toLowerCase();
-        
-        if (errorStr.contains("connectexception") || errorStr.contains("connection refused")) {
-            handleNetworkError();
-            return true;
-        }
-        
-        if (errorStr.contains("timeout") || errorStr.contains("httptimeoutexception")) {
-            handleNetworkError();
-            return true;
-        }
-        
-        if (errorStr.contains("502") || errorStr.contains("503")) {
-            handleNetworkError();
-            return true;
-        }
-        
-        return false;
     }
 }
