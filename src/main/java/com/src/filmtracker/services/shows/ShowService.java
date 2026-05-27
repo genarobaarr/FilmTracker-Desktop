@@ -5,11 +5,12 @@ import com.src.filmtracker.models.shows.ShowEpisodesResponse;
 import com.src.filmtracker.models.shows.ShowFullResponse;
 import com.src.filmtracker.models.shows.SearchResponse;
 import com.src.filmtracker.models.shows.HomeResponse;
-import com.src.filmtracker.services.shows.IShowService;
-import com.src.filmtracker.models.shows.*;
+import com.src.filmtracker.models.shows.Show;
+import com.src.filmtracker.models.shows.EpisodeDto;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.SessionManager;
 
 import java.lang.reflect.Type;
 import java.net.URI;
@@ -43,7 +44,10 @@ public class ShowService implements IShowService {
         Type listType = new TypeToken<List<SearchResponse>>(){}.getType();
 
         return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::body)
+                .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    return response.body();
+                })
                 .thenApply(json -> {
                     List<SearchResponse> results = gson.fromJson(json, listType);
                     return results.stream().map(SearchResponse::show).toList();
@@ -62,7 +66,10 @@ public class ShowService implements IShowService {
         String url = AppConstants.SHOWS_BY_GENRE_URL + encodedGenre;
         
         return client.sendAsync(createRequest(url), java.net.http.HttpResponse.BodyHandlers.ofString())
-                .thenApply(java.net.http.HttpResponse::body)
+                .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    return response.body();
+                })
                 .thenApply(json -> {
                     ShowsByGenreResponse response = gson.fromJson(json, ShowsByGenreResponse.class);
                     return response != null && response.results() != null ? response.results() : List.of();
@@ -74,10 +81,12 @@ public class ShowService implements IShowService {
         String url = AppConstants.SHOWS_SERVICE_URL + "/" + id + "/episodes";
         
         return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::body)
+                .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    return response.body();
+                })
                 .thenApply(json -> {
                     ShowEpisodesResponse response = gson.fromJson(json, ShowEpisodesResponse.class);
-                    
                     return response != null && response.episodes() != null ? response.episodes() : List.of();
                 });
     }
@@ -86,14 +95,19 @@ public class ShowService implements IShowService {
     public CompletableFuture<com.src.filmtracker.models.shows.Show> getShowDetails(Integer tvmazeId) {
         String url = AppConstants.SHOWS_SERVICE_URL + "/" + tvmazeId;
         
-        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+        java.net.http.HttpRequest.Builder builder = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create(url))
                 .header("Accept", "application/json")
-                .GET()
-                .build();
+                .GET();
 
-        return client.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+        if (SessionManager.getInstance().isAuthenticated()) {
+            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+        }
+
+        return client.sendAsync(builder.build(), java.net.http.HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + response.statusCode());
                     }
@@ -110,21 +124,32 @@ public class ShowService implements IShowService {
 
     private <T> CompletableFuture<T> executeGet(String url, Class<T> responseClass) {
         return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::body)
+                .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    return response.body();
+                })
                 .thenApply(json -> gson.fromJson(json, responseClass));
     }
 
     private <T> CompletableFuture<List<T>> executeGetList(String url, Type type) {
         return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::body)
+                .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    return response.body();
+                })
                 .thenApply(json -> gson.fromJson(json, type));
     }
 
     private HttpRequest createRequest(String url) {
-        return HttpRequest.newBuilder()
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
-                .GET()
-                .build();
+                .GET();
+
+        if (SessionManager.getInstance().isAuthenticated()) {
+            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+        }
+
+        return builder.build();
     }
 }

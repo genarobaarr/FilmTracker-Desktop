@@ -7,6 +7,7 @@ import com.src.filmtracker.models.leaderboards.UserRankDto;
 import com.src.filmtracker.models.leaderboards.ReviewRankDto;
 import com.src.filmtracker.models.leaderboards.CommentRankDto;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.SessionManager;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -38,14 +39,19 @@ public class LeaderboardService implements ILeaderboardService {
     }
 
     private <T> CompletableFuture<T> executeGet(String url, Type responseType) {
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
-                .GET()
-                .build();
+                .GET();
 
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        if (SessionManager.getInstance().isAuthenticated()) {
+            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+        }
+
+        return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + response.statusCode());
                     }

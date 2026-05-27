@@ -150,6 +150,8 @@ public class ReviewService implements IReviewService {
         HttpRequest request = createRequestBuilder(url).GET().build();
         
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            com.src.filmtracker.App.checkHttpResponse(response);
+            
             if (response.statusCode() >= 400) {
                 return new ReviewSummaryDto(authId, 0, 0);
             }
@@ -193,6 +195,8 @@ public class ReviewService implements IReviewService {
 
             return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenApply(res -> {
+                        com.src.filmtracker.App.checkHttpResponse(res);
+                        
                         if (res.statusCode() >= 400) {
                             throw new RuntimeException("Upload failed: " + res.statusCode());
                         }
@@ -311,6 +315,8 @@ public class ReviewService implements IReviewService {
 
     private CompletableFuture<Void> sendAndIgnore(HttpRequest request) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(res -> {
+            com.src.filmtracker.App.checkHttpResponse(res);
+            
             if (res.statusCode() >= 400) {
                 throw new RuntimeException("API Error: " + res.statusCode());
             }
@@ -321,6 +327,8 @@ public class ReviewService implements IReviewService {
 
     private <T> CompletableFuture<T> sendAndParse(HttpRequest request, Class<T> responseType, String extractionKey) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            com.src.filmtracker.App.checkHttpResponse(response);
+            
             if (response.statusCode() >= 400) {
                 throw new RuntimeException("API Error: " + response.statusCode());
             }

@@ -80,6 +80,8 @@ public class NotificationService implements INotificationService {
     private <T> CompletableFuture<T> ejecutarPeticion(HttpRequest request, Class<T> claseDestino) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + response.statusCode());
                     }
@@ -91,6 +93,8 @@ public class NotificationService implements INotificationService {
     private CompletableFuture<Void> ejecutarPeticionVacia(HttpRequest request) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + response.statusCode());
                     }

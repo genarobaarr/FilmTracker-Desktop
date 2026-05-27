@@ -34,6 +34,8 @@ public class AdminService implements IAdminService {
         HttpRequest request = construirPeticionGet(url);
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            com.src.filmtracker.App.checkHttpResponse(response);
+            
             if (response.statusCode() >= 400) {
                 return new ArrayList<>();
             }
@@ -245,6 +247,8 @@ public class AdminService implements IAdminService {
 
     private <T> CompletableFuture<T> ejecutarPeticion(HttpRequest request, Class<T> claseDestino) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            com.src.filmtracker.App.checkHttpResponse(response);
+            
             if (response.statusCode() >= 400) {
                 throw new RuntimeException("Error: " + response.statusCode());
             }
@@ -261,6 +265,8 @@ public class AdminService implements IAdminService {
 
     private CompletableFuture<Void> ejecutarPeticionVacia(HttpRequest request) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            com.src.filmtracker.App.checkHttpResponse(response);
+            
             if (response.statusCode() >= 400) {
                 throw new RuntimeException("Error: " + response.statusCode());
             }

@@ -282,4 +282,49 @@ public class App extends Application {
         } catch (IOException e) {
         }
     }
+    
+    public static void checkHttpResponse(java.net.http.HttpResponse<String> response) {
+        int status = response.statusCode();
+        
+        if (status == 401) {
+            Platform.runLater(App::forzarCierreSesionPorExpiracion);
+            throw new RuntimeException("Error 401: No autorizado");
+        } else if (status == 403) {
+            String body = response.body();
+            
+            if (body != null) {
+                String bodyLower = body.toLowerCase();
+                
+                if (bodyLower.contains("baneada") || bodyLower.contains("suspendida")) {
+                    Platform.runLater(() -> {
+                        SessionManager.getInstance().logout();
+                        navigationHistory.clear();
+                        currentViewState = AppConstants.FXML_LOGIN;
+                        
+                        try {
+                            FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_LOGIN));
+                            scene.setRoot(loader.load());
+                        } catch (IOException e) {
+                        }
+                        
+                        String msg = bodyLower.contains("baneada") 
+                            ? "Tu cuenta ha sido baneada permanentemente." 
+                            : "Tu cuenta ha sido suspendida temporalmente.";
+                        CustomAlertHelper.mostrarError(msg);
+                    });
+                    
+                    throw new RuntimeException("Error 403: Cuenta restringida");
+                } else if (bodyLower.contains("administrador") || bodyLower.contains("admin")) {
+                    Platform.runLater(() -> {
+                        goBackUniversal();
+                        CustomAlertHelper.mostrarError("Acceso denegado: Se requiere rol de administrador.");
+                    });
+                    
+                    throw new RuntimeException("Error 403: Se requiere administrador");
+                }
+            }
+            
+            throw new RuntimeException("Error 403: Prohibido");
+        }
+    }
 }

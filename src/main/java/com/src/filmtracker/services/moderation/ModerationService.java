@@ -32,6 +32,8 @@ public class ModerationService implements IModerationService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + response.statusCode());
                     }
@@ -53,6 +55,8 @@ public class ModerationService implements IModerationService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         return null;
                     }

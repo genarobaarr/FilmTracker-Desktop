@@ -30,6 +30,8 @@ public class FriendsService implements IFriendsService {
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         return new FriendsSummaryDto(authId, 0);
                     }
@@ -57,6 +59,8 @@ public class FriendsService implements IFriendsService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
+                    com.src.filmtracker.App.checkHttpResponse(res);
+                    
                     if (res.statusCode() >= 400) {
                         return null;
                     }
@@ -78,6 +82,8 @@ public class FriendsService implements IFriendsService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
+                    com.src.filmtracker.App.checkHttpResponse(res);
+                    
                     if (res.statusCode() >= 400) {
                         return new FriendStatusResponse("NONE", null);
                     }
@@ -125,6 +131,8 @@ public class FriendsService implements IFriendsService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
+                    com.src.filmtracker.App.checkHttpResponse(res);
+                    
                     if (res.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + res.statusCode());
                     }
@@ -145,6 +153,8 @@ public class FriendsService implements IFriendsService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
+                    com.src.filmtracker.App.checkHttpResponse(res);
+                    
                     if (res.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + res.statusCode());
                     }
@@ -175,6 +185,8 @@ public class FriendsService implements IFriendsService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
+                    com.src.filmtracker.App.checkHttpResponse(res);
+                    
                     if (res.statusCode() >= 400) {
                         return null;
                     }
@@ -204,6 +216,8 @@ public class FriendsService implements IFriendsService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
+                    com.src.filmtracker.App.checkHttpResponse(res);
+                    
                     if (res.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + res.statusCode());
                     }
@@ -224,6 +238,8 @@ public class FriendsService implements IFriendsService {
 
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
+                    com.src.filmtracker.App.checkHttpResponse(res);
+                    
                     if (res.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + res.statusCode());
                     }

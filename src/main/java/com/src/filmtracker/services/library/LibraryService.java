@@ -27,6 +27,7 @@ public class LibraryService implements ILibraryService {
     public CompletableFuture<List<LibraryItemDto>> getFavorites() {
         Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
         CompletableFuture<List<LibraryItemDto>> future = executeGet(AppConstants.FAVORITES_URL, type, "data");
+        
         return future.exceptionally(ex -> {
             return new ArrayList<LibraryItemDto>();
         });
@@ -37,6 +38,7 @@ public class LibraryService implements ILibraryService {
         Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
         String url = AppConstants.FAVORITES_URL + "/user/" + authId;
         CompletableFuture<List<LibraryItemDto>> future = executeGet(url, type, "data");
+        
         return future.exceptionally(ex -> {
             return new ArrayList<LibraryItemDto>();
         });
@@ -58,6 +60,7 @@ public class LibraryService implements ILibraryService {
     public CompletableFuture<List<LibraryItemDto>> getWatchlist() {
         Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
         CompletableFuture<List<LibraryItemDto>> future = executeGet(AppConstants.WATCHLIST_URL, type, "data");
+        
         return future.exceptionally(ex -> {
             return new ArrayList<LibraryItemDto>();
         });
@@ -96,14 +99,20 @@ public class LibraryService implements ILibraryService {
     private CompletableFuture<List<LibraryItemDto>> executeGetList(String url) {
         Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
         HttpRequest req = buildRequestBuilder(url).GET().build();
+        
         return client.sendAsync(req, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            com.src.filmtracker.App.checkHttpResponse(response);
+            
             if (response.statusCode() >= 400) {
                 throw new RuntimeException("API Error: " + response.statusCode());
             }
+            
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+            
             if (json.has("data")) {
                 return gson.fromJson(json.get("data"), type);
             }
+            
             return new ArrayList<LibraryItemDto>();
         });
     }
@@ -118,6 +127,7 @@ public class LibraryService implements ILibraryService {
         if (body != null) {
             json = gson.toJson(body);
         }
+        
         HttpRequest req = buildRequestBuilder(url).method(method, HttpRequest.BodyPublishers.ofString(json)).build();
         return sendAndIgnore(req);
     }
@@ -141,20 +151,26 @@ public class LibraryService implements ILibraryService {
 
     private CompletableFuture<Void> sendAndIgnore(HttpRequest request) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(res -> {
+            com.src.filmtracker.App.checkHttpResponse(res);
+            
             if (res.statusCode() >= 400) {
                 throw new RuntimeException("API Error: " + res.statusCode());
             }
+            
             return null;
         });
     }
 
     private <T> CompletableFuture<T> sendAndParse(HttpRequest request, Type responseType, String extractionKey) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+            com.src.filmtracker.App.checkHttpResponse(response);
+            
             if (response.statusCode() >= 400) {
                 throw new RuntimeException("API Error: " + response.statusCode());
             }
             
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+            
             if (extractionKey != null) {
                 if (json.has(extractionKey)) {
                     return gson.fromJson(json.get(extractionKey), responseType);

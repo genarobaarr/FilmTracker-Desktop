@@ -29,13 +29,18 @@ public class UserService implements IUserService {
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Error: " + response.statusCode());
                     }
+                    
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
+                    
                     return gson.fromJson(json, UserDto.class);
                 });
     }
@@ -43,21 +48,29 @@ public class UserService implements IUserService {
     @Override
     public CompletableFuture<UserDto> getUserById(String authId) {
         String url = AppConstants.USERS_SERVICE_URL + "/id/" + authId;
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
-                .GET()
-                .build();
+                .GET();
 
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        if (SessionManager.getInstance().isAuthenticated()) {
+            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+        }
+
+        return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         return null;
                     }
+                    
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
+                    
                     return gson.fromJson(json, UserDto.class);
                 });
     }
@@ -65,21 +78,29 @@ public class UserService implements IUserService {
     @Override
     public CompletableFuture<UserDto> getUserByUsername(String username) {
         String url = AppConstants.USERS_SERVICE_URL + "/" + username;
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
-                .GET()
-                .build();
+                .GET();
 
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        if (SessionManager.getInstance().isAuthenticated()) {
+            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+        }
+
+        return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         return null;
                     }
+                    
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+                    
                     if (json.has("data")) {
                         return gson.fromJson(json.get("data"), UserDto.class);
                     }
+                    
                     return gson.fromJson(json, UserDto.class);
                 });
     }
@@ -96,13 +117,18 @@ public class UserService implements IUserService {
 
         return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Update Error: " + response.statusCode());
                     }
+                    
                     JsonObject obj = JsonParser.parseString(response.body()).getAsJsonObject();
+                    
                     if (obj.has("data")) {
                         return gson.fromJson(obj.get("data"), UserDto.class);
                     }
+                    
                     return gson.fromJson(obj, UserDto.class);
                 });
     }
@@ -121,6 +147,8 @@ public class UserService implements IUserService {
 
         return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    com.src.filmtracker.App.checkHttpResponse(response);
+                    
                     if (response.statusCode() >= 400) {
                         throw new RuntimeException("Upload Error: " + response.statusCode());
                     }
