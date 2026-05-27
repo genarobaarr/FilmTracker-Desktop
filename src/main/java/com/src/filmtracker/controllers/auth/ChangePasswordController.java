@@ -6,6 +6,7 @@ import com.src.filmtracker.services.auth.AuthService;
 import com.src.filmtracker.services.auth.IAuthService;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.CustomAlertHelper;
+import com.src.filmtracker.utils.InputValidator;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -41,18 +42,11 @@ public class ChangePasswordController {
 
         String current = currentPasswordField.getText();
         String nuevo = newPasswordField.getText();
-        String confirm = confirmPasswordField.getText();
-
-        if (current.isEmpty() || nuevo.isEmpty() || confirm.isEmpty()) {
-            mostrarMensajeError(AppConstants.MESSAGE_ERROR_FIELDS);
+        
+        if (!validateInputs()) {
             return;
         }
-
-        if (!nuevo.equals(confirm)) {
-            mostrarMensajeError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
-            return;
-        }
-
+        
         procesarCambio(current, nuevo);
     }
 
@@ -74,6 +68,29 @@ public class ChangePasswordController {
             });
             return null;
         });
+    }
+    
+    private boolean validateInputs() {
+        errorLabel.setVisible(false);
+
+        if (InputValidator.isNullOrEmpty(currentPasswordField.getText()) ||
+                InputValidator.isNullOrEmpty(newPasswordField.getText()))
+        {
+            mostrarMensajeError(AppConstants.MESSAGE_ERROR_EMPTY_FIELDS);
+            return false;
+        }
+
+        if (!InputValidator.isValidPassword(newPasswordField.getText())) {
+            mostrarMensajeError(AppConstants.MESSAGE_ERROR_INVALID_PASSWORD);
+            return false;
+        }
+
+        if (!newPasswordField.getText().equals(confirmPasswordField.getText())) {
+            mostrarMensajeError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
+            return false;
+        }
+
+        return true;
     }
 
     private void mostrarMensajeError(String msg) {

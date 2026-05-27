@@ -26,6 +26,7 @@ import com.src.filmtracker.services.users.IUserService;
 import com.src.filmtracker.services.users.UserService;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.CustomAlertHelper;
+import com.src.filmtracker.utils.InputValidator;
 import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -859,8 +860,7 @@ public class ShowDetailController {
         
         Label errLbl = new Label(); 
         errLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT)); 
-        errLbl.setVisible(false); 
-        errLbl.setManaged(false);
+        errLbl.setVisible(false);
         
         TextField titleIn = new TextField(); 
         titleIn.setPromptText("Título");
@@ -913,16 +913,15 @@ public class ShowDetailController {
 
     private void enviarResena(int[] ratingState, TextField titleIn, TextArea contIn, Label errLbl) {
         UserDto currentUser = SessionManager.getInstance().getCurrentUser();
+        
         if (currentUser != null && !currentUser.isVerified()) {
             mostrarAlertaPrecaucion(AppConstants.MESSAGE_ERROR_UNVERIFIED);
             return;
         }
         
-        if (ratingState[0] == 0 || titleIn.getText().isBlank() || contIn.getText().isBlank()) {
+        if (!validateInputs(ratingState, titleIn, contIn, errLbl)) {
             return;
         }
-        errLbl.setVisible(false); 
-        errLbl.setManaged(false);
         
         ReviewRequest req = new ReviewRequest(currentTvmazeId, ratingState[0], titleIn.getText().trim(), contIn.getText().trim());
         
@@ -946,6 +945,37 @@ public class ShowDetailController {
             });
             return null;
         });
+    }
+    
+    private boolean validateInputs(int[] ratingState, TextField titleIn, TextArea contIn, Label errLbl) {
+        errLbl.setVisible(false);
+
+        if (InputValidator.isNullOrEmpty(titleIn.getText()) ||
+                InputValidator.isNullOrEmpty(contIn.getText()))
+        {
+            return mostrarErrorValidacion(AppConstants.MESSAGE_ERROR_EMPTY_FIELDS, errLbl);
+        }
+
+        if (InputValidator.exceedsMaxLength(titleIn.getText(), 50) ||
+                InputValidator.exceedsMaxLength(contIn.getText(), 500))
+                {
+            return mostrarErrorValidacion(AppConstants.MESSAGE_ERROR_MAX_LENGTH, errLbl);
+        }
+
+        if (ratingState != null) {
+            if (ratingState[0] == 0) {
+                return mostrarErrorValidacion(AppConstants.MESSAGE_ERROR_SELECT_RATING, errLbl);
+            }
+        }
+
+        return true;
+    }
+
+    private boolean mostrarErrorValidacion(String mensaje, Label errLbl) {
+        errLbl.setText(mensaje);
+        errLbl.setVisible(true);
+        errLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
+        return false;
     }
     
     private void injectReviewActions(ReviewDto review, HBox actions, VBox card) {

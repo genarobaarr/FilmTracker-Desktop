@@ -5,6 +5,7 @@ import com.src.filmtracker.services.moderation.IModerationService;
 import com.src.filmtracker.services.moderation.ModerationService;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.CustomAlertHelper;
+import com.src.filmtracker.utils.InputValidator;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
@@ -64,9 +65,14 @@ public class ReportController {
             mostrarError("Debes seleccionar un motivo para el reporte.");
             return;
         }
+        
+        if (!validateInputs()) {
+            return;
+        }
 
         String reasonCode = reasonMap.get(selectedReasonText);
         String description = descriptionArea.getText().trim();
+                
         ReportRequest request = new ReportRequest(targetType, targetId, reasonCode, description);
 
         moderationService.createReport(request).thenRun(() -> {
@@ -80,6 +86,24 @@ public class ReportController {
             });
             return null;
         });
+    }
+    
+    private boolean validateInputs() {
+        errorLabel.setVisible(false);
+
+        if (reasonComboBox.getValue() == null) {
+            mostrarError(AppConstants.MESSAGE_ERROR_SELECT_OPTION);
+            return false;
+        }
+
+        if (descriptionArea != null) {
+            if (InputValidator.exceedsMaxLength(descriptionArea.getText(), 250)) {
+                mostrarError(AppConstants.MESSAGE_ERROR_MAX_LENGTH);
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void manejarErrorReporte(Throwable e) {

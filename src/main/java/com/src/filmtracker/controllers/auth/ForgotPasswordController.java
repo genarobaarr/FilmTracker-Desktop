@@ -5,6 +5,7 @@ import com.src.filmtracker.models.auth.ForgotPasswordRequest;
 import com.src.filmtracker.services.auth.AuthService;
 import com.src.filmtracker.services.auth.IAuthService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.InputValidator;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -15,13 +16,14 @@ public class ForgotPasswordController {
     
     @FXML private TextField emailField;
     @FXML private Label errorLabel;
+    
     private final IAuthService authService = new AuthService();
 
     @FXML
     private void handleSend() {
         String email = emailField.getText().trim();
-        if (email.isEmpty()) {
-            mostrarError(AppConstants.MESSAGE_ERROR_FIELDS);
+        
+        if (!validateInputs()) {
             return;
         }
         
@@ -45,6 +47,23 @@ public class ForgotPasswordController {
     
     @FXML private void handleClose() { 
         Platform.exit(); System.exit(0); 
+    }
+    
+    private boolean validateInputs() {
+        errorLabel.setVisible(false);
+
+        if (InputValidator.isNullOrEmpty(emailField.getText())) {
+            mostrarError(AppConstants.MESSAGE_ERROR_EMPTY_FIELDS);
+            return false;
+        }
+
+        if (!InputValidator.isValidEmail(emailField.getText())) {
+            mostrarError(AppConstants.MESSAGE_ERROR_INVALID_EMAIL);
+            return false;
+
+        }
+
+        return true;
     }
 
     private void mostrarError(String msg) {

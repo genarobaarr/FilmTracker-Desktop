@@ -6,6 +6,7 @@ import com.src.filmtracker.models.auth.RegisterRequest;
 import com.src.filmtracker.services.auth.AuthService;
 import com.src.filmtracker.services.auth.IAuthService;
 import com.src.filmtracker.utils.AppConstants;
+import com.src.filmtracker.utils.InputValidator;
 import com.src.filmtracker.utils.SessionManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -42,18 +43,7 @@ public class RegisterController {
         String pass = passwordField.getText().trim();
         String confirmPass = confirmPasswordField.getText().trim();
 
-        if (username.isEmpty() || name.isEmpty() || email.isEmpty() || pass.isEmpty() || confirmPass.isEmpty()) {
-            showError(AppConstants.MESSAGE_ERROR_FIELDS);
-            return;
-        }
-        
-        if (!username.matches("^[a-zA-Z0-9]+$")) {
-            showError(AppConstants.MESSAGE_ERROR_USERNAME_INVALID);
-            return;
-        }
-
-        if (!pass.equals(confirmPass)) {
-            showError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
+        if (!validateInputs()) {
             return;
         }
 
@@ -71,6 +61,70 @@ public class RegisterController {
             Platform.runLater(() -> showError(AppConstants.MESSAGE_ERROR_REG_FAILED));
             return null;
         });
+    }
+    
+    private boolean validateInputs() {
+        errorLabel.setVisible(false);
+
+        if (!validarCamposLlenos()) {
+            return false;
+        }
+
+        if (!validarFormatos()) {
+            return false;
+        }
+
+        if (!validarContrasenas()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean validarCamposLlenos() {
+        if (InputValidator.isNullOrEmpty(usernameField.getText()) || 
+                InputValidator.isNullOrEmpty(emailField.getText()) ||
+                InputValidator.isNullOrEmpty(nameField.getText()) || 
+                InputValidator.isNullOrEmpty(passwordField.getText()) ||
+                InputValidator.isNullOrEmpty(confirmPasswordField.getText())) 
+        {
+            
+            showError(AppConstants.MESSAGE_ERROR_EMPTY_FIELDS);
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean validarFormatos() {
+        if (!InputValidator.isValidUsername(usernameField.getText())) {
+            showError(AppConstants.MESSAGE_ERROR_INVALID_USERNAME);
+            return false;
+        }
+
+        if (!InputValidator.isValidEmail(emailField.getText())) {
+            showError(AppConstants.MESSAGE_ERROR_INVALID_EMAIL);
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean validarContrasenas() {
+        if (!InputValidator.isValidPassword(passwordField.getText()) || 
+                !InputValidator.isValidPassword(confirmPasswordField.getText())) 
+        {
+            showError(AppConstants.MESSAGE_ERROR_INVALID_PASSWORD);
+            return false;
+        }
+
+        if (!passwordField.getText().equals(confirmPasswordField.getText())) {
+            showError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
+            return false;
+
+        }
+
+        return true;
     }
 
     private void showError(String message) {

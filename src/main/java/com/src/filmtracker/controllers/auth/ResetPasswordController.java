@@ -6,6 +6,7 @@ import com.src.filmtracker.services.auth.AuthService;
 import com.src.filmtracker.services.auth.IAuthService;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.CustomAlertHelper;
+import com.src.filmtracker.utils.InputValidator;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -26,12 +27,7 @@ public class ResetPasswordController {
         String pass = passwordField.getText();
         String confirm = confirmField.getText();
 
-        if (token.isEmpty() || pass.isEmpty()) {
-            mostrarError(AppConstants.MESSAGE_ERROR_FIELDS);
-            return;
-        }
-        if (!pass.equals(confirm)) {
-            mostrarError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
+        if (!validateInputs()) {
             return;
         }
 
@@ -48,6 +44,27 @@ public class ResetPasswordController {
     
     @FXML private void handleBack() { 
         App.setRoot(AppConstants.FXML_LOGIN); 
+    }
+    
+    private boolean validateInputs() {
+        errorLabel.setVisible(false);
+
+        if (InputValidator.isNullOrEmpty(tokenField.getText())) {
+            mostrarError(AppConstants.MESSAGE_ERROR_EMPTY_FIELDS);
+            return false;
+        }
+
+        if (!InputValidator.isValidPassword(passwordField.getText())) {
+            mostrarError(AppConstants.MESSAGE_ERROR_INVALID_PASSWORD);
+            return false;
+        }
+
+        if (!passwordField.getText().equals(confirmField.getText())) {
+            mostrarError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
+            return false;
+        }
+
+        return true;
     }
 
     private void mostrarError(String msg) {
