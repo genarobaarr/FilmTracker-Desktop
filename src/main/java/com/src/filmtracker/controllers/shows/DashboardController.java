@@ -122,11 +122,6 @@ public class DashboardController implements Initializable {
     }
     
     @FXML
-    private void handleOpenMyReports() {
-        App.setRoot(AppConstants.FXML_MY_REPORTS);
-    }
-    
-    @FXML
     private void handleOpenNotifications() {
         App.setRoot(AppConstants.FXML_NOTIFICATIONS);
     }

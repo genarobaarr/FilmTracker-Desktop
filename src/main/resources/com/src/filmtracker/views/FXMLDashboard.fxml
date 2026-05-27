@@ -51,7 +51,6 @@
                 <items>
                   <MenuItem mnemonicParsing="false" onAction="#handleVerPerfil" text="Ver Perfil" />
                   <MenuItem fx:id="adminMenuItem" mnemonicParsing="false" onAction="#handleOpenAdminPanel" text="🛡️ Panel de Administración" />
-                  <MenuItem mnemonicParsing="false" onAction="#handleOpenMyReports" text="🔨 Mis Reportes" />
                   <MenuItem mnemonicParsing="false" onAction="#handleLogout" text="⏻ Cerrar Sesión" />
                 </items>
                 <font>

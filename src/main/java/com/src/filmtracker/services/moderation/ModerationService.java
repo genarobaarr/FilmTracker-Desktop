@@ -1,10 +1,7 @@
 package com.src.filmtracker.services.moderation;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.src.filmtracker.models.moderation.ReportRequest;
-import com.src.filmtracker.models.moderation.MyReportsResponse;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
 import java.net.URI;
@@ -39,35 +36,6 @@ public class ModerationService implements IModerationService {
                     }
                     
                     return null;
-                });
-    }
-
-    @Override
-    public CompletableFuture<MyReportsResponse> getMyReports(int page) {
-        String url = AppConstants.MODERATION_MY_REPORTS_URL + "?page=" + page;
-
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .GET()
-                .build();
-
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> {
-                    com.src.filmtracker.App.checkHttpResponse(response);
-                    
-                    if (response.statusCode() >= 400) {
-                        return null;
-                    }
-                    
-                    JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
-                    if (json.has("data")) {
-                        return gson.fromJson(json.get("data"), MyReportsResponse.class);
-                    }
-                    
-                    return gson.fromJson(json, MyReportsResponse.class);
                 });
     }
 }
