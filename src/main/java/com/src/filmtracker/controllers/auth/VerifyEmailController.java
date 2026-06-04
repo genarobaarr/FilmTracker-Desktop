@@ -58,35 +58,27 @@ public class VerifyEmailController {
         String email = SessionManager.getInstance().getCurrentUser().email();
         VerifyEmailRequest request = new VerifyEmailRequest(email, code);
         
-        authService.verifyEmail(request).thenAccept(response -> {
-            Platform.runLater(() -> {
-                procesarExitoVerificacion(response);
+        authService.verifyEmail(request)
+            .thenAccept(response -> Platform.runLater(() -> procesarExitoVerificacion(response)))
+            .exceptionally(e -> {
+                Platform.runLater(() -> mostrarError(AppConstants.MESSAGE_ERROR_API));
+                return null;
             });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                mostrarError(AppConstants.MESSAGE_ERROR_API);
-            });
-            
-            return null;
-        });
     }
     
     private void procesarExitoVerificacion(AuthResponse response) {
-        if (response != null) {
-            if (response.data() != null) {
-                SessionManager.getInstance().logout();
-                mostrarExito(AppConstants.MESSAGE_SUCCESS_VERIFIED + " Redirigiendo al Login...");
-                
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(2500);
-                        Platform.runLater(() -> {
-                            App.setRoot(AppConstants.FXML_LOGIN);
-                        });
-                    } catch (InterruptedException ex) {
-                    }
-                }).start();
-            }
+        if (response != null && response.data() != null) {
+            SessionManager.getInstance().logout();
+            mostrarExito(AppConstants.MESSAGE_SUCCESS_VERIFIED + " Redirigiendo al Login...");
+            
+            new Thread(() -> {
+                try {
+                    Thread.sleep(2500);
+                    Platform.runLater(() -> App.setRoot(AppConstants.FXML_LOGIN));
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt(); 
+                }
+            }).start();
         }
     }
 
@@ -102,17 +94,12 @@ public class VerifyEmailController {
         String email = SessionManager.getInstance().getCurrentUser().email();
         ResendVerificationRequest request = new ResendVerificationRequest(email);
 
-        authService.resendVerification(request).thenAccept(response -> {
-            Platform.runLater(() -> {
-                mostrarExito(AppConstants.MESSAGE_SUCCESS_RESEND);
+        authService.resendVerification(request)
+            .thenAccept(response -> Platform.runLater(() -> mostrarExito(AppConstants.MESSAGE_SUCCESS_RESEND)))
+            .exceptionally(e -> {
+                Platform.runLater(() -> mostrarError(AppConstants.MESSAGE_ERROR_API));
+                return null;
             });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                mostrarError(AppConstants.MESSAGE_ERROR_API);
-            });
-            
-            return null;
-        });
     }
 
     private void mostrarError(String message) {

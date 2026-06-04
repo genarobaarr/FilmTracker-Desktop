@@ -84,31 +84,21 @@ public class DashboardController implements Initializable {
         String userQuery = query.replace(" ", "_");
 
         CompletableFuture<List<Show>> showsFuture = showService.searchShows(query)
-            .exceptionally(e -> {
-                return new ArrayList<>();
-            });
+            .exceptionally(e -> new ArrayList<>());
 
         CompletableFuture<UserDto> userFuture = userService.getUserByUsername(userQuery)
-            .exceptionally(e -> {
-                return null;
-            });
+            .exceptionally(e -> null);
 
-        CompletableFuture.allOf(showsFuture, userFuture).thenAccept(v -> {
-            Platform.runLater(() -> {
-                procesarResultadosBusqueda(query, showsFuture, userFuture);
-            });
-        });
+        CompletableFuture.allOf(showsFuture, userFuture).thenAccept(v -> 
+            Platform.runLater(() -> procesarResultadosBusqueda(query, showsFuture, userFuture))
+        );
     }
 
     @FXML
     private void handleVerPerfil() {
-        userService.getProfile().thenAccept(user -> {
-            Platform.runLater(() -> {
-                App.showProfileView(user);
-            });
-        }).exceptionally(e -> {
-            return null;
-        });
+        userService.getProfile().thenAccept(user -> 
+            Platform.runLater(() -> App.showProfileView(user))
+        ).exceptionally(e -> null);
     }
     
     @FXML
@@ -129,7 +119,6 @@ public class DashboardController implements Initializable {
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();
-        
         App.setRoot(AppConstants.FXML_LOGIN);
     }
     
@@ -201,14 +190,14 @@ public class DashboardController implements Initializable {
     }
     
     private void cargarDatosHome() {
-        showService.getHomeData().thenAccept(homeResponse -> {
+        showService.getHomeData().thenAccept(homeResponse -> 
             Platform.runLater(() -> {
                 poblarCarrusel(homeResponse.featured(), carruselDestacados);
                 poblarCarrusel(homeResponse.topRated(), carruselMejorPuntuadas);
                 poblarCarrusel(homeResponse.recent(), carruselRecientes);
                 poblarCarrusel(homeResponse.ended(), carruselTerminadas);
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarErrorDeRed();
@@ -226,12 +215,14 @@ public class DashboardController implements Initializable {
         try {
             user = userFuture.join();
         } catch (Exception ex) {
+            // Falla silenciosa intencional al resolver la promesa de usuario
         }
 
         List<Show> shows = null;
         try {
             shows = showsFuture.join();
         } catch (Exception ex) {
+            // Falla silenciosa intencional al resolver la promesa de shows
         }
 
         boolean foundAnything = iterarResultados(user, shows);
@@ -249,54 +240,44 @@ public class DashboardController implements Initializable {
     private boolean iterarResultados(UserDto user, List<Show> shows) {
         boolean found = false;
 
-        if (user != null) {
-            if (user.id() != null) {
-                agregarTarjetaUsuario(user, carruselResultados);
-                found = true;
-            }
+        if (user != null && user.id() != null) {
+            agregarTarjetaUsuario(user, carruselResultados);
+            found = true;
         }
 
-        if (shows != null) {
-            if (!shows.isEmpty()) {
-                for (Show show : shows) {
-                    agregarTarjeta(show, carruselResultados);
-                }
-                found = true;
+        if (shows != null && !shows.isEmpty()) {
+            for (Show show : shows) {
+                agregarTarjeta(show, carruselResultados);
             }
+            found = true;
         }
 
         return found;
     }
     
     private void evaluarMenuAdmin() {
-        if (SessionManager.getInstance().getCurrentUser() != null) {
-            if ("ADMIN".equals(SessionManager.getInstance().getCurrentUser().role())) {
-                adminMenuItem.setVisible(true);
-                return;
-            }
+        UserDto currentUser = SessionManager.getInstance().getCurrentUser();
+        
+        if (currentUser != null && "ADMIN".equals(currentUser.role())) {
+            adminMenuItem.setVisible(true);
+            return;
         }
         
         adminMenuItem.setVisible(false);
     }
     
     private void cargarConteoNotificaciones() {
-        notificationService.getUnreadCount().thenAccept(res -> {
-            Platform.runLater(() -> {
-                actualizarBadgeNotificaciones(res);
-            });
-        }).exceptionally(e -> null);
+        notificationService.getUnreadCount().thenAccept(res -> 
+            Platform.runLater(() -> actualizarBadgeNotificaciones(res))
+        ).exceptionally(e -> null);
     }
 
     private void actualizarBadgeNotificaciones(com.src.filmtracker.models.notifications.UnreadCountResponse res) {
-        if (res != null) {
-            if (res.unreadCount() != null) {
-                if (res.unreadCount() > 0) {
-                    unreadBadgeLabel.setText(String.valueOf(res.unreadCount()));
-                    unreadBadgeLabel.setVisible(true);
-                    unreadBadgeLabel.setManaged(true);
-                    return;
-                }
-            }
+        if (res != null && res.unreadCount() != null && res.unreadCount() > 0) {
+            unreadBadgeLabel.setText(String.valueOf(res.unreadCount()));
+            unreadBadgeLabel.setVisible(true);
+            unreadBadgeLabel.setManaged(true);
+            return;
         }
         
         unreadBadgeLabel.setVisible(false);
@@ -323,6 +304,7 @@ public class DashboardController implements Initializable {
             
             contenedor.getChildren().add(card);
         } catch (IOException e) {
+            // Falla silenciosa intencional al cargar componente visual
         }
     }
 
@@ -336,6 +318,7 @@ public class DashboardController implements Initializable {
 
             contenedor.getChildren().add(card);
         } catch (IOException e) {
+            // Falla silenciosa intencional al cargar componente visual
         }
     }
 
@@ -344,8 +327,6 @@ public class DashboardController implements Initializable {
     }
     
     private void moverCarrusel(ScrollPane scrollPane, double cantidad) {
-        double newValue = scrollPane.getHvalue() + cantidad;
-        
-        scrollPane.setHvalue(Math.max(0.0, Math.min(newValue, 1.0)));
+        scrollPane.setHvalue(Math.clamp(scrollPane.getHvalue() + cantidad, 0.0, 1.0));
     }
 }

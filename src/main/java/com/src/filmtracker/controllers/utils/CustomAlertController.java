@@ -23,6 +23,7 @@ public class CustomAlertController {
 
     @FXML
     public void initialize() {
+        // Método requerido por FXML, intencionalmente vacío
     }
 
     @FXML
@@ -62,16 +63,12 @@ public class CustomAlertController {
     }
     
     public void configurarTextosBotones(String textoConfirmar, String textoCancelar) {
-        if (btnConfirm != null) {
-            if (textoConfirmar != null) {
-                btnConfirm.setText(textoConfirmar);
-            }
+        if (btnConfirm != null && textoConfirmar != null) {
+            btnConfirm.setText(textoConfirmar);
         }
         
-        if (btnCancel != null) {
-            if (textoCancelar != null) {
-                btnCancel.setText(textoCancelar);
-            }
+        if (btnCancel != null && textoCancelar != null) {
+            btnCancel.setText(textoCancelar);
         }
     }
 

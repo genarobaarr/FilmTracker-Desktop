@@ -8,6 +8,7 @@ import com.src.filmtracker.models.leaderboards.ReviewRankDto;
 import com.src.filmtracker.models.leaderboards.CommentRankDto;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
+
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -16,6 +17,12 @@ import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
 
 public class LeaderboardService implements ILeaderboardService {
+
+    private static final String HEADER_ACCEPT = "Accept";
+    private static final String HEADER_AUTH = "Authorization";
+    private static final String TYPE_JSON = "application/json";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ERROR_PREFIX = "Error: ";
 
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
@@ -41,11 +48,11 @@ public class LeaderboardService implements ILeaderboardService {
     private <T> CompletableFuture<T> executeGet(String url, Type responseType) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Accept", "application/json")
+                .header(HEADER_ACCEPT, TYPE_JSON)
                 .GET();
 
         if (SessionManager.getInstance().isAuthenticated()) {
-            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+            builder.header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken());
         }
 
         return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
@@ -53,7 +60,7 @@ public class LeaderboardService implements ILeaderboardService {
                     com.src.filmtracker.App.checkHttpResponse(response);
                     
                     if (response.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + response.statusCode());
+                        throw new IllegalStateException(ERROR_PREFIX + response.statusCode());
                     }
                     
                     return gson.fromJson(response.body(), responseType);

@@ -24,6 +24,19 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 public class FriendsManagerController {
+    
+    private static final String STYLE_BTN_DARK = "-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;";
+    private static final String STYLE_BTN_GREEN = "-fx-background-color: #4caf50; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;";
+    private static final String STYLE_BTN_RED = "-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;";
+    private static final String STYLE_CARD_BG = "-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8;";
+    private static final String STYLE_BTN_CARRUSEL = "-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;";
+    private static final String STYLE_NAME_LINK = "-fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand; -fx-underline: true;";
+    private static final String STYLE_USER_LINK = "-fx-font-size: 12px; -fx-cursor: hand; -fx-underline: true;";
+    private static final String STYLE_IV_HAND = "-fx-cursor: hand;";
+    
+    private static final String MSG_NO_AMIGOS = "No tienes amigos agregados aún.";
+    private static final String MSG_NO_SOLICITUDES = "No hay solicitudes recibidas.";
+    private static final String AVATAR_API_BASE = "https://ui-avatars.com/api/?background=e50914&color=fff&name=";
 
     @FXML private VBox friendsListSection;
     @FXML private VBox incomingBox;
@@ -48,18 +61,19 @@ public class FriendsManagerController {
         App.goBackUniversal(); 
     }
     
-    @FXML private void handleMinimize() { 
+    @FXML 
+    private void handleMinimize() { 
         ((Stage) incomingBox.getScene().getWindow()).setIconified(true); 
     }
     
-    @FXML private void handleClose() { 
+    @FXML 
+    private void handleClose() { 
         Platform.exit(); 
         System.exit(0); 
     }
 
     private void cargarAmigosPropios(int page) {
         UserDto currentUser = SessionManager.getInstance().getCurrentUser();
-        
         if (currentUser == null) {
             return;
         }
@@ -69,31 +83,19 @@ public class FriendsManagerController {
             return;
         }
         
-        friendsService.getFriends(authId, page).thenAccept(res -> {
-            Platform.runLater(() -> procesarPaginacionAmigos(res));
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                if (!App.procesarErrorCritico(e)) {
-                    mostrarVacio(friendsListSection, AppConstants.MESSAGE_ERROR_API);
-                }
+        friendsService.getFriends(authId, page)
+            .thenAccept(res -> Platform.runLater(() -> procesarPaginacionAmigos(res)))
+            .exceptionally(e -> {
+                Platform.runLater(() -> {
+                    if (!App.procesarErrorCritico(e)) mostrarVacio(friendsListSection, AppConstants.MESSAGE_ERROR_API);
+                });
+                return null;
             });
-            return null;
-        });
     }
 
     private void procesarPaginacionAmigos(FriendPaginationResponse response) {
-        if (response == null) {
-            mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
-            return;
-        }
-        
-        if (response.data() == null) {
-            mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
-            return;
-        }
-        
-        if (response.data().isEmpty()) {
-            mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
+        if (response == null || response.data() == null || response.data().isEmpty()) {
+            mostrarVacio(friendsListSection, MSG_NO_AMIGOS);
             return;
         }
 
@@ -108,26 +110,13 @@ public class FriendsManagerController {
     }
 
     private void resolverAmigoYAgregar(FriendItemDto item, HBox content) {
-        if (item == null) {
+        if (item == null || item.friendAuthId() == null || item.friendAuthId().isEmpty()) {
             return;
         }
         
-        String targetId = item.friendAuthId();
-        
-        if (targetId == null) {
-            return;
-        }
-        
-        if (targetId.isEmpty()) {
-            return;
-        }
-        
-        userService.getUserById(targetId).thenAccept(fullUser -> {
+        userService.getUserById(item.friendAuthId()).thenAccept(fullUser -> {
             if (fullUser != null) {
-                Platform.runLater(() -> {
-                    VBox card = buildFriendCard(fullUser);
-                    content.getChildren().add(card);
-                });
+                Platform.runLater(() -> content.getChildren().add(buildFriendCard(fullUser)));
             }
         });
     }
@@ -139,18 +128,13 @@ public class FriendsManagerController {
         sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
         Button bI = new Button("<"); 
-        bI.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;");
+        bI.setStyle(STYLE_BTN_CARRUSEL);
         
         Button bD = new Button(">"); 
-        bD.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;");
+        bD.setStyle(STYLE_BTN_CARRUSEL);
         
-        bI.setOnAction(e -> {
-            sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2));
-        }); 
-        
-        bD.setOnAction(e -> {
-            sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2));
-        });
+        bI.setOnAction(e -> sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2))); 
+        bD.setOnAction(e -> sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2)));
         
         BorderPane bp = new BorderPane(sp); 
         bp.setLeft(bI); 
@@ -163,67 +147,50 @@ public class FriendsManagerController {
         friendsListSection.getChildren().add(bp);
     }
 
+    private String obtenerUrlAvatar(UserDto user) {
+        if (user.profileImage() != null && !user.profileImage().isEmpty()) {
+            return user.profileImage();
+        }
+        String nameParam = user.username() != null ? user.username() : "User";
+        return AVATAR_API_BASE + nameParam;
+    }
+
     private VBox buildFriendCard(UserDto friend) {
         VBox box = new VBox(10);
         box.setAlignment(Pos.CENTER);
-        box.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-cursor: hand;");
+        box.setStyle(STYLE_CARD_BG + " -fx-cursor: hand;");
         box.setPrefWidth(150);
         box.setMaxWidth(150);
 
-        ImageView iv = new ImageView();
+        ImageView iv = new ImageView(new Image(obtenerUrlAvatar(friend), true));
         iv.setFitWidth(80);
         iv.setFitHeight(80);
-        
-        String imageUrl = "https://ui-avatars.com/api/?name=" + friend.username() + "&background=e50914&color=fff";
-        
-        if (friend.profileImage() != null) {
-            if (!friend.profileImage().isEmpty()) {
-                imageUrl = friend.profileImage();
-            }
-        }
-        
-        iv.setImage(new Image(imageUrl, true));
 
-        String nombreSeguro = "Desconocido";
-        if (friend.name() != null) {
-            nombreSeguro = friend.name();
-        }
-
+        String nombreSeguro = friend.name() != null ? friend.name() : "Desconocido";
         Label name = new Label(nombreSeguro);
         name.setTextFill(Color.WHITE);
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-        String userSeguro = "usuario";
-        if (friend.username() != null) {
-            userSeguro = friend.username();
-        }
-
+        String userSeguro = friend.username() != null ? friend.username() : "usuario";
         Label user = new Label("@" + userSeguro);
         user.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         user.setStyle("-fx-font-size: 12px;");
 
-        box.getChildren().add(iv);
-        box.getChildren().add(name);
-        box.getChildren().add(user);
-
-        box.setOnMouseClicked(e -> {
-            abrirPerfilAmigo(friend);
-        });
+        box.getChildren().addAll(iv, name, user);
+        box.setOnMouseClicked(e -> abrirPerfilAmigo(friend));
 
         return box;
     }
 
     private void abrirPerfilAmigo(UserDto amigo) {
-        if (amigo != null) {
-            App.showProfileView(amigo);
-        }
+        if (amigo != null) App.showProfileView(amigo);
     }
 
     private void cargarSolicitudesRecibidas(int page) {
         incomingBox.getChildren().clear();
         friendsService.getIncomingRequests(page).thenAccept(res -> {
             if (res == null || res.data() == null || res.data().isEmpty()) {
-                Platform.runLater(() -> mostrarVacio(incomingBox, "No hay solicitudes recibidas."));
+                Platform.runLater(() -> mostrarVacio(incomingBox, MSG_NO_SOLICITUDES));
                 return;
             }
             for (FriendRequestItemDto req : res.data()) {
@@ -252,21 +219,11 @@ public class FriendsManagerController {
     private HBox buildIncomingCard(FriendRequestItemDto req, UserDto user) {
         HBox box = new HBox(15);
         box.setAlignment(Pos.CENTER_LEFT);
-        box.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8;");
+        box.setStyle(STYLE_CARD_BG);
 
-        ImageView iv = new ImageView();
+        ImageView iv = new ImageView(new Image(obtenerUrlAvatar(user), true));
         iv.setFitWidth(50);
         iv.setFitHeight(50);
-        
-        String imageUrl = "https://ui-avatars.com/api/?name=" + user.username() + "&background=e50914&color=fff";
-        
-        if (user.profileImage() != null) {
-            if (!user.profileImage().isEmpty()) {
-                imageUrl = user.profileImage();
-            }
-        }
-        
-        iv.setImage(new Image(imageUrl, true));
 
         VBox infoBox = new VBox(5);
         Label name = new Label(user.name());
@@ -276,63 +233,46 @@ public class FriendsManagerController {
         username.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
 
         configurarInformacionClicable(iv, name, username, user);
-
-        infoBox.getChildren().add(name);
-        infoBox.getChildren().add(username);
+        infoBox.getChildren().addAll(name, username);
 
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button acceptBtn = new Button("Aceptar");
-        acceptBtn.setStyle("-fx-background-color: #4caf50; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
-        
-        acceptBtn.setOnAction(e -> {
-            procesarAceptar(req.getSafeId());
-        });
+        acceptBtn.setStyle(STYLE_BTN_GREEN);
+        acceptBtn.setOnAction(e -> procesarAceptar(req.getSafeId()));
 
         Button rejectBtn = new Button("Rechazar");
-        rejectBtn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
-        
-        rejectBtn.setOnAction(e -> {
-            procesarRechazar(req.getSafeId());
-        });
+        rejectBtn.setStyle(STYLE_BTN_DARK);
+        rejectBtn.setOnAction(e -> procesarRechazar(req.getSafeId()));
 
-        box.getChildren().add(iv);
-        box.getChildren().add(infoBox);
-        box.getChildren().add(spacer);
-        box.getChildren().add(acceptBtn);
-        box.getChildren().add(rejectBtn);
-
+        box.getChildren().addAll(iv, infoBox, spacer, acceptBtn, rejectBtn);
         return box;
     }
 
     private void procesarAceptar(Integer reqId) {
-        friendsService.acceptFriendRequest(reqId).thenRun(() -> {
+        friendsService.acceptFriendRequest(reqId).thenRun(() -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_ACCEPTED);
                 cargarDatos();
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
-                if (!App.procesarErrorCritico(e)) {
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-                }
+                if (!App.procesarErrorCritico(e)) mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
             });
             return null;
         });
     }
 
     private void procesarRechazar(Integer reqId) {
-        friendsService.rejectFriendRequest(reqId).thenRun(() -> {
+        friendsService.rejectFriendRequest(reqId).thenRun(() -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_REJECTED);
                 cargarDatos();
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
-                if (!App.procesarErrorCritico(e)) {
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-                }
+                if (!App.procesarErrorCritico(e)) mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
             });
             return null;
         });
@@ -371,21 +311,11 @@ public class FriendsManagerController {
     private HBox buildOutgoingCard(FriendRequestItemDto req, UserDto user) {
         HBox box = new HBox(15);
         box.setAlignment(Pos.CENTER_LEFT);
-        box.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8;");
+        box.setStyle(STYLE_CARD_BG);
 
-        ImageView iv = new ImageView();
+        ImageView iv = new ImageView(new Image(obtenerUrlAvatar(user), true));
         iv.setFitWidth(50);
         iv.setFitHeight(50);
-        
-        String imageUrl = "https://ui-avatars.com/api/?name=" + user.username() + "&background=e50914&color=fff";
-        
-        if (user.profileImage() != null) {
-            if (!user.profileImage().isEmpty()) {
-                imageUrl = user.profileImage();
-            }
-        }
-        
-        iv.setImage(new Image(imageUrl, true));
 
         VBox infoBox = new VBox(5);
         Label name = new Label(user.name());
@@ -395,57 +325,38 @@ public class FriendsManagerController {
         username.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
 
         configurarInformacionClicable(iv, name, username, user);
-
-        infoBox.getChildren().add(name);
-        infoBox.getChildren().add(username);
+        infoBox.getChildren().addAll(name, username);
 
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button cancelBtn = new Button("Cancelar Solicitud");
-        cancelBtn.setStyle("-fx-background-color: #e50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
-        
-        cancelBtn.setOnAction(e -> {
-            procesarCancelar(req.getSafeId());
-        });
+        cancelBtn.setStyle(STYLE_BTN_RED);
+        cancelBtn.setOnAction(e -> procesarCancelar(req.getSafeId()));
 
-        box.getChildren().add(iv);
-        box.getChildren().add(infoBox);
-        box.getChildren().add(spacer);
-        box.getChildren().add(cancelBtn);
-
+        box.getChildren().addAll(iv, infoBox, spacer, cancelBtn);
         return box;
     }
     
     private void configurarInformacionClicable(ImageView iv, Label name, Label username, UserDto user) {
-        name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand; -fx-underline: true;");
-        username.setStyle("-fx-font-size: 12px; -fx-cursor: hand; -fx-underline: true;");
-        iv.setStyle("-fx-cursor: hand;");
+        name.setStyle(STYLE_NAME_LINK);
+        username.setStyle(STYLE_USER_LINK);
+        iv.setStyle(STYLE_IV_HAND);
         
-        name.setOnMouseClicked(e -> {
-            abrirPerfilAmigo(user);
-        });
-        
-        username.setOnMouseClicked(e -> {
-            abrirPerfilAmigo(user);
-        });
-        
-        iv.setOnMouseClicked(e -> {
-            abrirPerfilAmigo(user);
-        });
+        name.setOnMouseClicked(e -> abrirPerfilAmigo(user));
+        username.setOnMouseClicked(e -> abrirPerfilAmigo(user));
+        iv.setOnMouseClicked(e -> abrirPerfilAmigo(user));
     }
 
     private void procesarCancelar(Integer reqId) {
-        friendsService.cancelFriendRequest(reqId).thenRun(() -> {
+        friendsService.cancelFriendRequest(reqId).thenRun(() -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_CANCELED);
                 cargarDatos();
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
-                if (!App.procesarErrorCritico(e)) {
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-                }
+                if (!App.procesarErrorCritico(e)) mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
             });
             return null;
         });

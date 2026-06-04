@@ -12,6 +12,8 @@ import javafx.scene.layout.VBox;
 
 public class ShowCardController {
 
+    private static final String TEXT_DESCONOCIDO = "Desconocido";
+
     @FXML private VBox cardContainer;
     @FXML private ImageView posterImageView;
     @FXML private Label tituloLabel;
@@ -21,6 +23,7 @@ public class ShowCardController {
     private Image fallbackErrorImage;
 
     public ShowCardController() {
+        // Constructor por defecto
     }
 
     @FXML
@@ -43,23 +46,19 @@ public class ShowCardController {
         if (show.name() != null) {
             tituloLabel.setText(show.name());
         } else {
-            tituloLabel.setText("Desconocido");
+            tituloLabel.setText(TEXT_DESCONOCIDO);
         }
         
         String rating = AppConstants.MESSAGE_RATING_NA;
         
-        if (show.rating() != null) {
-            if (show.rating().average() != null) {
-                rating = String.valueOf(show.rating().average());
-            }
+        if (show.rating() != null && show.rating().average() != null) {
+            rating = String.valueOf(show.rating().average());
         }
         
         ratingLabel.setText("⭐ " + rating);
 
-        if (show.image() != null) {
-            if (show.image().medium() != null) {
-                cargarImagenConRespaldo(show.image().medium(), posterImageView);
-            }
+        if (show.image() != null && show.image().medium() != null) {
+            cargarImagenConRespaldo(show.image().medium(), posterImageView);
         }
     }
 
@@ -68,10 +67,8 @@ public class ShowCardController {
             Image img = new Image(url, true);
             
             img.errorProperty().addListener((obs, oldVal, isError) -> {
-                if (isError) {
-                    Platform.runLater(() -> {
-                        ponerImagenError(imageView);
-                    });
+                if (Boolean.TRUE.equals(isError)) {
+                    Platform.runLater(() -> ponerImagenError(imageView));
                 }
             });
             
@@ -86,6 +83,7 @@ public class ShowCardController {
             String errorPath = getClass().getResource("/com/src/filmtracker/images/error.png").toExternalForm();
             this.fallbackErrorImage = new Image(errorPath, true);
         } catch (Exception ex) {
+            // Falla silenciosa intencional: Si no se encuentra la imagen de error, el ImageView simplemente quedará en blanco
         }
     }
 

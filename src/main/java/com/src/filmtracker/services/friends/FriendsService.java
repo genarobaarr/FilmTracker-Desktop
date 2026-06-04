@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import com.src.filmtracker.models.friends.*;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -14,6 +15,15 @@ import java.util.concurrent.CompletableFuture;
 
 public class FriendsService implements IFriendsService {
 
+    private static final String HEADER_AUTH = "Authorization";
+    private static final String HEADER_ACCEPT = "Accept";
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String TYPE_JSON = "application/json";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ERROR_API = "Error en la petición: ";
+    private static final String KEY_DATA = "data";
+    private static final String KEY_STATUS = "status";
+
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
@@ -21,14 +31,7 @@ public class FriendsService implements IFriendsService {
     public CompletableFuture<FriendsSummaryDto> getUserSummary(String authId) {
         String url = AppConstants.FRIENDS_SERVICE_URL + "/user/" + authId + "/summary";
         
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .GET()
-                .build();
-
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(buildGetRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     com.src.filmtracker.App.checkHttpResponse(response);
                     
@@ -38,8 +41,8 @@ public class FriendsService implements IFriendsService {
                     
                     JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
                     
-                    if (json.has("data")) {
-                        return gson.fromJson(json.get("data"), FriendsSummaryDto.class);
+                    if (json.has(KEY_DATA)) {
+                        return gson.fromJson(json.get(KEY_DATA), FriendsSummaryDto.class);
                     }
                     
                     return gson.fromJson(json, FriendsSummaryDto.class);
@@ -50,14 +53,7 @@ public class FriendsService implements IFriendsService {
     public CompletableFuture<FriendPaginationResponse> getFriends(String authId, int page) {
         String url = AppConstants.FRIENDS_SERVICE_URL + "/user/" + authId + "?page=" + page;
 
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .GET()
-                .build();
-
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(buildGetRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
                     com.src.filmtracker.App.checkHttpResponse(res);
                     
@@ -73,14 +69,7 @@ public class FriendsService implements IFriendsService {
     public CompletableFuture<FriendStatusResponse> getRelationshipStatus(String otherAuthId) {
         String url = AppConstants.FRIENDS_SERVICE_URL + "/" + otherAuthId + "/status";
 
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .GET()
-                .build();
-
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(buildGetRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
                     com.src.filmtracker.App.checkHttpResponse(res);
                     
@@ -91,18 +80,12 @@ public class FriendsService implements IFriendsService {
                     JsonObject json = JsonParser.parseString(res.body()).getAsJsonObject();
                     String statusStr = "NONE";
                     
-                    if (json.has("status")) {
-                        if (!json.get("status").isJsonNull()) {
-                            statusStr = json.get("status").getAsString();
-                        }
-                    } else if (json.has("data")) {
-                        if (!json.get("data").isJsonNull()) {
-                            JsonObject dataObj = json.getAsJsonObject("data");
-                            if (dataObj.has("status")) {
-                                if (!dataObj.get("status").isJsonNull()) {
-                                    statusStr = dataObj.get("status").getAsString();
-                                }
-                            }
+                    if (json.has(KEY_STATUS) && !json.get(KEY_STATUS).isJsonNull()) {
+                        statusStr = json.get(KEY_STATUS).getAsString();
+                    } else if (json.has(KEY_DATA) && !json.get(KEY_DATA).isJsonNull()) {
+                        JsonObject dataObj = json.getAsJsonObject(KEY_DATA);
+                        if (dataObj.has(KEY_STATUS) && !dataObj.get(KEY_STATUS).isJsonNull()) {
+                            statusStr = dataObj.get(KEY_STATUS).getAsString();
                         }
                     }
                     
@@ -115,28 +98,13 @@ public class FriendsService implements IFriendsService {
         String url = AppConstants.FRIENDS_SERVICE_URL + "/requests";
         
         JsonObject bodyObj = new JsonObject();
-        
-        if (request != null) {
-            if (request.receiverAuthId() != null) {
-                bodyObj.addProperty("receiverAuthId", request.receiverAuthId());
-            }
+        if (request != null && request.receiverAuthId() != null) {
+            bodyObj.addProperty("receiverAuthId", request.receiverAuthId());
         }
 
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .POST(HttpRequest.BodyPublishers.ofString(bodyObj.toString()))
-                .build();
-
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(buildPostRequest(url, bodyObj.toString()), HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
-                    com.src.filmtracker.App.checkHttpResponse(res);
-                    
-                    if (res.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + res.statusCode());
-                    }
-                    
+                    validateResponseThrows(res);
                     return null;
                 });
     }
@@ -145,20 +113,9 @@ public class FriendsService implements IFriendsService {
     public CompletableFuture<Void> removeFriend(String friendAuthId) {
         String url = AppConstants.FRIENDS_SERVICE_URL + "/" + friendAuthId;
 
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .DELETE()
-                .build();
-
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(buildDeleteRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
-                    com.src.filmtracker.App.checkHttpResponse(res);
-                    
-                    if (res.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + res.statusCode());
-                    }
-                    
+                    validateResponseThrows(res);
                     return null;
                 });
     }
@@ -176,14 +133,7 @@ public class FriendsService implements IFriendsService {
     }
 
     private CompletableFuture<FriendRequestPaginationResponse> executeGetRequestPagination(String url) {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .GET()
-                .build();
-
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(buildGetRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
                     com.src.filmtracker.App.checkHttpResponse(res);
                     
@@ -208,20 +158,9 @@ public class FriendsService implements IFriendsService {
     }
 
     private CompletableFuture<Void> executePutRequest(String url) {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .PUT(HttpRequest.BodyPublishers.ofString(""))
-                .build();
-
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(buildPutRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
-                    com.src.filmtracker.App.checkHttpResponse(res);
-                    
-                    if (res.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + res.statusCode());
-                    }
-                    
+                    validateResponseThrows(res);
                     return null;
                 });
     }
@@ -229,22 +168,62 @@ public class FriendsService implements IFriendsService {
     @Override
     public CompletableFuture<Void> cancelFriendRequest(Integer requestId) {
         String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/" + requestId;
-        
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .DELETE()
-                .build();
 
-        return client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(buildDeleteRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {
-                    com.src.filmtracker.App.checkHttpResponse(res);
-                    
-                    if (res.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + res.statusCode());
-                    }
-                    
+                    validateResponseThrows(res);
                     return null;
                 });
+    }
+    
+    private void appendAuthHeader(HttpRequest.Builder builder) {
+        if (SessionManager.getInstance().isAuthenticated()) {
+            builder.header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken());
+        }
+    }
+
+    private HttpRequest buildGetRequest(String url) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(HEADER_ACCEPT, TYPE_JSON)
+                .GET();
+                
+        appendAuthHeader(builder);
+        return builder.build();
+    }
+
+    private HttpRequest buildPostRequest(String url, String jsonBody) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(HEADER_CONTENT_TYPE, TYPE_JSON)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody));
+                
+        appendAuthHeader(builder);
+        return builder.build();
+    }
+
+    private HttpRequest buildPutRequest(String url) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .PUT(HttpRequest.BodyPublishers.ofString(""));
+                
+        appendAuthHeader(builder);
+        return builder.build();
+    }
+
+    private HttpRequest buildDeleteRequest(String url) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .DELETE();
+                
+        appendAuthHeader(builder);
+        return builder.build();
+    }
+
+    private void validateResponseThrows(HttpResponse<String> res) {
+        com.src.filmtracker.App.checkHttpResponse(res);
+        if (res.statusCode() >= 400) {
+            throw new IllegalStateException(ERROR_API + res.statusCode());
+        }
     }
 }

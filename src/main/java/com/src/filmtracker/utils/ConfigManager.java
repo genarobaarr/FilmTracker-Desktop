@@ -13,11 +13,10 @@ public class ConfigManager {
         cargarPropiedades();
     }
 
-    public static ConfigManager getInstance() {
+    public static synchronized ConfigManager getInstance() {
         if (instance == null) {
             instance = new ConfigManager();
         }
-        
         return instance;
     }
 
@@ -27,17 +26,15 @@ public class ConfigManager {
                 properties.load(input);
             }
         } catch (Exception ex) {
-            
+            // Falla silenciosa intencional: se asumen los valores por defecto si el archivo no existe
         }
     }
 
     public String getProperty(String key, String defaultValue) {
         String value = properties.getProperty(key);
         
-        if (value != null) {
-            if (!value.trim().isEmpty()) {
-                return value.trim();
-            }
+        if (value != null && !value.trim().isEmpty()) {
+            return value.trim();
         }
         
         return defaultValue;

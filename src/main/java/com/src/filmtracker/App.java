@@ -33,12 +33,12 @@ public class App extends Application {
     
     private static final Stack<Object> navigationHistory = new Stack<>();
     private static Object currentViewState = AppConstants.FXML_LOGIN;
+    
+    private static final HttpClient HEALTH_CLIENT = HttpClient.newHttpClient();
 
     @Override
     public void start(Stage stage) throws IOException {
-        SessionManager.getInstance().setOnExpirationCallback(() -> {
-            forzarCierreSesionPorExpiracion();
-        });
+        SessionManager.getInstance().setOnExpirationCallback(App::forzarCierreSesionPorExpiracion);
         
         FXMLLoader loader = new FXMLLoader(getClass().getResource(AppConstants.FXML_LOGIN));
         Parent root = loader.load();
@@ -59,12 +59,8 @@ public class App extends Application {
     public static void setRoot(String fxml) {
         if (AppConstants.FXML_DASHBOARD.equals(fxml)) {
             navigationHistory.clear();
-        } else {
-            if (currentViewState != null) {
-                if (!currentViewState.equals(fxml)) {
-                    navigationHistory.push(currentViewState);
-                }
-            }
+        } else if (currentViewState != null && !currentViewState.equals(fxml)) {
+            navigationHistory.push(currentViewState);
         }
         
         currentViewState = fxml;
@@ -73,14 +69,13 @@ public class App extends Application {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(fxml));
             scene.setRoot(loader.load());
         } catch (IOException e) {
+            // Falla silenciosa permitida en lógica de UI original
         }
     }
 
     public static void showShowDetail(Show show) {
-        if (currentViewState != null) {
-            if (currentViewState != show) {
-                navigationHistory.push(currentViewState);
-            }
+        if (currentViewState != null && currentViewState != show) {
+            navigationHistory.push(currentViewState);
         }
         
         currentViewState = show;
@@ -92,10 +87,8 @@ public class App extends Application {
     }
 
     public static void showProfileView(UserDto user) {
-        if (currentViewState != null) {
-            if (currentViewState != user) {
-                navigationHistory.push(currentViewState);
-            }
+        if (currentViewState != null && currentViewState != user) {
+            navigationHistory.push(currentViewState);
         }
         
         currentViewState = user;
@@ -125,19 +118,18 @@ public class App extends Application {
             return;
         }
         
-        if (previousState instanceof String) {
-            String fxml = (String) previousState;
-            
+        if (previousState instanceof String fxml) {
             try {
                 FXMLLoader loader = new FXMLLoader(App.class.getResource(fxml));
                 scene.setRoot(loader.load());
             } catch (IOException e) {
+                // Falla silenciosa en transición
             }
         }
     }
     
     public static void forzarCierreSesionPorExpiracion() {
-        javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
             SessionManager.getInstance().logout();
             navigationHistory.clear();
             currentViewState = AppConstants.FXML_LOGIN;
@@ -146,6 +138,7 @@ public class App extends Application {
                 FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_LOGIN));
                 scene.setRoot(loader.load());
             } catch (IOException e) {
+                // Falla silenciosa
             }
             
             CustomAlertHelper.mostrarInformacion(AppConstants.MESSAGE_ERROR_SESSION_EXPIRED);
@@ -183,7 +176,7 @@ public class App extends Application {
                              errorStr.contains("timeout") || 
                              errorStr.contains("502") || 
                              errorStr.contains("503");
-                           
+                            
         if (esFallaRed) {
             gestionarFallaRed();
             return true;
@@ -210,29 +203,30 @@ public class App extends Application {
     }
 
     private static void verificarSaludSistema() {
-        HttpClient client = HttpClient.newHttpClient();
-
         HttpRequest reqShows = HttpRequest.newBuilder()
             .uri(URI.create(AppConstants.SHOWS_SERVICE_URL))
             .timeout(Duration.ofSeconds(5))
             .GET()
             .build();
 
-        java.net.http.HttpRequest reqUsers = HttpRequest.newBuilder()
+        HttpRequest reqUsers = HttpRequest.newBuilder()
             .uri(URI.create(AppConstants.USERS_SERVICE_URL))
             .timeout(Duration.ofSeconds(5))
             .GET()
             .build();
 
-        CompletableFuture<HttpResponse<String>> showFuture = client.sendAsync(reqShows, java.net.http.HttpResponse.BodyHandlers.ofString())
+        CompletableFuture<HttpResponse<String>> showFuture = HEALTH_CLIENT.sendAsync(reqShows, HttpResponse.BodyHandlers.ofString())
             .exceptionally(e -> null);
             
-        CompletableFuture<HttpResponse<String>> userFuture = client.sendAsync(reqUsers, java.net.http.HttpResponse.BodyHandlers.ofString())
+        CompletableFuture<HttpResponse<String>> userFuture = HEALTH_CLIENT.sendAsync(reqUsers, HttpResponse.BodyHandlers.ofString())
             .exceptionally(e -> null);
 
         CompletableFuture.allOf(showFuture, userFuture).thenRun(() -> {
-            boolean showUp = showFuture.join() != null && showFuture.join().statusCode() < 500;
-            boolean userUp = userFuture.join() != null && userFuture.join().statusCode() < 500;
+            HttpResponse<String> showResp = showFuture.join();
+            HttpResponse<String> userResp = userFuture.join();
+            
+            boolean showUp = showResp != null && showResp.statusCode() < 500;
+            boolean userUp = userResp != null && userResp.statusCode() < 500;
 
             if (showUp || userUp) {
                 fallosConsecutivosRed = 0;
@@ -252,6 +246,7 @@ public class App extends Application {
             FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_LOGIN));
             scene.setRoot(loader.load());
         } catch (IOException e) {
+            // Falla silenciosa
         }
         
         CustomAlertHelper.mostrarError(AppConstants.MESSAGE_ERROR_SERVER_DOWN_LOGIN);
@@ -267,6 +262,7 @@ public class App extends Application {
 
             scene.setRoot(root);
         } catch (IOException e) {
+            // Falla silenciosa
         }
     }
 
@@ -280,51 +276,61 @@ public class App extends Application {
 
             scene.setRoot(root);
         } catch (IOException e) {
+            // Falla silenciosa
         }
     }
     
-    public static void checkHttpResponse(java.net.http.HttpResponse<String> response) {
+    public static void checkHttpResponse(HttpResponse<String> response) {
         int status = response.statusCode();
         
         if (status == 401) {
             Platform.runLater(App::forzarCierreSesionPorExpiracion);
-            throw new RuntimeException("Error 401: No autorizado");
-        } else if (status == 403) {
-            String body = response.body();
+            throw new IllegalStateException("Error 401: No autorizado");
+        } 
+        
+        if (status == 403) {
+            procesarError403(response.body());
+        }
+    }
+    
+    private static void procesarError403(String body) {
+        if (body != null) {
+            String bodyLower = body.toLowerCase();
             
-            if (body != null) {
-                String bodyLower = body.toLowerCase();
-                
-                if (bodyLower.contains("baneada") || bodyLower.contains("suspendida")) {
-                    Platform.runLater(() -> {
-                        SessionManager.getInstance().logout();
-                        navigationHistory.clear();
-                        currentViewState = AppConstants.FXML_LOGIN;
-                        
-                        try {
-                            FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_LOGIN));
-                            scene.setRoot(loader.load());
-                        } catch (IOException e) {
-                        }
-                        
-                        String msg = bodyLower.contains("baneada") 
-                            ? "Tu cuenta ha sido baneada permanentemente." 
-                            : "Tu cuenta ha sido suspendida temporalmente.";
-                        CustomAlertHelper.mostrarError(msg);
-                    });
-                    
-                    throw new RuntimeException("Error 403: Cuenta restringida");
-                } else if (bodyLower.contains("administrador") || bodyLower.contains("admin")) {
-                    Platform.runLater(() -> {
-                        goBackUniversal();
-                        CustomAlertHelper.mostrarError("Acceso denegado: Se requiere rol de administrador.");
-                    });
-                    
-                    throw new RuntimeException("Error 403: Se requiere administrador");
-                }
+            if (bodyLower.contains("baneada") || bodyLower.contains("suspendida")) {
+                ejecutarCierreSesionPorBaneo(bodyLower);
+                throw new IllegalStateException("Error 403: Cuenta restringida");
+            } 
+            
+            if (bodyLower.contains("administrador") || bodyLower.contains("admin")) {
+                Platform.runLater(() -> {
+                    goBackUniversal();
+                    CustomAlertHelper.mostrarError("Acceso denegado: Se requiere rol de administrador.");
+                });
+                throw new IllegalStateException("Error 403: Se requiere administrador");
+            }
+        }
+        
+        throw new IllegalStateException("Error 403: Prohibido");
+    }
+    
+    private static void ejecutarCierreSesionPorBaneo(String bodyLower) {
+        Platform.runLater(() -> {
+            SessionManager.getInstance().logout();
+            navigationHistory.clear();
+            currentViewState = AppConstants.FXML_LOGIN;
+            
+            try {
+                FXMLLoader loader = new FXMLLoader(App.class.getResource(AppConstants.FXML_LOGIN));
+                scene.setRoot(loader.load());
+            } catch (IOException e) {
+                // Falla silenciosa
             }
             
-            throw new RuntimeException("Error 403: Prohibido");
-        }
+            String msg = bodyLower.contains("baneada") 
+                ? "Tu cuenta ha sido baneada permanentemente." 
+                : "Tu cuenta ha sido suspendida temporalmente.";
+            CustomAlertHelper.mostrarError(msg);
+        });
     }
 }

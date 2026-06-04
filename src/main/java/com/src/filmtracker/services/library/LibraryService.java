@@ -20,34 +20,31 @@ import java.util.concurrent.CompletableFuture;
 
 public class LibraryService implements ILibraryService {
     
+    private static final String HEADER_AUTH = "Authorization";
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String TYPE_JSON = "application/json";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String KEY_DATA = "data";
+    private static final String METHOD_POST = "POST";
+    private static final String ERROR_PREFIX = "API Error: ";
+
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
     @Override
     public CompletableFuture<List<LibraryItemDto>> getFavorites() {
-        Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
-        CompletableFuture<List<LibraryItemDto>> future = executeGet(AppConstants.FAVORITES_URL, type, "data");
-        
-        return future.exceptionally(ex -> {
-            return new ArrayList<LibraryItemDto>();
-        });
+        return fetchLibraryList(AppConstants.FAVORITES_URL);
     }
 
     @Override
     public CompletableFuture<List<LibraryItemDto>> getFavoritesByUser(String authId) {
-        Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
-        String url = AppConstants.FAVORITES_URL + "/user/" + authId;
-        CompletableFuture<List<LibraryItemDto>> future = executeGet(url, type, "data");
-        
-        return future.exceptionally(ex -> {
-            return new ArrayList<LibraryItemDto>();
-        });
+        return fetchLibraryList(AppConstants.FAVORITES_URL + "/user/" + authId);
     }
 
     @Override
     public CompletableFuture<Void> addFavorite(Integer tvmazeId) {
         LibraryRequest req = new LibraryRequest(tvmazeId);
-        return executePostPutVoid(AppConstants.FAVORITES_URL, req, "POST");
+        return executePostPutVoid(AppConstants.FAVORITES_URL, req, METHOD_POST);
     }
 
     @Override
@@ -58,18 +55,13 @@ public class LibraryService implements ILibraryService {
 
     @Override
     public CompletableFuture<List<LibraryItemDto>> getWatchlist() {
-        Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
-        CompletableFuture<List<LibraryItemDto>> future = executeGet(AppConstants.WATCHLIST_URL, type, "data");
-        
-        return future.exceptionally(ex -> {
-            return new ArrayList<LibraryItemDto>();
-        });
+        return fetchLibraryList(AppConstants.WATCHLIST_URL);
     }
 
     @Override
     public CompletableFuture<Void> addWatchlist(Integer tvmazeId) {
         LibraryRequest req = new LibraryRequest(tvmazeId);
-        return executePostPutVoid(AppConstants.WATCHLIST_URL, req, "POST");
+        return executePostPutVoid(AppConstants.WATCHLIST_URL, req, METHOD_POST);
     }
 
     @Override
@@ -95,6 +87,12 @@ public class LibraryService implements ILibraryService {
         String url = AppConstants.WATCHLIST_URL + "?page=" + page;
         return executeGetList(url);
     }
+    
+    private CompletableFuture<List<LibraryItemDto>> fetchLibraryList(String url) {
+        Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
+        CompletableFuture<List<LibraryItemDto>> future = executeGet(url, type, KEY_DATA);
+        return future.exceptionally(ex -> new ArrayList<>());
+    }
 
     private CompletableFuture<List<LibraryItemDto>> executeGetList(String url) {
         Type type = TypeToken.getParameterized(List.class, LibraryItemDto.class).getType();
@@ -104,16 +102,16 @@ public class LibraryService implements ILibraryService {
             com.src.filmtracker.App.checkHttpResponse(response);
             
             if (response.statusCode() >= 400) {
-                throw new RuntimeException("API Error: " + response.statusCode());
+                throw new IllegalStateException(ERROR_PREFIX + response.statusCode());
             }
             
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
             
-            if (json.has("data")) {
-                return gson.fromJson(json.get("data"), type);
+            if (json.has(KEY_DATA)) {
+                return gson.fromJson(json.get(KEY_DATA), type);
             }
             
-            return new ArrayList<LibraryItemDto>();
+            return new ArrayList<>();
         });
     }
 
@@ -124,11 +122,15 @@ public class LibraryService implements ILibraryService {
 
     private CompletableFuture<Void> executePostPutVoid(String url, Object body, String method) {
         String json = "{}";
+        
         if (body != null) {
             json = gson.toJson(body);
         }
         
-        HttpRequest req = buildRequestBuilder(url).method(method, HttpRequest.BodyPublishers.ofString(json)).build();
+        HttpRequest req = buildRequestBuilder(url)
+                .method(method, HttpRequest.BodyPublishers.ofString(json))
+                .build();
+                
         return sendAndIgnore(req);
     }
 
@@ -138,12 +140,12 @@ public class LibraryService implements ILibraryService {
     }
 
     private HttpRequest.Builder buildRequestBuilder(String url) {
-        HttpRequest.Builder builder = HttpRequest.newBuilder();
-        builder.uri(URI.create(url));
-        builder.header("Content-Type", "application/json");
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(HEADER_CONTENT_TYPE, TYPE_JSON);
         
         if (SessionManager.getInstance().isAuthenticated()) {
-            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+            builder.header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken());
         }
         
         return builder;
@@ -154,7 +156,7 @@ public class LibraryService implements ILibraryService {
             com.src.filmtracker.App.checkHttpResponse(res);
             
             if (res.statusCode() >= 400) {
-                throw new RuntimeException("API Error: " + res.statusCode());
+                throw new IllegalStateException(ERROR_PREFIX + res.statusCode());
             }
             
             return null;
@@ -166,19 +168,17 @@ public class LibraryService implements ILibraryService {
             com.src.filmtracker.App.checkHttpResponse(response);
             
             if (response.statusCode() >= 400) {
-                throw new RuntimeException("API Error: " + response.statusCode());
+                throw new IllegalStateException(ERROR_PREFIX + response.statusCode());
             }
             
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
             
-            if (extractionKey != null) {
-                if (json.has(extractionKey)) {
-                    return gson.fromJson(json.get(extractionKey), responseType);
-                }
+            if (extractionKey != null && json.has(extractionKey)) {
+                return gson.fromJson(json.get(extractionKey), responseType);
             }
             
-            if (json.has("data")) {
-                return gson.fromJson(json.get("data"), responseType);
+            if (json.has(KEY_DATA)) {
+                return gson.fromJson(json.get(KEY_DATA), responseType);
             }
             
             return gson.fromJson(json, responseType);

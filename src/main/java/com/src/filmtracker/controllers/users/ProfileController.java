@@ -99,6 +99,7 @@ public class ProfileController {
     private final IUserService userService = new UserService();
     private final IFriendsService friendsService = new FriendsService();
     private final IAdminService adminService = new AdminService();
+    private final java.net.http.HttpClient httpClient = java.net.http.HttpClient.newHttpClient();
     
     private final Map<Integer, CompletableFuture<Show>> showCache = new ConcurrentHashMap<>();
     private final Map<String, String> translationMap = new LinkedHashMap<>();
@@ -107,6 +108,7 @@ public class ProfileController {
     private UserDto currentUserProfile;
 
     public ProfileController() {
+        // Constructor por defecto
     }
 
     @FXML
@@ -162,7 +164,6 @@ public class ProfileController {
     @FXML 
     private void handleSaveName() {
         String newName = nameField.getText().trim();
-        
         if (newName.isEmpty()) {
             return;
         }
@@ -175,7 +176,6 @@ public class ProfileController {
     @FXML 
     private void handleSaveUsername() {
         String newUsername = usernameField.getText().trim();
-        
         if (newUsername.isEmpty()) {
             return;
         }
@@ -193,7 +193,6 @@ public class ProfileController {
         fileChooser.getExtensionFilters().add(imageFilter);
         
         File selectedFile = fileChooser.showOpenDialog(nameLabel.getScene().getWindow());
-        
         if (selectedFile != null) {
             subirFotoPerfil(selectedFile);
         }
@@ -211,14 +210,14 @@ public class ProfileController {
             mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
             return;
         }
-        SendFriendRequest req = new SendFriendRequest(receiverId);
         
-        friendsService.sendFriendRequest(req).thenRun(() -> {
+        SendFriendRequest req = new SendFriendRequest(receiverId);
+        friendsService.sendFriendRequest(req).thenRun(() -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_ADD);
                 cargarEstadoAmistad(receiverId);
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
@@ -231,13 +230,7 @@ public class ProfileController {
     @FXML
     private void handleRemoveFriend() {
         String friendId = currentUserProfile.getSafeAuthId();
-        
-        if (friendId == null) {
-            mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-            return;
-        }
-        
-        if (friendId.isEmpty()) {
+        if (friendId == null || friendId.isEmpty()) {
             mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
             return;
         }
@@ -265,11 +258,7 @@ public class ProfileController {
     @FXML
     private void handleFriendsHoverEnter(javafx.scene.input.MouseEvent event) {
         javafx.scene.Node node = (javafx.scene.Node) event.getSource();
-        String currentStyle = node.getStyle();
-        
-        if (currentStyle == null) {
-            currentStyle = "";
-        }
+        String currentStyle = node.getStyle() != null ? node.getStyle() : "";
         
         if (!currentStyle.contains("-fx-background-color: #2a2a2a;")) {
             node.setStyle(currentStyle + " -fx-background-color: #2a2a2a; -fx-cursor: hand; -fx-background-radius: 5;");
@@ -279,10 +268,8 @@ public class ProfileController {
     @FXML
     private void handleFriendsHoverExit(javafx.scene.input.MouseEvent event) {
         javafx.scene.Node node = (javafx.scene.Node) event.getSource();
-        String currentStyle = node.getStyle();
-        
-        if (currentStyle != null) {
-            node.setStyle(currentStyle.replace(" -fx-background-color: #2a2a2a; -fx-cursor: hand; -fx-background-radius: 5;", ""));
+        if (node.getStyle() != null) {
+            node.setStyle(node.getStyle().replace(" -fx-background-color: #2a2a2a; -fx-cursor: hand; -fx-background-radius: 5;", ""));
         }
     }
     
@@ -293,12 +280,7 @@ public class ProfileController {
         }
         
         String targetId = currentUserProfile.getSafeAuthId();
-        
-        if (targetId == null) {
-            return;
-        }
-        
-        if (!targetId.isEmpty()) {
+        if (targetId != null && !targetId.isEmpty()) {
             com.src.filmtracker.utils.ReportModalHelper.openReportModal("USER", targetId);
         }
     }
@@ -319,11 +301,9 @@ public class ProfileController {
         dialog.setHeaderText(AppConstants.MESSAGE_HEADER_SUSPEND);
         
         Optional<String> result = dialog.showAndWait();
-        
         if (result.isPresent()) {
             String backendValue = translationMap.get(result.get());
             String reason = "Suspensión administrativa desde el perfil público.";
-            
             ejecutarAccionAdmin(adminService.suspendUser(currentUserProfile.getSafeAuthId(), backendValue, reason));
         }
     }
@@ -372,7 +352,6 @@ public class ProfileController {
         
         CompletableFuture<Show> future = showService.getShowDetails(tvmazeId);
         showCache.put(tvmazeId, future);
-        
         return future;
     }
 
@@ -399,27 +378,12 @@ public class ProfileController {
         
         if (esUsuarioActual(user)) {
             UserDto sessionUser = SessionManager.getInstance().getCurrentUser();
-            
             if (sessionUser != null) {
-                if (datos[0] == null) {
-                    datos[0] = sessionUser.name();
-                }
-                
-                if (datos[1] == null) {
-                    datos[1] = sessionUser.email();
-                }
-                
-                if (datos[2] == null) {
-                    datos[2] = sessionUser.role();
-                }
-                
-                if (datos[3] == null) {
-                    datos[3] = sessionUser.profileImage();
-                }
-                
-                if (datos[4] == null) {
-                    datos[4] = sessionUser.createdAt();
-                }
+                if (datos[0] == null) datos[0] = sessionUser.name();
+                if (datos[1] == null) datos[1] = sessionUser.email();
+                if (datos[2] == null) datos[2] = sessionUser.role();
+                if (datos[3] == null) datos[3] = sessionUser.profileImage();
+                if (datos[4] == null) datos[4] = sessionUser.createdAt();
             }
         }
         
@@ -443,10 +407,8 @@ public class ProfileController {
         String usr = username != null ? username : "user";
         String imageUrl = "https://ui-avatars.com/api/?name=" + usr + "&background=e50914&color=fff";
         
-        if (profileImage != null) {
-            if (!profileImage.isEmpty()) {
-                imageUrl = profileImage;
-            }
+        if (profileImage != null && !profileImage.isEmpty()) {
+            imageUrl = profileImage;
         }
         
         avatarView.setImage(new Image(imageUrl, true));
@@ -454,52 +416,22 @@ public class ProfileController {
 
     private boolean esUsuarioActual(UserDto user) {
         UserDto loggedInUser = SessionManager.getInstance().getCurrentUser();
-        
-        if (loggedInUser == null) {
+        if (loggedInUser == null || user == null) {
             return false;
         }
-        
-        if (user == null) {
-            return false;
-        }
-        
-        if (compararUsernameExacto(user, loggedInUser)) {
-            return true;
-        }
-        
-        if (compararAuthIdExacto(user, loggedInUser)) {
-            return true;
-        }
-        
-        return false;
+        return compararUsernameExacto(user, loggedInUser) || compararAuthIdExacto(user, loggedInUser);
     }
 
     private boolean compararUsernameExacto(UserDto user, UserDto loggedInUser) {
-        if (user.username() != null) {
-            if (loggedInUser.username() != null) {
-                if (user.username().trim().equalsIgnoreCase(loggedInUser.username().trim())) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return user.username() != null && loggedInUser.username() != null 
+            && user.username().trim().equalsIgnoreCase(loggedInUser.username().trim());
     }
 
     private boolean compararAuthIdExacto(UserDto user, UserDto loggedInUser) {
         String currentAuthId = loggedInUser.getSafeAuthId();
         String profileAuthId = user.getSafeAuthId();
-        
-        if (currentAuthId != null) {
-            if (profileAuthId != null) {
-                if (!currentAuthId.isEmpty()) {
-                    if (currentAuthId.equals(profileAuthId)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        
-        return false;
+        return currentAuthId != null && profileAuthId != null 
+            && !currentAuthId.isEmpty() && currentAuthId.equals(profileAuthId);
     }
 
     private void configurarVisibilidadPublica(boolean isCurrentUser, UserDto user) {
@@ -524,19 +456,18 @@ public class ProfileController {
             
             cargarFavoritosRecursivo(true, 1, new ArrayList<>());
             cargarWatchlistRecursivo(1, new ArrayList<>());
-            return;
-        } 
-        
-        friendActionsBox.setVisible(true);
-        friendActionsBox.setManaged(true);
-        reportProfileBtn.setVisible(true);
-        ocultarBotonesAmistad();
-        
-        reviewsTitleLabel.setText("Reseñas de @" + user.username());
-        favoritesTitleLabel.setText("Favoritos de @" + user.username());
-        
-        cargarFavoritosRecursivo(false, 1, new ArrayList<>());
-        cargarEstadoAmistad(user.getSafeAuthId());
+        } else {
+            friendActionsBox.setVisible(true);
+            friendActionsBox.setManaged(true);
+            reportProfileBtn.setVisible(true);
+            ocultarBotonesAmistad();
+            
+            reviewsTitleLabel.setText("Reseñas de @" + user.username());
+            favoritesTitleLabel.setText("Favoritos de @" + user.username());
+            
+            cargarFavoritosRecursivo(false, 1, new ArrayList<>());
+            cargarEstadoAmistad(user.getSafeAuthId());
+        }
     }
 
     private void ocultarBotonesAmistad() {
@@ -559,9 +490,9 @@ public class ProfileController {
     }
 
     private void cargarEstadoAmistad(String otherAuthId) {
-        friendsService.getRelationshipStatus(otherAuthId).thenAccept(res -> {
-            Platform.runLater(() -> procesarEstadoAmistad(res));
-        }).exceptionally(e -> {
+        friendsService.getRelationshipStatus(otherAuthId).thenAccept(res -> 
+            Platform.runLater(() -> procesarEstadoAmistad(res))
+        ).exceptionally(e -> {
             App.procesarErrorCritico(e);
             return null;
         });
@@ -569,34 +500,26 @@ public class ProfileController {
 
     private void procesarEstadoAmistad(FriendStatusResponse res) {
         ocultarBotonesAmistad();
-        
-        if (res == null) {
-            return;
-        }
-        
-        if (res.status() == null) {
+        if (res == null || res.status() == null) {
             return;
         }
         
         String safeStatus = res.status().trim().toUpperCase();
-        
-        if (safeStatus.equals("NONE")) {
-            configurarBotonAgregar("Agregar amigo", false);
-            return;
-        } 
-        
-        if (safeStatus.equals("FRIENDS")) {
-            configurarBotonEliminar();
-            return;
-        } 
-        
-        if (safeStatus.equals("PENDING_OUTGOING")) {
-            configurarBotonAgregar("Solicitud enviada", true);
-            return;
-        } 
-        
-        if (safeStatus.equals("PENDING_INCOMING")) {
-            configurarBotonAgregar("Responder solicitud", false);
+        switch (safeStatus) {
+            case "NONE":
+                configurarBotonAgregar("Agregar amigo", false);
+                break;
+            case "FRIENDS":
+                configurarBotonEliminar();
+                break;
+            case "PENDING_OUTGOING":
+                configurarBotonAgregar("Solicitud enviada", true);
+                break;
+            case "PENDING_INCOMING":
+                configurarBotonAgregar("Responder solicitud", false);
+                break;
+            default:
+                break;
         }
     }
 
@@ -610,9 +533,9 @@ public class ProfileController {
             return;
         }
         
-        friendsService.getFriends(authId, page).thenAccept(res -> {
-            Platform.runLater(() -> procesarPaginacionAmigos(res));
-        }).exceptionally(e -> {
+        friendsService.getFriends(authId, page).thenAccept(res -> 
+            Platform.runLater(() -> procesarPaginacionAmigos(res))
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarVacio(friendsListSection, AppConstants.MESSAGE_ERROR_API);
@@ -623,17 +546,7 @@ public class ProfileController {
     }
 
     private void procesarPaginacionAmigos(FriendPaginationResponse response) {
-        if (response == null) {
-            mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
-            return;
-        }
-        
-        if (response.data() == null) {
-            mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
-            return;
-        }
-        
-        if (response.data().isEmpty()) {
+        if (response == null || response.data() == null || response.data().isEmpty()) {
             mostrarVacio(friendsListSection, "No tienes amigos agregados aún.");
             return;
         }
@@ -649,21 +562,11 @@ public class ProfileController {
     }
 
     private void resolverAmigoYAgregar(FriendItemDto item, HBox content) {
-        if (item == null) {
+        if (item == null || item.friendAuthId() == null || item.friendAuthId().isEmpty()) {
             return;
         }
         
-        String targetId = item.friendAuthId();
-        
-        if (targetId == null) {
-            return;
-        }
-        
-        if (targetId.isEmpty()) {
-            return;
-        }
-        
-        userService.getUserById(targetId).thenAccept(fullUser -> {
+        userService.getUserById(item.friendAuthId()).thenAccept(fullUser -> {
             if (fullUser != null) {
                 Platform.runLater(() -> {
                     VBox card = buildFriendCard(fullUser);
@@ -674,13 +577,13 @@ public class ProfileController {
     }
     
     private void procesarEliminacionAmigo(String friendId) {
-        friendsService.removeFriend(friendId).thenRun(() -> {
+        friendsService.removeFriend(friendId).thenRun(() -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_FRIEND_REMOVE);
                 cargarEstadoAmistad(friendId);
                 cargarEstadisticas(friendId);
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarAlertaError(AppConstants.MESSAGE_ERROR_FRIEND_ACTION);
@@ -699,18 +602,12 @@ public class ProfileController {
         Button bI = crearBotonCarrusel("<"); 
         Button bD = crearBotonCarrusel(">"); 
         
-        bI.setOnAction(e -> {
-            sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2));
-        }); 
-        
-        bD.setOnAction(e -> {
-            sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2));
-        });
+        bI.setOnAction(e -> sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2))); 
+        bD.setOnAction(e -> sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2)));
         
         BorderPane bp = new BorderPane(sp); 
         bp.setLeft(bI); 
         bp.setRight(bD);
-        
         BorderPane.setAlignment(bI, Pos.CENTER); 
         BorderPane.setAlignment(bD, Pos.CENTER);
         
@@ -721,7 +618,6 @@ public class ProfileController {
     private Button crearBotonCarrusel(String texto) {
         Button btn = new Button(texto);
         btn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 15; -fx-cursor: hand;");
-        
         return btn;
     }
 
@@ -737,114 +633,81 @@ public class ProfileController {
         iv.setFitHeight(80);
         
         String imageUrl = "https://ui-avatars.com/api/?name=" + friend.username() + "&background=e50914&color=fff";
-        
-        if (friend.profileImage() != null) {
-            if (!friend.profileImage().isEmpty()) {
-                imageUrl = friend.profileImage();
-            }
+        if (friend.profileImage() != null && !friend.profileImage().isEmpty()) {
+            imageUrl = friend.profileImage();
         }
         
         iv.setImage(new Image(imageUrl, true));
         
-        String nombreSeguro = "Desconocido";
-        
-        if (friend.name() != null) {
-            nombreSeguro = friend.name();
-        }
-        
+        String nombreSeguro = friend.name() != null ? friend.name() : "Desconocido";
         Label name = new Label(nombreSeguro);
         name.setTextFill(Color.WHITE);
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
         
-        String userSeguro = "usuario";
-        
-        if (friend.username() != null) {
-            userSeguro = friend.username();
-        }
-        
+        String userSeguro = friend.username() != null ? friend.username() : "usuario";
         Label user = new Label("@" + userSeguro);
         user.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         user.setStyle("-fx-font-size: 12px;");
         
-        box.getChildren().add(iv);
-        box.getChildren().add(name);
-        box.getChildren().add(user);
-        
-        box.setOnMouseClicked(e -> {
-            App.showProfileView(friend);
-        });
+        box.getChildren().addAll(iv, name, user);
+        box.setOnMouseClicked(e -> App.showProfileView(friend));
         
         return box;
     }
 
     private void cargarEstadisticas(String authId) {
-        if (authId == null) {
+        if (authId == null || authId.isEmpty()) {
             return;
         }
         
-        if (authId.isEmpty()) {
-            return;
-        }
-        
-        reviewService.getUserSummary(authId).thenAccept(summary -> {
+        reviewService.getUserSummary(authId).thenAccept(summary -> 
             Platform.runLater(() -> {
                 if (summary != null) {
                     reviewsCountLabel.setText(String.valueOf(summary.reviewsCount()));
                     likesReceivedLabel.setText(String.valueOf(summary.totalLikesReceived()));
                 }
-            });
-        });
+            })
+        );
         
-        friendsService.getUserSummary(authId).thenAccept(summary -> {
+        friendsService.getUserSummary(authId).thenAccept(summary -> 
             Platform.runLater(() -> {
                 if (summary != null) {
                     friendsCountLabel.setText(String.valueOf(summary.friendsCount()));
                 }
-            });
-        });
+            })
+        );
     }
     
     private void evaluarAccionesAdmin() {
         UserDto loggedUser = SessionManager.getInstance().getCurrentUser();
-        
-        if (loggedUser == null) {
-            return;
-        }
-        
-        if (currentUserProfile == null) {
+        if (loggedUser == null || currentUserProfile == null) {
             return;
         }
         
         boolean isAdmin = "ADMIN".equals(loggedUser.role());
         boolean isSameUser = loggedUser.getSafeAuthId().equals(currentUserProfile.getSafeAuthId());
         
-        if (isAdmin) {
-            if (!isSameUser) {
-                adminMenu.setVisible(true);
-                adminMenu.setManaged(true);
-                verificarEstadoCuentaAdmin();
-            }
+        if (isAdmin && !isSameUser) {
+            adminMenu.setVisible(true);
+            adminMenu.setManaged(true);
+            verificarEstadoCuentaAdmin();
         }
     }
 
     private void verificarEstadoCuentaAdmin() {
-        adminService.getAccountStatus(currentUserProfile.getSafeAuthId()).thenAccept(status -> {
+        adminService.getAccountStatus(currentUserProfile.getSafeAuthId()).thenAccept(status -> 
             Platform.runLater(() -> {
                 actualizarVisibilidadMenu(status);
                 mostrarEstadoCuentaParaAdmin(status);
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             App.procesarErrorCritico(e);
             return null;
         });
     }
     
     private void mostrarEstadoCuentaParaAdmin(AccountStatusDto status) {
-        if (status == null) {
-            return;
-        }
-
-        if (adminStatusLabel == null) {
+        if (status == null || adminStatusLabel == null) {
             return;
         }
         
@@ -853,22 +716,13 @@ public class ProfileController {
         adminStatusLabel.setManaged(false);
 
         String accountStatus = status.accountStatus();
-
         if ("BANNED".equals(accountStatus)) {
             adminStatusLabel.setText("ESTADO: BANEADO");
             adminStatusLabel.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
             adminStatusLabel.setVisible(true);
             adminStatusLabel.setManaged(true);
-            return;
-        }
-
-        if ("SUSPENDED".equals(accountStatus)) {
-            String dateStr = "Desconocida";
-            
-            if (status.suspendedUntil() != null) {
-                dateStr = formatearFechaSuspension(status.suspendedUntil());
-            }
-            
+        } else if ("SUSPENDED".equals(accountStatus)) {
+            String dateStr = status.suspendedUntil() != null ? formatearFechaSuspension(status.suspendedUntil()) : "Desconocida";
             adminStatusLabel.setText("ESTADO: SUSPENDIDO (Hasta: " + dateStr + ")");
             adminStatusLabel.setTextFill(Color.ORANGE);
             adminStatusLabel.setVisible(true);
@@ -889,7 +743,6 @@ public class ProfileController {
         if (status == null) {
             return;
         }
-        
         boolean isBanned = "BANNED".equals(status.accountStatus());
         itemBanear.setVisible(!isBanned);
         itemSuspender.setVisible(!isBanned);
@@ -902,12 +755,12 @@ public class ProfileController {
     }
 
     private void ejecutarAccionAdmin(CompletableFuture<Void> futuro) {
-        futuro.thenRun(() -> {
+        futuro.thenRun(() -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_ADMIN_ACTION);
                 verificarEstadoCuentaAdmin();
-            });
-        }).exceptionally(err -> {
+            })
+        ).exceptionally(err -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(err)) {
                     mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
@@ -940,14 +793,14 @@ public class ProfileController {
     }
 
     private void ejecutarActualizacion(UpdateProfileRequest req) {
-        userService.updateProfile(req).thenAccept(updatedUser -> {
+        userService.updateProfile(req).thenAccept(updatedUser -> 
             Platform.runLater(() -> {
                 SessionManager.getInstance().updateUser(updatedUser);
                 this.currentUserProfile = updatedUser;
                 actualizarEtiquetasBasicas(updatedUser);
                 mostrarAlertaExito("Perfil actualizado correctamente.");
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
@@ -969,7 +822,7 @@ public class ProfileController {
             .PUT(java.net.http.HttpRequest.BodyPublishers.ofString(jsonBody))
             .build();
             
-        java.net.http.HttpClient.newHttpClient().sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+        httpClient.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString())
             .thenAccept(this::procesarRespuestaUsername)
             .exceptionally(e -> {
                 Platform.runLater(() -> {
@@ -987,7 +840,7 @@ public class ProfileController {
             return;
         }
         
-        userService.getProfile().thenAccept(updatedUser -> {
+        userService.getProfile().thenAccept(updatedUser -> 
             Platform.runLater(() -> {
                 if (updatedUser != null) {
                     SessionManager.getInstance().updateUser(updatedUser);
@@ -995,8 +848,8 @@ public class ProfileController {
                     actualizarEtiquetasBasicas(updatedUser);
                     mostrarAlertaExito("Nombre de usuario actualizado correctamente.");
                 }
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
@@ -1007,14 +860,14 @@ public class ProfileController {
     }
 
     private void subirFotoPerfil(File file) {
-        userService.uploadProfilePhoto(file).thenAccept(updatedUser -> {
+        userService.uploadProfilePhoto(file).thenAccept(updatedUser -> 
             Platform.runLater(() -> {
                 SessionManager.getInstance().updateUser(updatedUser);
                 this.currentUserProfile = updatedUser;
                 actualizarEtiquetasBasicas(updatedUser);
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_PHOTO);
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarAlertaError(AppConstants.MESSAGE_ERROR_PHOTO);
@@ -1025,13 +878,9 @@ public class ProfileController {
     }
 
     private void cargarFavoritosRecursivo(boolean isCurrentUser, int page, List<LibraryItemDto> acumulado) {
-        CompletableFuture<List<LibraryItemDto>> future;
-        
-        if (isCurrentUser) {
-            future = libraryService.getFavoritesPaged(page);
-        } else {
-            future = libraryService.getFavoritesByUserPaged(currentUserProfile.getSafeAuthId(), page);
-        }
+        CompletableFuture<List<LibraryItemDto>> future = isCurrentUser 
+            ? libraryService.getFavoritesPaged(page) 
+            : libraryService.getFavoritesByUserPaged(currentUserProfile.getSafeAuthId(), page);
         
         future.thenAccept(list -> {
             if (list != null && !list.isEmpty()) {
@@ -1073,12 +922,7 @@ public class ProfileController {
     }
 
     private void procesarListaBibliotecas(List<LibraryItemDto> list, VBox container, String emptyMsg) {
-        if (list == null) {
-            mostrarVacio(container, emptyMsg);
-            return;
-        }
-        
-        if (list.isEmpty()) {
+        if (list == null || list.isEmpty()) {
             mostrarVacio(container, emptyMsg);
             return;
         }
@@ -1088,7 +932,6 @@ public class ProfileController {
         
         for (int i = 0; i < limite; i++) {
             LibraryItemDto item = list.get(i);
-            
             if (item.tvmazeId() != null) {
                 ids.add(item.tvmazeId());
             }
@@ -1104,9 +947,9 @@ public class ProfileController {
             return;
         }
         
-        reviewService.getUserReviews(authId, page).thenAccept(res -> {
-            Platform.runLater(() -> procesarPaginacionResenas(res, isCurrentUser));
-        }).exceptionally(e -> {
+        reviewService.getUserReviews(authId, page).thenAccept(res -> 
+            Platform.runLater(() -> procesarPaginacionResenas(res, isCurrentUser))
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarVacio(reviewsSection, AppConstants.MESSAGE_ERROR_API);
@@ -1117,21 +960,7 @@ public class ProfileController {
     }
 
     private void procesarPaginacionResenas(ReviewPaginationResponse response, boolean isCurrentUser) {
-        if (response == null) {
-            if (currentReviewPage == 1) {
-                mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
-            }
-            return;
-        }
-        
-        if (response.reviews() == null) {
-            if (currentReviewPage == 1) {
-                mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
-            }
-            return;
-        }
-        
-        if (response.reviews().isEmpty()) {
+        if (response == null || response.reviews() == null || response.reviews().isEmpty()) {
             if (currentReviewPage == 1) {
                 mostrarVacio(reviewsSection, "No hay reseñas publicadas.");
             }
@@ -1145,19 +974,14 @@ public class ProfileController {
             reviewsSection.getChildren().add(cardBox);
         }
         
-        if (response.pagination() != null) {
-            if (response.pagination().hasNextPage() != null) {
-                if (response.pagination().hasNextPage()) {
-                    agregarBotonCargarMas(isCurrentUser);
-                }
-            }
+        if (response.pagination() != null && Boolean.TRUE.equals(response.pagination().hasNextPage())) {
+            agregarBotonCargarMas(isCurrentUser);
         }
     }
 
     private void removerBotonCargarMas() {
         if (!reviewsSection.getChildren().isEmpty()) {
             int lastIndex = reviewsSection.getChildren().size() - 1;
-            
             if (reviewsSection.getChildren().get(lastIndex) instanceof HBox) {
                 reviewsSection.getChildren().remove(lastIndex);
             }
@@ -1175,37 +999,31 @@ public class ProfileController {
         
         HBox box = new HBox(btn);
         box.setAlignment(Pos.CENTER);
-        
         reviewsSection.getChildren().add(box);
     }
 
     private void cargarSeriesEnCarrusel(List<Integer> ids, VBox container) {
         List<CompletableFuture<Show>> futures = new ArrayList<>();
-        
         for (Integer id : ids) {
             futures.add(getShowCached(id));
         }
         
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> {
             List<Show> shows = new ArrayList<>();
-            
             for (CompletableFuture<Show> f : futures) {
                 try {
                     Show s = f.join();
-                    
                     if (s != null) {
                         shows.add(s);
                     }
                 } catch (Exception e) {
+                    // Ignorado intencionalmente para no romper el ciclo principal
                 }
             }
-            
             return shows;
-        }).thenAccept(shows -> {
-            Platform.runLater(() -> {
-                dibujarCarrusel(shows, container);
-            });
-        });
+        }).thenAccept(shows -> 
+            Platform.runLater(() -> dibujarCarrusel(shows, container))
+        );
     }
 
     private void dibujarCarrusel(List<Show> shows, VBox container) {
@@ -1218,7 +1036,6 @@ public class ProfileController {
         
         HBox content = new HBox(15);
         content.setPadding(new Insets(10));
-        
         for (Show s : shows) {
             injectShowCard(s, content);
         }
@@ -1231,18 +1048,12 @@ public class ProfileController {
         Button bI = crearBotonPaginacion("<"); 
         Button bD = crearBotonPaginacion(">"); 
         
-        bI.setOnAction(e -> {
-            sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2));
-        });
-        
-        bD.setOnAction(e -> {
-            sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2));
-        });
+        bI.setOnAction(e -> sp.setHvalue(Math.max(0, sp.getHvalue() - 0.2)));
+        bD.setOnAction(e -> sp.setHvalue(Math.min(1, sp.getHvalue() + 0.2)));
         
         BorderPane bp = new BorderPane(sp); 
         bp.setLeft(bI); 
         bp.setRight(bD);
-        
         BorderPane.setAlignment(bI, Pos.CENTER);
         BorderPane.setAlignment(bD, Pos.CENTER);
         
@@ -1252,14 +1063,12 @@ public class ProfileController {
     private Button crearBotonPaginacion(String texto) {
         Button btn = new Button(texto);
         btn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
-        
         return btn;
     }
 
     private void mostrarVacio(VBox section, String msj) {
         Label lbl = new Label(msj);
         lbl.setTextFill(Color.GRAY);
-        
         section.getChildren().clear();
         section.getChildren().add(lbl);
     }
@@ -1268,12 +1077,11 @@ public class ProfileController {
         try {
             FXMLLoader l = new FXMLLoader(getClass().getResource(AppConstants.FXML_SHOW_CARD));
             VBox card = l.load();
-            
             com.src.filmtracker.controllers.shows.ShowCardController controller = l.getController();
             controller.setData(s);
-            
             container.getChildren().add(card);
         } catch (IOException e) {
+            // Ignorado intencionalmente al cargar componente visual
         }
     }
 
@@ -1285,50 +1093,36 @@ public class ProfileController {
         seriesLabel.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         
         if (review.tvmaze_id() != null) {
-            getShowCached(review.tvmaze_id()).thenAccept(show -> {
-                if (show != null) {
-                    Platform.runLater(() -> {
+            getShowCached(review.tvmaze_id()).thenAccept(show -> 
+                Platform.runLater(() -> {
+                    if (show != null) {
                         seriesLabel.setText("Serie: " + show.name());
-                    });
-                }
-            });
+                    }
+                })
+            );
         }
         
-        String titleText = "Sin título";
-        
-        if (review.title() != null) {
-            titleText = review.title();
-        }
-        
+        String titleText = review.title() != null ? review.title() : "Sin título";
         Label title = new Label(titleText);
         title.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;"); 
         title.setTextFill(Color.WHITE);
         
-        String contentText = "";
-        
-        if (review.content() != null) {
-            contentText = review.content();
-        }
-        
+        String contentText = review.content() != null ? review.content() : "";
         Label content = new Label(contentText);
         content.setTextFill(Color.LIGHTGRAY); 
         content.setWrapText(true);
         
-        card.getChildren().add(seriesLabel);
-        card.getChildren().add(title);
-        card.getChildren().add(content);
+        card.getChildren().addAll(seriesLabel, title, content);
         
         card.setOnMouseClicked(e -> {
             if (review.tvmaze_id() != null) {
-                getShowCached(review.tvmaze_id()).thenAccept(show -> {
+                getShowCached(review.tvmaze_id()).thenAccept(show -> 
                     Platform.runLater(() -> {
                         if (show != null) {
                             App.showShowDetail(show);
                         }
-                    });
-                }).exceptionally(ex -> {
-                    return null;
-                });
+                    })
+                ).exceptionally(ex -> null);
             }
         });
         
@@ -1337,11 +1131,9 @@ public class ProfileController {
 
     private void mostrarAlertaError(String mensaje) {
         CustomAlertHelper.mostrarError(mensaje);
-
     }
     
     private void mostrarAlertaExito(String mensaje) {
         CustomAlertHelper.mostrarExito(mensaje);
-
     }
 }

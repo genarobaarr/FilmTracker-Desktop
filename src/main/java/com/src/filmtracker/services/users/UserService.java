@@ -7,87 +7,64 @@ import com.src.filmtracker.models.users.UserDto;
 import com.src.filmtracker.models.users.UpdateProfileRequest;
 import com.src.filmtracker.utils.AppConstants;
 import com.src.filmtracker.utils.SessionManager;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.concurrent.CompletableFuture;
 
 public class UserService implements IUserService {
+
+    private static final String HEADER_AUTH = "Authorization";
+    private static final String HEADER_ACCEPT = "Accept";
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String TYPE_JSON = "application/json";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String KEY_DATA = "data";
+    private static final String ERROR_PREFIX = "Error: ";
+    private static final String ERROR_UPDATE_PREFIX = "Update Error: ";
+    private static final String ERROR_UPLOAD_PREFIX = "Upload Error: ";
 
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
     @Override
     public CompletableFuture<UserDto> getProfile() {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(AppConstants.USERS_PROFILE_URL))
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .header("Accept", "application/json")
-                .GET()
-                .build();
+        HttpRequest request = buildGetRequest(AppConstants.USERS_PROFILE_URL);
+        return executeAndParseUser(request, ERROR_PREFIX);
+    }
+
+    @Override
+    public CompletableFuture<UserDto> getUserById(String authId) {
+        String url = AppConstants.USERS_SERVICE_URL + "/id/" + authId;
+        HttpRequest request = buildGetRequest(url);
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     com.src.filmtracker.App.checkHttpResponse(response);
                     
                     if (response.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + response.statusCode());
-                    }
-                    
-                    JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
-                    if (json.has("data")) {
-                        return gson.fromJson(json.get("data"), UserDto.class);
-                    }
-                    
-                    return gson.fromJson(json, UserDto.class);
-                });
-    }
-
-    @Override
-    public CompletableFuture<UserDto> getUserById(String authId) {
-        String url = AppConstants.USERS_SERVICE_URL + "/id/" + authId;
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .GET();
-
-        if (SessionManager.getInstance().isAuthenticated()) {
-            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
-        }
-
-        return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> {
-                    com.src.filmtracker.App.checkHttpResponse(response);
-                    
-                    if (response.statusCode() >= 400) {
                         return null;
                     }
                     
-                    JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
-                    if (json.has("data")) {
-                        return gson.fromJson(json.get("data"), UserDto.class);
-                    }
-                    
-                    return gson.fromJson(json, UserDto.class);
+                    return parseUserDto(response.body());
                 });
     }
 
     @Override
     public CompletableFuture<UserDto> getUserByUsername(String username) {
         String url = AppConstants.USERS_SERVICE_URL + "/" + username;
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .GET();
+        HttpRequest request = buildGetRequest(url);
 
-        if (SessionManager.getInstance().isAuthenticated()) {
-            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
-        }
-
-        return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     com.src.filmtracker.App.checkHttpResponse(response);
                     
@@ -95,102 +72,100 @@ public class UserService implements IUserService {
                         return null;
                     }
                     
-                    JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
-                    if (json.has("data")) {
-                        return gson.fromJson(json.get("data"), UserDto.class);
-                    }
-                    
-                    return gson.fromJson(json, UserDto.class);
+                    return parseUserDto(response.body());
                 });
     }
 
     @Override
     public CompletableFuture<UserDto> updateProfile(UpdateProfileRequest request) {
         String jsonBody = gson.toJson(request);
+
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(AppConstants.USERS_PROFILE_URL))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .header(HEADER_CONTENT_TYPE, TYPE_JSON)
+                .header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken())
                 .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
-        return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> {
-                    com.src.filmtracker.App.checkHttpResponse(response);
-                    
-                    if (response.statusCode() >= 400) {
-                        throw new RuntimeException("Update Error: " + response.statusCode());
-                    }
-                    
-                    JsonObject obj = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
-                    if (obj.has("data")) {
-                        return gson.fromJson(obj.get("data"), UserDto.class);
-                    }
-                    
-                    return gson.fromJson(obj, UserDto.class);
-                });
+        return executeAndParseUser(httpRequest, ERROR_UPDATE_PREFIX);
     }
-    
+
     @Override
-    public CompletableFuture<UserDto> uploadProfilePhoto(java.io.File file) {
+    public CompletableFuture<UserDto> uploadProfilePhoto(File file) {
         String boundary = "Boundary-" + System.currentTimeMillis();
         byte[] multipartBody = construirCuerpoMultipart(file, boundary);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(AppConstants.USERS_PROFILE_PHOTO_URL))
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
-                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken())
+                .header(HEADER_CONTENT_TYPE, "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
                 .build();
 
-        return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+        return executeAndParseUser(httpRequest, ERROR_UPLOAD_PREFIX);
+    }
+
+    private HttpRequest buildGetRequest(String url) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(HEADER_ACCEPT, TYPE_JSON)
+                .GET();
+
+        if (SessionManager.getInstance().isAuthenticated()) {
+            builder.header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken());
+        }
+
+        return builder.build();
+    }
+
+    private CompletableFuture<UserDto> executeAndParseUser(HttpRequest request, String errorPrefix) {
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     com.src.filmtracker.App.checkHttpResponse(response);
-                    
+
                     if (response.statusCode() >= 400) {
-                        throw new RuntimeException("Upload Error: " + response.statusCode());
+                        throw new IllegalStateException(errorPrefix + response.statusCode());
                     }
-                    
-                    JsonObject obj = JsonParser.parseString(response.body()).getAsJsonObject();
-                    
-                    if (obj.has("data")) {
-                        return gson.fromJson(obj.get("data"), UserDto.class);
-                    }
-                    
-                    return gson.fromJson(obj, UserDto.class);
+
+                    return parseUserDto(response.body());
                 });
     }
 
-    private byte[] construirCuerpoMultipart(java.io.File file, String boundary) {
+    private UserDto parseUserDto(String responseBody) {
+        JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
+        if (json.has(KEY_DATA)) {
+            return gson.fromJson(json.get(KEY_DATA), UserDto.class);
+        }
+        return gson.fromJson(json, UserDto.class);
+    }
+
+    private byte[] construirCuerpoMultipart(File file, String boundary) {
         try {
-            java.io.ByteArrayOutputStream byteStream = new java.io.ByteArrayOutputStream();
-            java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, java.nio.charset.StandardCharsets.UTF_8), true);
-            
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(byteStream, StandardCharsets.UTF_8), true);
+
             writer.append("--").append(boundary).append("\r\n");
             writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"").append(file.getName()).append("\"\r\n");
-            
-            String mimeType = java.nio.file.Files.probeContentType(file.toPath());
-            
+
+            String mimeType = Files.probeContentType(file.toPath());
             if (mimeType == null) {
                 mimeType = "application/octet-stream";
             }
-            
-            writer.append("Content-Type: ").append(mimeType).append("\r\n");
+
+            writer.append(HEADER_CONTENT_TYPE).append(": ").append(mimeType).append("\r\n");
             writer.append("\r\n");
             writer.flush();
-            
-            java.nio.file.Files.copy(file.toPath(), byteStream);
+
+            Files.copy(file.toPath(), byteStream);
             byteStream.flush();
-            
+
             writer.append("\r\n");
             writer.append("--").append(boundary).append("--\r\n");
             writer.flush();
-            
+
             return byteStream.toByteArray();
-        } catch (java.io.IOException e) {
-            throw new RuntimeException("Error al leer el archivo de imagen", e);
+        } catch (IOException e) {
+            throw new IllegalStateException("Error al leer el archivo de imagen", e);
         }
     }
 }

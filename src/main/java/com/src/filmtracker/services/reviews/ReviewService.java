@@ -17,23 +17,38 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
 public class ReviewService implements IReviewService {
     
+    private static final String HEADER_ACCEPT = "Accept";
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String HEADER_AUTH = "Authorization";
+    private static final String TYPE_JSON = "application/json";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String KEY_DATA = "data";
+    private static final String KEY_REVIEW = "review";
+    private static final String KEY_COMMENT = "comment";
+    private static final String ERROR_API = "API Error: ";
+    
+    private static final String MULTIPART_FORM_DATA = "multipart/form-data; boundary=";
+    private static final String CRLF = "\r\n";
+    private static final String TWO_DASHES = "--";
+    private static final String DEFAULT_MIME_TYPE = "image/jpeg";
+
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
     @Override
     public CompletableFuture<ReviewPaginationResponse> getShowReviews(Integer tvmazeId, int page) {
         String url = AppConstants.REVIEWS_URL + "/show/" + tvmazeId + "?page=" + page;
-        
         return executeGet(url, ReviewPaginationResponse.class);
     }
 
     @Override
     public CompletableFuture<ReviewDto> createReview(ReviewRequest request) {
-        return executePostAndParse(AppConstants.REVIEWS_URL, request, ReviewDto.class, "review");
+        return executePostAndParse(AppConstants.REVIEWS_URL, request, ReviewDto.class, KEY_REVIEW);
     }
 
     @Override
@@ -44,7 +59,7 @@ public class ReviewService implements IReviewService {
                 .PUT(HttpRequest.BodyPublishers.ofString(gson.toJson(request)))
                 .build();
                 
-        return sendAndParse(req, ReviewDto.class, "review");
+        return sendAndParse(req, ReviewDto.class, KEY_REVIEW);
     }
 
     @Override
@@ -89,7 +104,6 @@ public class ReviewService implements IReviewService {
     @Override
     public CompletableFuture<CommentPaginationResponse> getReviewComments(String reviewId, int page) {
         String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/comments?page=" + page;
-        
         return executeGet(url, CommentPaginationResponse.class);
     }
 
@@ -103,12 +117,12 @@ public class ReviewService implements IReviewService {
             
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                    .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                    .header(HEADER_CONTENT_TYPE, MULTIPART_FORM_DATA + boundary)
+                    .header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken())
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                     .build();
 
-            return sendAndParse(req, CommentDto.class, "comment");
+            return sendAndParse(req, CommentDto.class, KEY_COMMENT);
         } catch (java.io.IOException e) {
             return CompletableFuture.failedFuture(e);
         }
@@ -122,7 +136,7 @@ public class ReviewService implements IReviewService {
                 .PUT(HttpRequest.BodyPublishers.ofString(gson.toJson(request)))
                 .build();
                 
-        return sendAndParse(req, CommentDto.class, "comment");
+        return sendAndParse(req, CommentDto.class, KEY_COMMENT);
     }
 
     @Override
@@ -139,7 +153,6 @@ public class ReviewService implements IReviewService {
     @Override
     public CompletableFuture<ReviewPaginationResponse> getUserReviews(String authId, int page) {
         String url = AppConstants.REVIEWS_URL + "/user/" + authId + "?page=" + page;
-        
         return executeGet(url, ReviewPaginationResponse.class);
     }
 
@@ -158,8 +171,8 @@ public class ReviewService implements IReviewService {
             
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
             
-            if (json.has("data")) {
-                return gson.fromJson(json.get("data"), ReviewSummaryDto.class);
+            if (json.has(KEY_DATA)) {
+                return gson.fromJson(json.get(KEY_DATA), ReviewSummaryDto.class);
             }
             
             return gson.fromJson(json, ReviewSummaryDto.class);
@@ -169,14 +182,12 @@ public class ReviewService implements IReviewService {
     @Override
     public CompletableFuture<Void> uploadReviewImage(String reviewId, java.io.File imageFile) {
         String url = AppConstants.REVIEWS_URL + "/" + reviewId + "/image";
-        
         return executeImageUpload(url, imageFile);
     }
 
     @Override
     public CompletableFuture<Void> uploadCommentImage(String commentId, java.io.File imageFile) {
         String url = AppConstants.COMMENTS_URL + "/" + commentId + "/image";
-        
         return executeImageUpload(url, imageFile);
     }
 
@@ -188,8 +199,8 @@ public class ReviewService implements IReviewService {
             
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                    .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                    .header(HEADER_CONTENT_TYPE, MULTIPART_FORM_DATA + boundary)
+                    .header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken())
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                     .build();
 
@@ -198,7 +209,7 @@ public class ReviewService implements IReviewService {
                         com.src.filmtracker.App.checkHttpResponse(res);
                         
                         if (res.statusCode() >= 400) {
-                            throw new RuntimeException("Upload failed: " + res.statusCode());
+                            throw new IllegalStateException("Upload failed: " + res.statusCode());
                         }
                         
                         return null;
@@ -210,43 +221,31 @@ public class ReviewService implements IReviewService {
 
     private byte[] buildMultipartBodyWithTextAndFile(String content, java.io.File file, String boundary) throws java.io.IOException {
         java.io.ByteArrayOutputStream byteStream = new java.io.ByteArrayOutputStream();
-        java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, java.nio.charset.StandardCharsets.UTF_8), true);
+        java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, StandardCharsets.UTF_8), true);
 
-        writer.append("--");
-        writer.append(boundary);
-        writer.append("\r\n");
-        writer.append("Content-Disposition: form-data; name=\"content\"\r\n\r\n");
-        writer.append(content);
-        writer.append("\r\n");
+        writer.append(TWO_DASHES).append(boundary).append(CRLF);
+        writer.append("Content-Disposition: form-data; name=\"content\"").append(CRLF).append(CRLF);
+        writer.append(content).append(CRLF);
 
         if (file != null) {
-            writer.append("--");
-            writer.append(boundary);
-            writer.append("\r\n");
-            writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"");
-            writer.append(file.getName());
-            writer.append("\"\r\n");
+            writer.append(TWO_DASHES).append(boundary).append(CRLF);
+            writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"").append(file.getName()).append("\"").append(CRLF);
 
             String mimeType = java.nio.file.Files.probeContentType(file.toPath());
-            
             if (mimeType == null) {
-                mimeType = "image/jpeg";
+                mimeType = DEFAULT_MIME_TYPE;
             }
 
-            writer.append("Content-Type: ");
-            writer.append(mimeType);
-            writer.append("\r\n\r\n");
+            writer.append(HEADER_CONTENT_TYPE).append(": ").append(mimeType).append(CRLF).append(CRLF);
             writer.flush();
 
             java.nio.file.Files.copy(file.toPath(), byteStream);
             byteStream.flush();
 
-            writer.append("\r\n");
+            writer.append(CRLF);
         }
 
-        writer.append("--");
-        writer.append(boundary);
-        writer.append("--\r\n");
+        writer.append(TWO_DASHES).append(boundary).append(TWO_DASHES).append(CRLF);
         writer.flush();
 
         return byteStream.toByteArray();
@@ -254,31 +253,22 @@ public class ReviewService implements IReviewService {
 
     private byte[] buildMultipartBody(java.io.File file, String boundary) throws java.io.IOException {
         java.io.ByteArrayOutputStream byteStream = new java.io.ByteArrayOutputStream();
-        java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, java.nio.charset.StandardCharsets.UTF_8), true);
+        java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(byteStream, StandardCharsets.UTF_8), true);
         
-        writer.append("--");
-        writer.append(boundary);
-        writer.append("\r\n");
-        writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"");
-        writer.append(file.getName());
-        writer.append("\"\r\n");
+        writer.append(TWO_DASHES).append(boundary).append(CRLF);
+        writer.append("Content-Disposition: form-data; name=\"image\"; filename=\"").append(file.getName()).append("\"").append(CRLF);
         
         String mimeType = java.nio.file.Files.probeContentType(file.toPath());
-        
         if (mimeType == null) {
-            mimeType = "image/jpeg";
+            mimeType = DEFAULT_MIME_TYPE;
         }
         
-        writer.append("Content-Type: ");
-        writer.append(mimeType);
-        writer.append("\r\n\r\n");
+        writer.append(HEADER_CONTENT_TYPE).append(": ").append(mimeType).append(CRLF).append(CRLF);
         writer.flush();
         
         java.nio.file.Files.copy(file.toPath(), byteStream);
         
-        writer.append("\r\n--");
-        writer.append(boundary);
-        writer.append("--\r\n");
+        writer.append(CRLF).append(TWO_DASHES).append(boundary).append(TWO_DASHES).append(CRLF);
         writer.flush();
         
         return byteStream.toByteArray();
@@ -286,7 +276,6 @@ public class ReviewService implements IReviewService {
 
     private <T> CompletableFuture<T> executeGet(String url, Class<T> responseClass) {
         HttpRequest request = createRequestBuilder(url).GET().build();
-        
         return sendAndParse(request, responseClass, null);
     }
 
@@ -303,11 +292,11 @@ public class ReviewService implements IReviewService {
     private HttpRequest.Builder createRequestBuilder(String url) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .header("Content-Type", "application/json");
+                .header(HEADER_ACCEPT, TYPE_JSON)
+                .header(HEADER_CONTENT_TYPE, TYPE_JSON);
         
         if (SessionManager.getInstance().isAuthenticated()) {
-            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+            builder.header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken());
         }
         
         return builder;
@@ -318,7 +307,7 @@ public class ReviewService implements IReviewService {
             com.src.filmtracker.App.checkHttpResponse(res);
             
             if (res.statusCode() >= 400) {
-                throw new RuntimeException("API Error: " + res.statusCode());
+                throw new IllegalStateException(ERROR_API + res.statusCode());
             }
             
             return null;
@@ -330,19 +319,17 @@ public class ReviewService implements IReviewService {
             com.src.filmtracker.App.checkHttpResponse(response);
             
             if (response.statusCode() >= 400) {
-                throw new RuntimeException("API Error: " + response.statusCode());
+                throw new IllegalStateException(ERROR_API + response.statusCode());
             }
             
             JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
             
-            if (extractionKey != null) {
-                if (json.has(extractionKey)) {
-                    return gson.fromJson(json.get(extractionKey), responseType);
-                }
+            if (extractionKey != null && json.has(extractionKey)) {
+                return gson.fromJson(json.get(extractionKey), responseType);
             }
             
-            if (json.has("data")) {
-                return gson.fromJson(json.get("data"), responseType);
+            if (json.has(KEY_DATA)) {
+                return gson.fromJson(json.get(KEY_DATA), responseType);
             }
             
             return gson.fromJson(json, responseType);

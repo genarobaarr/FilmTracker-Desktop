@@ -13,6 +13,12 @@ import java.util.concurrent.CompletableFuture;
 
 public class NotificationService implements INotificationService {
 
+    private static final String HEADER_AUTH = "Authorization";
+    private static final String HEADER_ACCEPT = "Accept";
+    private static final String TYPE_JSON = "application/json";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ERROR_PREFIX = "Error: ";
+
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
@@ -52,7 +58,7 @@ public class NotificationService implements INotificationService {
         
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken())
                 .DELETE()
                 .build();
                 
@@ -62,8 +68,8 @@ public class NotificationService implements INotificationService {
     private HttpRequest crearPeticionGet(String url) {
         return HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .header(HEADER_ACCEPT, TYPE_JSON)
+                .header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken())
                 .GET()
                 .build();
     }
@@ -71,8 +77,8 @@ public class NotificationService implements INotificationService {
     private HttpRequest crearPeticionPut(String url) {
         return HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer " + SessionManager.getInstance().getToken())
+                .header(HEADER_ACCEPT, TYPE_JSON)
+                .header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken())
                 .PUT(HttpRequest.BodyPublishers.noBody())
                 .build();
     }
@@ -83,7 +89,7 @@ public class NotificationService implements INotificationService {
                     com.src.filmtracker.App.checkHttpResponse(response);
                     
                     if (response.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + response.statusCode());
+                        throw new IllegalStateException(ERROR_PREFIX + response.statusCode());
                     }
                     
                     return gson.fromJson(response.body(), claseDestino);
@@ -96,7 +102,7 @@ public class NotificationService implements INotificationService {
                     com.src.filmtracker.App.checkHttpResponse(response);
                     
                     if (response.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + response.statusCode());
+                        throw new IllegalStateException(ERROR_PREFIX + response.statusCode());
                     }
                     
                     return null;

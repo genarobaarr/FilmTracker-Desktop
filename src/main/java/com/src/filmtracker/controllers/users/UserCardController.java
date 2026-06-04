@@ -11,6 +11,11 @@ import javafx.scene.layout.VBox;
 
 public class UserCardController {
 
+    private static final String TEXT_DESCONOCIDO = "Desconocido";
+    private static final String TEXT_USUARIO_DEF = "@usuario";
+    private static final String NAME_PARAM_DEF = "User";
+    private static final String AVATAR_API_BASE = "https://ui-avatars.com/api/?background=e50914&color=fff&name=";
+
     @FXML private VBox cardContainer;
     @FXML private ImageView avatarImageView;
     @FXML private Label nameLabel;
@@ -20,6 +25,7 @@ public class UserCardController {
     private Image fallbackErrorImage;
 
     public UserCardController() {
+        // Constructor por defecto
     }
 
     @FXML
@@ -42,27 +48,25 @@ public class UserCardController {
         if (user.name() != null) {
             nameLabel.setText(user.name());
         } else {
-            nameLabel.setText("Desconocido");
+            nameLabel.setText(TEXT_DESCONOCIDO);
         }
 
         if (user.username() != null) {
             usernameLabel.setText("@" + user.username());
         } else {
-            usernameLabel.setText("@usuario");
+            usernameLabel.setText(TEXT_USUARIO_DEF);
         }
 
-        String nameParam = "User";
+        String nameParam = NAME_PARAM_DEF;
         
         if (user.username() != null) {
             nameParam = user.username();
         }
 
-        String imageUrl = "https://ui-avatars.com/api/?name=" + nameParam + "&background=e50914&color=fff";
+        String imageUrl = AVATAR_API_BASE + nameParam;
         
-        if (user.profileImage() != null) {
-            if (!user.profileImage().isEmpty()) {
-                imageUrl = user.profileImage();
-            }
+        if (user.profileImage() != null && !user.profileImage().isEmpty()) {
+            imageUrl = user.profileImage();
         }
 
         cargarImagenConRespaldo(imageUrl, avatarImageView);
@@ -73,10 +77,8 @@ public class UserCardController {
             Image img = new Image(url, true);
             
             img.errorProperty().addListener((obs, oldVal, isError) -> {
-                if (isError) {
-                    Platform.runLater(() -> {
-                        ponerImagenError(imageView);
-                    });
+                if (Boolean.TRUE.equals(isError)) {
+                    Platform.runLater(() -> ponerImagenError(imageView));
                 }
             });
             
@@ -91,6 +93,8 @@ public class UserCardController {
             String errorPath = getClass().getResource("/com/src/filmtracker/images/error.png").toExternalForm();
             this.fallbackErrorImage = new Image(errorPath, true);
         } catch (Exception ex) {
+            // Falla silenciosa intencional: Si no se encuentra la imagen de error en el sistema de archivos, 
+            // el ImageView simplemente quedará en blanco de forma segura.
         }
     }
 

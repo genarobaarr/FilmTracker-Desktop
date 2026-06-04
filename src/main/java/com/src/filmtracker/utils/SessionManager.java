@@ -16,11 +16,10 @@ public class SessionManager {
     private SessionManager() {
     }
 
-    public static SessionManager getInstance() {
+    public static synchronized SessionManager getInstance() {
         if (instance == null) {
             instance = new SessionManager();
         }
-        
         return instance;
     }
 
@@ -29,12 +28,10 @@ public class SessionManager {
     }
 
     public void login(AuthResponse authResponse) {
-        if (authResponse != null) {
-            if (authResponse.data() != null) {
-                this.currentUser = authResponse.data().user();
-                this.token = authResponse.data().token();
-                iniciarTemporizadorSesion();
-            }
+        if (authResponse != null && authResponse.data() != null) {
+            this.currentUser = authResponse.data().user();
+            this.token = authResponse.data().token();
+            iniciarTemporizadorSesion();
         }
     }
     
@@ -50,10 +47,8 @@ public class SessionManager {
     }
     
     private void detenerTemporizadorSesion() {
-        if (this.scheduler != null) {
-            if (!this.scheduler.isShutdown()) {
-                this.scheduler.shutdownNow();
-            }
+        if (this.scheduler != null && !this.scheduler.isShutdown()) {
+            this.scheduler.shutdownNow();
         }
     }
     
@@ -78,12 +73,6 @@ public class SessionManager {
     }
     
     public boolean isAuthenticated() { 
-        if (token != null) {
-            if (!token.isEmpty()) {
-                return true;
-            }
-        }
-        
-        return false;
+        return token != null && !token.isEmpty();
     }
 }

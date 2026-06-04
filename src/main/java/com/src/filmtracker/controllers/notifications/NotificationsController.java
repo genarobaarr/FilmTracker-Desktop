@@ -30,6 +30,16 @@ import java.time.format.DateTimeFormatter;
 
 public class NotificationsController {
 
+    private static final String STYLE_CARD_READ = "-fx-background-color: #1a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;";
+    private static final String STYLE_CARD_UNREAD = "-fx-background-color: #2a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e50914; -fx-border-width: 0 0 0 4; -fx-cursor: hand;";
+    private static final String STYLE_TITLE = "-fx-font-weight: bold; -fx-font-size: 15px;";
+    private static final String STYLE_DATE = "-fx-font-size: 11px;";
+    private static final String STYLE_DEL_BTN = "-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand;";
+    private static final String STYLE_MORE_BTN = "-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;";
+    private static final String URL_AVATAR_BASE = "https://ui-avatars.com/api/?name=";
+    private static final String URL_AVATAR_PARAMS = "&background=e50914&color=fff";
+    private static final String DEFAULT_USER = "User";
+
     @FXML private VBox notificationsContainer;
 
     private final INotificationService notificationService = new NotificationService();
@@ -39,6 +49,7 @@ public class NotificationsController {
     private int currentPage = 1;
 
     public NotificationsController() {
+        // Constructor por defecto
     }
 
     @FXML
@@ -65,12 +76,12 @@ public class NotificationsController {
     
     @FXML
     private void handleMarkAllRead() {
-        notificationService.markAllAsRead().thenRun(() -> {
+        notificationService.markAllAsRead().thenRun(() -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_READ_ALL);
                 cargarNotificaciones(1);
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (!App.procesarErrorCritico(e)) {
                     mostrarAlertaError(AppConstants.MESSAGE_ERROR_NOTIFICATIONS);
@@ -81,18 +92,16 @@ public class NotificationsController {
     }
 
     private void cargarNotificaciones(int page) {
-        notificationService.getNotifications(page).thenAccept(res -> {
-            Platform.runLater(() -> {
-                procesarRespuesta(res, page);
+        notificationService.getNotifications(page)
+            .thenAccept(res -> Platform.runLater(() -> procesarRespuesta(res, page)))
+            .exceptionally(e -> {
+                Platform.runLater(() -> {
+                    if (!App.procesarErrorCritico(e)) {
+                        mostrarAlertaError(AppConstants.MESSAGE_ERROR_NOTIFICATIONS);
+                    }
+                });
+                return null;
             });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                if (!App.procesarErrorCritico(e)) {
-                    mostrarAlertaError(AppConstants.MESSAGE_ERROR_NOTIFICATIONS);
-                }
-            });
-            return null;
-        });
     }
 
     private void procesarRespuesta(NotificationResponse res, int page) {
@@ -102,11 +111,7 @@ public class NotificationsController {
             removerBotonCargarMas();
         }
 
-        if (res == null) {
-            return;
-        }
-
-        if (res.data() == null) {
+        if (res == null || res.data() == null) {
             return;
         }
 
@@ -143,7 +148,7 @@ public class NotificationsController {
 
         Label titleLbl = new Label(notif.title());
         titleLbl.setTextFill(Color.WHITE);
-        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 15px;");
+        titleLbl.setStyle(STYLE_TITLE);
 
         Label bodyLbl = new Label(notif.body());
         bodyLbl.setTextFill(Color.LIGHTGRAY);
@@ -151,77 +156,53 @@ public class NotificationsController {
 
         Label dateLbl = new Label(formatearFecha(notif.createdAt()));
         dateLbl.setTextFill(Color.GRAY);
-        dateLbl.setStyle("-fx-font-size: 11px;");
+        dateLbl.setStyle(STYLE_DATE);
         
         cargarDatosAdicionales(notif, imageView, bodyLbl);
 
-        contentBox.getChildren().add(titleLbl);
-        contentBox.getChildren().add(bodyLbl);
-        contentBox.getChildren().add(dateLbl);
+        contentBox.getChildren().addAll(titleLbl, bodyLbl, dateLbl);
 
         Button deleteBtn = new Button("🗑");
-        deleteBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #e50914; -fx-cursor: hand;");
+        deleteBtn.setStyle(STYLE_DEL_BTN);
 
         configurarEventosTarjeta(card, deleteBtn, notif, isReadState);
 
-        card.getChildren().add(imageView);
-        card.getChildren().add(contentBox);
-        card.getChildren().add(deleteBtn);
+        card.getChildren().addAll(imageView, contentBox, deleteBtn);
 
         return card;
     }
     
     private void aplicarEstiloLectura(HBox card, boolean isRead) {
         if (isRead) {
-            card.setStyle("-fx-background-color: #1a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;");
+            card.setStyle(STYLE_CARD_READ);
         } else {
-            card.setStyle("-fx-background-color: #2a1a1a; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #e50914; -fx-border-width: 0 0 0 4; -fx-cursor: hand;");
+            card.setStyle(STYLE_CARD_UNREAD);
         }
     }
 
     private void cargarDatosAdicionales(NotificationDto notif, ImageView imageView, Label bodyLbl) {
-        if (notif.metadata() != null) {
-            if (notif.metadata().tvmazeId() != null) {
-                showService.getShowDetails(notif.metadata().tvmazeId()).thenAccept(show -> {
-                    Platform.runLater(() -> {
-                        actualizarDatosSerie(show, imageView, bodyLbl, notif.type());
-                    });
-                }).exceptionally(e -> {
-                    App.procesarErrorCritico(e);
-                    return null;
-                });
-                return;
-            }
+        if (notif.metadata() != null && notif.metadata().tvmazeId() != null) {
+            showService.getShowDetails(notif.metadata().tvmazeId()).thenAccept(show -> 
+                Platform.runLater(() -> actualizarDatosSerie(show, imageView, bodyLbl, notif.type()))
+            ).exceptionally(e -> {
+                App.procesarErrorCritico(e);
+                return null;
+            });
+            return;
         }
         
-        if (notif.actorAuthId() != null) {
-            if (esValidaParaFotoPerfil(notif.type())) {
-                userService.getUserById(notif.actorAuthId()).thenAccept(user -> {
-                    Platform.runLater(() -> {
-                        actualizarDatosUsuario(user, imageView);
-                    });
-                }).exceptionally(e -> {
-                    App.procesarErrorCritico(e);
-                    return null;
-                });
-            }
+        if (notif.actorAuthId() != null && esValidaParaFotoPerfil(notif.type())) {
+            userService.getUserById(notif.actorAuthId()).thenAccept(user -> 
+                Platform.runLater(() -> actualizarDatosUsuario(user, imageView))
+            ).exceptionally(e -> {
+                App.procesarErrorCritico(e);
+                return null;
+            });
         }
     }
 
     private boolean esValidaParaFotoPerfil(String type) {
-        if (type == null) {
-            return false;
-        }
-        
-        if (type.startsWith("moderation")) {
-            return false;
-        }
-        
-        if (type.contains("photo")) {
-            return false;
-        }
-        
-        return true;
+        return type != null && !type.startsWith("moderation") && !type.contains("photo");
     }
 
     private void actualizarDatosUsuario(com.src.filmtracker.models.users.UserDto user, ImageView imageView) {
@@ -229,18 +210,11 @@ public class NotificationsController {
             return;
         }
         
-        String nameParam = "User";
+        String nameParam = user.username() != null ? user.username() : DEFAULT_USER;
+        String imageUrl = URL_AVATAR_BASE + nameParam + URL_AVATAR_PARAMS;
         
-        if (user.username() != null) {
-            nameParam = user.username();
-        }
-        
-        String imageUrl = "https://ui-avatars.com/api/?name=" + nameParam + "&background=e50914&color=fff";
-        
-        if (user.profileImage() != null) {
-            if (!user.profileImage().isEmpty()) {
-                imageUrl = user.profileImage();
-            }
+        if (user.profileImage() != null && !user.profileImage().isEmpty()) {
+            imageUrl = user.profileImage();
         }
         
         try {
@@ -248,30 +222,22 @@ public class NotificationsController {
             imageView.setFitHeight(40);
             imageView.setFitWidth(40);
         } catch (Exception e) {
+            // Falla de renderizado controlada por JavaFX estáticamente
         }
     }
 
     private void procesarRedireccion(NotificationDto notif) {
-        if (notif.type() != null) {
-            if (notif.type().startsWith("moderation.")) {
-                return;
-            }
-            
-            if (notif.type().contains("photo")) {
-                return;
-            }
+        if (notif.type() != null && (notif.type().startsWith("moderation.") || notif.type().contains("photo"))) {
+            return;
         }
 
-        if (notif.metadata() != null) {
-            if (notif.metadata().tvmazeId() != null) {
-                abrirDetalleSerie(notif.metadata().tvmazeId());
-                return;
-            }
+        if (notif.metadata() != null && notif.metadata().tvmazeId() != null) {
+            abrirDetalleSerie(notif.metadata().tvmazeId());
+            return;
         }
 
         if (notif.actorAuthId() != null) {
             abrirPerfilUsuario(notif.actorAuthId());
-            return;
         }
     }
     
@@ -280,41 +246,33 @@ public class NotificationsController {
             return;
         }
         
-        if (show.image() != null) {
-            if (show.image().medium() != null) {
-                imageView.setImage(new Image(show.image().medium(), true));
-            }
+        if (show.image() != null && show.image().medium() != null) {
+            imageView.setImage(new Image(show.image().medium(), true));
         }
         
-        if (show.name() != null) {
-            if (type != null) {
-                if (type.contains("library")) {
-                    String oldText = bodyLbl.getText();
-                    bodyLbl.setText(oldText + "\nSerie: " + show.name());
-                }
-            }
+        if (show.name() != null && type != null && type.contains("library")) {
+            String oldText = bodyLbl.getText();
+            bodyLbl.setText(oldText + "\nSerie: " + show.name());
         }
     }
 
     private void configurarEventosTarjeta(HBox card, Button deleteBtn, NotificationDto notif, boolean[] isReadState) {
         deleteBtn.setOnAction(e -> {
             e.consume();
-            notificationService.deleteNotification(notif.id()).thenRun(() -> {
-                Platform.runLater(() -> {
-                    cargarNotificaciones(1);
-                });
-            });
+            notificationService.deleteNotification(notif.id()).thenRun(() -> 
+                Platform.runLater(() -> cargarNotificaciones(1))
+            );
         });
 
         card.setOnMouseClicked(e -> {
             if (!isReadState[0]) {
-                notificationService.markAsRead(notif.id()).thenRun(() -> {
+                notificationService.markAsRead(notif.id()).thenRun(() -> 
                     Platform.runLater(() -> {
                         isReadState[0] = true;
                         aplicarEstiloLectura(card, true);
                         procesarRedireccion(notif);
-                    });
-                });
+                    })
+                );
                 return;
             }
             
@@ -323,50 +281,44 @@ public class NotificationsController {
     }
 
     private void abrirDetalleSerie(Integer tvmazeId) {
-        showService.getShowDetails(tvmazeId).thenAccept(show -> {
+        showService.getShowDetails(tvmazeId).thenAccept(show -> 
             Platform.runLater(() -> {
                 if (show != null) {
                     App.showShowDetail(show);
                 }
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             App.procesarErrorCritico(e);
             return null;
         });
     }
 
     private void abrirPerfilUsuario(String authId) {
-        userService.getUserById(authId).thenAccept(user -> {
+        userService.getUserById(authId).thenAccept(user -> 
             Platform.runLater(() -> {
                 if (user != null) {
                     App.showProfileView(user);
                 }
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             App.procesarErrorCritico(e);
             return null;
         });
     }
 
     private void evaluarBotonCargarMas(NotificationResponse res) {
-        if (res.pagination() == null) {
-            return;
-        }
-
-        if (res.pagination().hasNextPage() != null) {
-            if (res.pagination().hasNextPage()) {
-                Button btn = new Button("Cargar más");
-                btn.setStyle("-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-cursor: hand;");
-                
-                btn.setOnAction(e -> {
-                    currentPage++;
-                    cargarNotificaciones(currentPage);
-                });
-                
-                HBox box = new HBox(btn);
-                box.setAlignment(Pos.CENTER);
-                notificationsContainer.getChildren().add(box);
-            }
+        if (res.pagination() != null && Boolean.TRUE.equals(res.pagination().hasNextPage())) {
+            Button btn = new Button("Cargar más");
+            btn.setStyle(STYLE_MORE_BTN);
+            
+            btn.setOnAction(e -> {
+                currentPage++;
+                cargarNotificaciones(currentPage);
+            });
+            
+            HBox box = new HBox(btn);
+            box.setAlignment(Pos.CENTER);
+            notificationsContainer.getChildren().add(box);
         }
     }
 

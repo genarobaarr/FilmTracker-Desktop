@@ -24,6 +24,19 @@ import java.util.Map;
 
 public class LeaderboardsController {
 
+    private static final String STYLE_ROW_INTERACTIVE = "-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;";
+    private static final String STYLE_ROW_STATIC = "-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;";
+    private static final String STYLE_RANK_NUMBER = "-fx-font-weight: bold; -fx-font-size: 20px;";
+    private static final String STYLE_TITLE_15 = "-fx-font-weight: bold; -fx-font-size: 15px;";
+    private static final String STYLE_SERIES_TITLE = "-fx-font-weight: bold; -fx-font-size: 13px;";
+    private static final String STYLE_AUTHOR_LINK = "-fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand; -fx-underline: true;";
+    private static final String STYLE_META_12 = "-fx-font-size: 12px;";
+    private static final String STYLE_META_11 = "-fx-font-size: 11px;";
+    
+    private static final String TEXT_LOADING_USER = "Cargando usuario...";
+    private static final String TEXT_LOADING_SERIES = "Cargando serie...";
+    private static final String TEXT_NO_TITLE = "Sin título";
+
     @FXML private ComboBox<String> periodComboBox;
     @FXML private VBox usersContainer;
     @FXML private VBox reviewsContainer;
@@ -68,7 +81,7 @@ public class LeaderboardsController {
 
             loadUsers();
         } catch (Exception e) {
-            
+            // Ignorado intencionalmente: Falla segura al inicializar el combobox sin afectar la UI principal
         }
     }
 
@@ -104,11 +117,9 @@ public class LeaderboardsController {
         String period = periodMap.get(periodComboBox.getValue());
         
         leaderboardService.getTopUsers(period).thenAccept(res -> {
-            Platform.runLater(() -> {
-                if (res != null && res.top() != null) {
-                    res.top().forEach(this::renderUserRank);
-                }
-            });
+            if (res != null && res.top() != null) {
+                Platform.runLater(() -> res.top().forEach(this::renderUserRank));
+            }
         }).exceptionally(e -> {
             App.procesarErrorCritico(e);
             return null;
@@ -118,28 +129,28 @@ public class LeaderboardsController {
     private void renderUserRank(UserRankDto rank) {
         HBox row = new HBox(15);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;");
+        row.setStyle(STYLE_ROW_INTERACTIVE);
 
         Label rankLbl = new Label("#" + rank.rank());
         rankLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        rankLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 20px;");
+        rankLbl.setStyle(STYLE_RANK_NUMBER);
         rankLbl.setMinWidth(45);
 
         VBox contentBox = new VBox(5);
         HBox.setHgrow(contentBox, Priority.ALWAYS);
         
-        Label titleLbl = new Label("Cargando usuario...");
+        Label titleLbl = new Label(TEXT_LOADING_USER);
         titleLbl.setTextFill(Color.WHITE);
-        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 15px;");
+        titleLbl.setStyle(STYLE_TITLE_15);
         
         if (rank.authId() != null) {
             userService.getUserById(rank.authId()).thenAccept(user -> {
-                Platform.runLater(() -> {
-                    if (user != null && user.username() != null) {
+                if (user != null && user.username() != null) {
+                    Platform.runLater(() -> {
                         titleLbl.setText(user.name() + " (@" + user.username() + ")");
                         row.setOnMouseClicked(e -> App.showProfileView(user));
-                    }
-                });
+                    });
+                }
             }).exceptionally(e -> {
                 App.procesarErrorCritico(e);
                 return null;
@@ -148,14 +159,10 @@ public class LeaderboardsController {
 
         Label metaLbl = new Label("Total Likes: " + rank.totalLikes() + " (Reseñas: " + rank.reviewLikes() + ", Comentarios: " + rank.commentLikes() + ")");
         metaLbl.setTextFill(Color.GRAY);
-        metaLbl.setStyle("-fx-font-size: 12px;");
+        metaLbl.setStyle(STYLE_META_12);
 
-        contentBox.getChildren().add(titleLbl);
-        contentBox.getChildren().add(metaLbl);
-        
-        row.getChildren().add(rankLbl);
-        row.getChildren().add(contentBox);
-        
+        contentBox.getChildren().addAll(titleLbl, metaLbl);
+        row.getChildren().addAll(rankLbl, contentBox);
         usersContainer.getChildren().add(row);
     }
 
@@ -168,11 +175,9 @@ public class LeaderboardsController {
         String period = periodMap.get(periodComboBox.getValue());
         
         leaderboardService.getTopReviews(period).thenAccept(res -> {
-            Platform.runLater(() -> {
-                if (res != null && res.top() != null) {
-                    res.top().forEach(this::renderReviewRank);
-                }
-            });
+            if (res != null && res.top() != null) {
+                Platform.runLater(() -> res.top().forEach(this::renderReviewRank));
+            }
         }).exceptionally(e -> {
             App.procesarErrorCritico(e);
             return null;
@@ -182,38 +187,38 @@ public class LeaderboardsController {
     private void renderReviewRank(ReviewRankDto review) {
         HBox row = new HBox(15);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333; -fx-cursor: hand;");
+        row.setStyle(STYLE_ROW_INTERACTIVE);
 
         Label rankLbl = new Label("#" + review.rank());
         rankLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        rankLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 20px;");
+        rankLbl.setStyle(STYLE_RANK_NUMBER);
         rankLbl.setMinWidth(45);
 
         VBox contentBox = new VBox(5);
         HBox.setHgrow(contentBox, Priority.ALWAYS);
         
-        Label seriesLbl = new Label("Cargando serie...");
+        Label seriesLbl = new Label(TEXT_LOADING_SERIES);
         seriesLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        seriesLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+        seriesLbl.setStyle(STYLE_SERIES_TITLE);
 
         if (review.tvmazeId() != null) {
             showService.getShowDetails(review.tvmazeId()).thenAccept(show -> {
-                Platform.runLater(() -> {
-                    if (show != null && show.name() != null) {
+                if (show != null && show.name() != null) {
+                    Platform.runLater(() -> {
                         seriesLbl.setText(show.name());
                         row.setOnMouseClicked(e -> App.showShowDetail(show));
-                    }
-                });
+                    });
+                }
             }).exceptionally(e -> {
                 App.procesarErrorCritico(e);
                 return null;
             });
         }
 
-        String titleStr = review.title() != null ? review.title() : "Sin título";
+        String titleStr = review.title() != null ? review.title() : TEXT_NO_TITLE;
         Label titleLbl = new Label(titleStr);
         titleLbl.setTextFill(Color.WHITE);
-        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 15px;");
+        titleLbl.setStyle(STYLE_TITLE_15);
 
         String contentStr = review.content() != null ? review.content() : "";
         Label descLbl = new Label(contentStr);
@@ -222,15 +227,13 @@ public class LeaderboardsController {
 
         Label metaLbl = new Label("@Usuario • ❤️ " + review.getSafeLikesCount() + " likes");
         metaLbl.setTextFill(Color.GRAY);
-        metaLbl.setStyle("-fx-font-size: 11px;");
+        metaLbl.setStyle(STYLE_META_11);
 
         if (review.authId() != null) {
             userService.getUserById(review.authId()).thenAccept(user -> {
-                Platform.runLater(() -> {
-                    if (user != null && user.username() != null) {
-                        metaLbl.setText("@" + user.username() + " • ❤️ " + review.getSafeLikesCount() + " likes");
-                    }
-                });
+                if (user != null && user.username() != null) {
+                    Platform.runLater(() -> metaLbl.setText("@" + user.username() + " • ❤️ " + review.getSafeLikesCount() + " likes"));
+                }
             }).exceptionally(e -> {
                 App.procesarErrorCritico(e);
                 return null;
@@ -251,11 +254,9 @@ public class LeaderboardsController {
         String period = periodMap.get(periodComboBox.getValue());
         
         leaderboardService.getTopComments(period).thenAccept(res -> {
-            Platform.runLater(() -> {
-                if (res != null && res.top() != null) {
-                    res.top().forEach(this::renderCommentRank);
-                }
-            });
+            if (res != null && res.top() != null) {
+                Platform.runLater(() -> res.top().forEach(this::renderCommentRank));
+            }
         }).exceptionally(e -> {
             App.procesarErrorCritico(e);
             return null;
@@ -265,29 +266,29 @@ public class LeaderboardsController {
     private void renderCommentRank(CommentRankDto comment) {
         HBox row = new HBox(15);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #333;");
+        row.setStyle(STYLE_ROW_STATIC);
 
         Label rankLbl = new Label("#" + comment.rank());
         rankLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        rankLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 20px;");
+        rankLbl.setStyle(STYLE_RANK_NUMBER);
         rankLbl.setMinWidth(45);
 
         VBox contentBox = new VBox(5);
         HBox.setHgrow(contentBox, Priority.ALWAYS);
         
-        Label authorLbl = new Label("Cargando usuario...");
+        Label authorLbl = new Label(TEXT_LOADING_USER);
         authorLbl.setTextFill(Color.WHITE);
-        authorLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand; -fx-underline: true;");
+        authorLbl.setStyle(STYLE_AUTHOR_LINK);
 
         if (comment.authId() != null) {
             userService.getUserById(comment.authId()).thenAccept(user -> {
-                Platform.runLater(() -> {
-                    if (user != null && user.username() != null) {
+                if (user != null && user.username() != null) {
+                    Platform.runLater(() -> {
                         authorLbl.setText("@" + user.username());
                         authorLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
                         authorLbl.setOnMouseClicked(e -> App.showProfileView(user));
-                    }
-                });
+                    });
+                }
             }).exceptionally(e -> {
                 App.procesarErrorCritico(e);
                 return null;
@@ -301,7 +302,7 @@ public class LeaderboardsController {
 
         Label metaLbl = new Label("❤️ " + comment.getSafeLikesCount() + " likes");
         metaLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
-        metaLbl.setStyle("-fx-font-size: 11px; -fx-font-weight: bold;");
+        metaLbl.setStyle(STYLE_META_11 + " -fx-font-weight: bold;");
 
         contentBox.getChildren().addAll(authorLbl, descLbl, metaLbl);
         row.getChildren().addAll(rankLbl, contentBox);

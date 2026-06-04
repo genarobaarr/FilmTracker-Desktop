@@ -21,6 +21,13 @@ import java.time.temporal.ChronoUnit;
 
 public class LoginController {
     
+    private static final String STATUS_BANNED = "BANNED";
+    private static final String STATUS_SUSPENDED = "SUSPENDED";
+    private static final String ICON_ERROR = "❌ ";
+    private static final String ICON_WAIT = "⏳ ";
+    private static final String FORMAT_DAY = "dd/MM/yyyy";
+    private static final String FORMAT_HOUR = "dd/MM/yyyy HH:mm";
+
     @FXML private TextField emailField; 
     @FXML private PasswordField passwordField;
     @FXML private Label errorLabel;
@@ -33,6 +40,7 @@ public class LoginController {
 
     @FXML
     public void initialize() {
+        // Método requerido por FXML, intencionalmente vacío
     }
 
     @FXML 
@@ -68,15 +76,13 @@ public class LoginController {
 
         LoginRequest request = new LoginRequest(email, pass);
         
-        authService.login(request).thenAccept(response -> {
+        authService.login(request).thenAccept(response -> 
             Platform.runLater(() -> {
                 SessionManager.getInstance().login(response);
                 App.setRoot(AppConstants.FXML_DASHBOARD);
-            });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                procesarErrorLogin(e);
-            });
+            })
+        ).exceptionally(e -> {
+            Platform.runLater(() -> procesarErrorLogin(e));
             return null;
         });
     }
@@ -96,33 +102,28 @@ public class LoginController {
     private void manejarCuentaModerada(AccountModeratedException modEx) {
         String status = modEx.getAccountStatus();
 
-        if ("BANNED".equals(status)) {
+        if (STATUS_BANNED.equals(status)) {
             mostrarErrorBaneo(modEx);
             return;
         }
 
-        if ("SUSPENDED".equals(status)) {
+        if (STATUS_SUSPENDED.equals(status)) {
             mostrarErrorSuspension(modEx);
             return;
         }
 
-        showError("❌ " + modEx.getMessage());
+        showError(ICON_ERROR + modEx.getMessage());
     }
 
     private void mostrarErrorBaneo(AccountModeratedException modEx) {
-        showError("❌ " + modEx.getMessage());
+        showError(ICON_ERROR + modEx.getMessage());
     }
 
     private void mostrarErrorSuspension(AccountModeratedException modEx) {
         String untilStr = modEx.getSuspendedUntil();
 
-        if (untilStr == null) {
-            showError("⏳ " + modEx.getMessage());
-            return;
-        }
-
-        if (untilStr.isEmpty()) {
-            showError("⏳ " + modEx.getMessage());
+        if (untilStr == null || untilStr.isEmpty()) {
+            showError(ICON_WAIT + modEx.getMessage());
             return;
         }
 
@@ -140,12 +141,13 @@ public class LoginController {
                 return;
             }
 
-            String fechaFormateada = fechaSuspension.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            String mensaje = "⏳ " + modEx.getMessage() + "\nDisponible el " + fechaFormateada + " (Faltan " + diasRestantes + " días)";
+            String fechaFormateada = fechaSuspension.format(DateTimeFormatter.ofPattern(FORMAT_DAY));
+            String mensaje = ICON_WAIT + modEx.getMessage() + "\nDisponible el " + fechaFormateada + " (Faltan " + diasRestantes + " días)";
             
             showError(mensaje);
         } catch (Exception ex) {
-            showError("⏳ " + modEx.getMessage());
+            // Falla silenciosa intencional: se muestra el mensaje estándar si falla el parseo
+            showError(ICON_WAIT + modEx.getMessage());
         }
     }
 
@@ -156,8 +158,8 @@ public class LoginController {
             horasRestantes = 1;
         }
         
-        String fechaFormateada = fechaSuspension.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-        String mensaje = "⏳ " + modEx.getMessage() + "\nDisponible el " + fechaFormateada + " (Faltan aprox. " + horasRestantes + " horas)";
+        String fechaFormateada = fechaSuspension.format(DateTimeFormatter.ofPattern(FORMAT_HOUR));
+        String mensaje = ICON_WAIT + modEx.getMessage() + "\nDisponible el " + fechaFormateada + " (Faltan aprox. " + horasRestantes + " horas)";
         
         showError(mensaje);
     }
@@ -165,12 +167,7 @@ public class LoginController {
     private boolean validateInputs() {
         errorLabel.setVisible(false);
 
-        if (InputValidator.isNullOrEmpty(emailField.getText())) {
-            showError(AppConstants.MESSAGE_ERROR_EMPTY_FIELDS);
-            return false;
-        }
-
-        if (InputValidator.isNullOrEmpty(passwordField.getText())) {
+        if (InputValidator.isNullOrEmpty(emailField.getText()) || InputValidator.isNullOrEmpty(passwordField.getText())) {
             showError(AppConstants.MESSAGE_ERROR_EMPTY_FIELDS);
             return false;
         }
