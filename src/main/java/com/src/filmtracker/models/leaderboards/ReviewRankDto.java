@@ -1,6 +1,7 @@
 package com.src.filmtracker.models.leaderboards;
 
 import com.google.gson.annotations.SerializedName;
+import com.src.filmtracker.utils.DtoHelper;
 
 public record ReviewRankDto(
     Integer rank,
@@ -17,10 +18,6 @@ public record ReviewRankDto(
     @SerializedName(value = "likes_count", alternate = {"likesCount"}) Integer likesCount
 ) {
     public int getSafeLikesCount() {
-        if (likesCount == null) {
-            return 0;
-        }
-        
-        return likesCount;
+        return DtoHelper.parseSafeInteger(likesCount);
     }
 }

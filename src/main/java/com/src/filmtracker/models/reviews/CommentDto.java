@@ -1,6 +1,7 @@
 package com.src.filmtracker.models.reviews;
 
 import com.google.gson.annotations.SerializedName;
+import com.src.filmtracker.utils.DtoHelper;
 
 public record CommentDto(
     Object id, 
@@ -18,64 +19,22 @@ public record CommentDto(
     Object likedByMe
 ) {
     public String getSafeId() { 
-        if (id == null) {
-            return "";
-        }
-        
-        String strId = String.valueOf(id);
-        
-        if (strId.endsWith(".0")) {
-            return strId.substring(0, strId.length() - 2);
-        }
-        
-        return strId;
+        return DtoHelper.parseSafeId(id);
     }
     
     public String getOwnerId() { 
-        if (auth_id == null) {
-            return "";
-        }
-        
-        return String.valueOf(auth_id);
+        return DtoHelper.parseOwnerId(auth_id);
     }
 
     public String getImageUrl() {
-        if (image_url == null) {
-            return "";
-        }
-
-        return image_url;
+        return DtoHelper.parseImageUrl(image_url);
     }
     
     public int getLikesCount() {
-        try { 
-            if (likes_count == null) {
-                return 0;
-            }
-            
-            String val = String.valueOf(likes_count);
-            
-            if (val.endsWith(".0")) {
-                val = val.substring(0, val.length() - 2);
-            }
-            
-            return Integer.parseInt(val); 
-        } catch (Exception e) { 
-            return 0; 
-        }
+        return DtoHelper.parseCount(likes_count);
     }
     
     public boolean getIsLikedValue() {
-        if (likedByMe == null) {
-            return false;
-        }
-        
-        if (likedByMe instanceof Boolean b) {
-            return b;
-        }
-        
-        String s = likedByMe.toString().trim().toLowerCase();
-        
-        return s.equals("true") || s.equals("1");
+        return DtoHelper.parseIsLiked(likedByMe);
     }
 }

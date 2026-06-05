@@ -69,6 +69,7 @@ public final class AppConstants {
     public static final String FXML_LEADERBOARDS = "/com/src/filmtracker/views/FXMLLeaderboards.fxml";
     public static final String FXML_NOTIFICATIONS = "/com/src/filmtracker/views/FXMLNotifications.fxml";
     public static final String FXML_ADMIN_PANEL = "/com/src/filmtracker/views/FXMLAdminPanel.fxml";
+    public static final String FXML_CUSTOM_ALERT = "/com/src/filmtracker/views/FXMLCustomAlert.fxml";
     
     public static final String APP_TITLE = "FilmTracker Desktop";
     public static final String MESSAGE_ERROR_API = "Error de comunicación con el servidor.";
