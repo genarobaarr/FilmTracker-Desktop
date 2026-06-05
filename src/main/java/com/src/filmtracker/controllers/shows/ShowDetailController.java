@@ -66,6 +66,7 @@ public class ShowDetailController {
     private static final String STYLE_COMMENT_BG = "-fx-background-color: #1a1a1a; -fx-padding: 8; -fx-background-radius: 5;";
     private static final String STYLE_DISABLED_STAR = "-fx-font-size: 28px; -fx-text-fill: #555555; -fx-cursor: hand;";
     private static final String STYLE_ACTIVE_STAR = "-fx-font-size: 28px; -fx-text-fill: #ff9800; -fx-cursor: hand;";
+    private static final String STYLE_BTN_DISABLED_LIKE = "-fx-background-color: #1a1a1a; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-opacity: 1;";
     
     private static final String TEXT_ELIMINAR = "Eliminar";
     private static final String TEXT_QUITAR_IMAGEN = "Quitar Imagen";
@@ -176,19 +177,21 @@ public class ShowDetailController {
     }
 
     private void procesarDatosDetallados(com.src.filmtracker.models.shows.ShowFullResponse fullData) {
-        if (fullData != null) {
-            if (fullData.show() != null) {
-                cargarDatosBasicosUI(fullData.show());
-                if (fullData.show().genres() != null) {
-                    cargarSeriesSimilaresMultigenero(fullData.show().genres());
-                }
+        if (fullData == null) {
+            return;
+        }
+
+        if (fullData.show() != null) {
+            cargarDatosBasicosUI(fullData.show());
+            if (fullData.show().genres() != null) {
+                cargarSeriesSimilaresMultigenero(fullData.show().genres());
             }
-            if (fullData.cast() != null) {
-                actualizarCastUI(fullData.cast());
-            }
-            if (fullData.seasons() != null) {
-                actualizarTemporadasUI(fullData.seasons());
-            }
+        }
+        if (fullData.cast() != null) {
+            actualizarCastUI(fullData.cast());
+        }
+        if (fullData.seasons() != null) {
+            actualizarTemporadasUI(fullData.seasons());
         }
     }
 
@@ -211,7 +214,7 @@ public class ShowDetailController {
         ratingLabel.setText("⭐ " + rating);
         
         if (show.summary() != null) {
-            summaryLabel.setText(show.summary().replaceAll("<.*?>", ""));
+            summaryLabel.setText(show.summary().replaceAll("<[^>]*+>", ""));
         }
         
         if (show.image() != null && show.image().original() != null) {
@@ -450,10 +453,8 @@ public class ShowDetailController {
     }
 
     private void procesarShowSimilar(Show s, Set<Integer> seen, List<Show> result) {
-        if (s.tvmazeId() != null && !s.tvmazeId().equals(currentTvmazeId)) {
-            if (seen.add(s.tvmazeId())) {
-                result.add(s);
-            }
+        if (s.tvmazeId() != null && !s.tvmazeId().equals(currentTvmazeId) && seen.add(s.tvmazeId())) {
+            result.add(s);
         }
     }
 
@@ -621,7 +622,7 @@ public class ShowDetailController {
         info.setTextFill(Color.web("#aaaaaa")); 
         info.setStyle("-fx-font-size: 12px;");
 
-        Label summary = new Label(ep.summary() != null ? ep.summary().replaceAll("<.*?>", "") : "Sin descripción disponible.");
+        Label summary = new Label(ep.summary() != null ? ep.summary().replaceAll("<[^>]*+>", "") : "Sin descripción disponible.");
         summary.setTextFill(Color.web("#cccccc"));
         summary.setWrapText(true);
         summary.setPrefHeight(60); 
@@ -676,11 +677,9 @@ public class ShowDetailController {
     }
 
     private void removerBotonCargarMasResenas() {
-        if (!reviewsSection.getChildren().isEmpty()) {
-            int lastIndex = reviewsSection.getChildren().size() - 1;
-            if (reviewsSection.getChildren().get(lastIndex) instanceof HBox) {
-                reviewsSection.getChildren().remove(lastIndex);
-            }
+        if (!reviewsSection.getChildren().isEmpty() && 
+            reviewsSection.getChildren().get(reviewsSection.getChildren().size() - 1) instanceof HBox) {
+            reviewsSection.getChildren().remove(reviewsSection.getChildren().size() - 1);
         }
     }
 
@@ -710,15 +709,14 @@ public class ShowDetailController {
     }
 
     private void inyectarImagenSiExiste(String url, VBox card) {
-        if (url == null || url.isEmpty()) {
-            return;
+        if (url != null && !url.isEmpty()) {
+            ImageView iv = new ImageView();
+            iv.setFitWidth(300);
+            iv.setPreserveRatio(true);
+            iv.setStyle("-fx-background-radius: 5;");
+            cargarImagenConRespaldo(url, iv);
+            card.getChildren().add(iv);
         }
-        ImageView iv = new ImageView();
-        iv.setFitWidth(300);
-        iv.setPreserveRatio(true);
-        iv.setStyle("-fx-background-radius: 5;");
-        cargarImagenConRespaldo(url, iv);
-        card.getChildren().add(iv);
     }
 
     private VBox buildReviewForm() {
@@ -892,9 +890,7 @@ public class ShowDetailController {
         String created = parsearIsoFormato(createdAt);
         String updated = parsearIsoFormato(updatedAt);
         
-        if (created.isEmpty()) {
-            return "";
-        }
+        if (created.isEmpty()) return "";
         if (!created.equals(updated) && !updated.isEmpty()) {
             return created + " (editado " + updated + ")";
         }
@@ -1016,11 +1012,9 @@ public class ShowDetailController {
     }
 
     private void removerBotonCargarMasComentarios(VBox container) {
-        if (!container.getChildren().isEmpty()) {
-            int lastIndex = container.getChildren().size() - 1;
-            if (container.getChildren().get(lastIndex) instanceof HBox) {
-                container.getChildren().remove(lastIndex);
-            }
+        if (!container.getChildren().isEmpty() && 
+            container.getChildren().get(container.getChildren().size() - 1) instanceof HBox) {
+            container.getChildren().remove(container.getChildren().size() - 1);
         }
     }
 
@@ -1069,9 +1063,7 @@ public class ShowDetailController {
             return;
         }
         
-        if (in.getText().isBlank()) {
-            return;
-        }
+        if (in.getText().isBlank()) return;
         
         CommentRequest req = new CommentRequest(in.getText().trim());
         File img = selectedCommentImages.get(rId);
@@ -1240,21 +1232,19 @@ public class ShowDetailController {
             btnLike.setDisable(false);
             btnLike.setStyle(STYLE_BTN_DARK_GREY_RADIUS);
             btnUnlike.setDisable(true);
-            btnUnlike.setStyle("-fx-background-color: #1a1a1a; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-opacity: 1;");
+            btnUnlike.setStyle(STYLE_BTN_DISABLED_LIKE);
         }
     }
 
     private void deshabilitarBotonesCompletamente(Button btnLike, Button btnUnlike) {
         btnLike.setDisable(true);
         btnUnlike.setDisable(true);
-        btnLike.setStyle("-fx-background-color: #1a1a1a; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-opacity: 1;");
-        btnUnlike.setStyle("-fx-background-color: #1a1a1a; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-opacity: 1;");
+        btnLike.setStyle(STYLE_BTN_DISABLED_LIKE);
+        btnUnlike.setStyle(STYLE_BTN_DISABLED_LIKE);
     }
 
     private boolean isWithinEditWindow(String createdAtStr) {
-        if (createdAtStr == null || createdAtStr.isEmpty()) {
-            return false;
-        }
+        if (createdAtStr == null || createdAtStr.isEmpty()) return false;
         try {
             ZonedDateTime created = ZonedDateTime.parse(createdAtStr);
             ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
@@ -1267,122 +1257,129 @@ public class ShowDetailController {
     private void agregarBotonEliminarResena(String rId, HBox actions) {
         Button del = new Button(TEXT_ELIMINAR);
         del.setStyle(STYLE_BTN_TRANSPARENT_RED);
-        del.setOnAction(e -> {
-            if (confirmarAccion("Eliminar Reseña", "¿Estás seguro de que deseas eliminar tu reseña?")) {
-                reviewService.deleteReview(rId).thenRun(() -> 
-                    Platform.runLater(() -> {
-                        this.currentReviewPage = 1;
-                        cargarResenas(1);
-                    })
-                ).exceptionally(err -> {
-                    App.procesarErrorCritico(err);
-                    return null;
-                });
-            }
-        });
+        del.setOnAction(e -> procesarEliminacionResena(rId));
         actions.getChildren().add(del);
+    }
+
+    private void procesarEliminacionResena(String rId) {
+        if (!confirmarAccion("Eliminar Reseña", "¿Estás seguro de que deseas eliminar tu reseña?")) {
+            return;
+        }
+        reviewService.deleteReview(rId).thenRun(() -> 
+            Platform.runLater(() -> {
+                this.currentReviewPage = 1;
+                cargarResenas(1);
+            })
+        ).exceptionally(err -> {
+            App.procesarErrorCritico(err);
+            return null;
+        });
     }
 
     private void agregarBotonesAdminResena(ReviewDto review, HBox actions) {
         Button delAdmin = new Button(TEXT_ELIMINAR);
         delAdmin.setStyle(STYLE_BTN_TRANSPARENT_ORANGE);
-        delAdmin.setOnAction(e -> {
-            if (confirmarAccion("Eliminar Reseña", "¿Deseas eliminar administrativamente esta reseña?")) {
-                adminService.deleteReviewDirectly(review.getSafeId()).thenRun(() -> 
-                    Platform.runLater(() -> {
-                        mostrarAlertaExito("Reseña eliminada administrativamente.");
-                        this.currentReviewPage = 1;
-                        cargarResenas(1);
-                    })
-                ).exceptionally(err -> {
-                    Platform.runLater(() -> {
-                        if (!App.procesarErrorCritico(err)) mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-                    });
-                    return null;
-                });
-            }
-        });
+        delAdmin.setOnAction(e -> procesarEliminacionAdminResena(review.getSafeId()));
         actions.getChildren().add(delAdmin);
 
         if (review.getImageUrl() != null && !review.getImageUrl().isEmpty()) {
             Button delImgAdmin = new Button(TEXT_QUITAR_IMAGEN);
             delImgAdmin.setStyle(STYLE_BTN_TRANSPARENT_ORANGE);
-            delImgAdmin.setOnAction(e -> {
-                if (confirmarAccion(TEXT_QUITAR_IMAGEN, "¿Deseas eliminar la imagen de esta reseña?")) {
-                    adminService.removeReviewImageDirectly(review.getSafeId()).thenRun(() -> 
-                        Platform.runLater(() -> {
-                            mostrarAlertaExito("Imagen eliminada administrativamente.");
-                            this.currentReviewPage = 1;
-                            cargarResenas(1);
-                        })
-                    ).exceptionally(err -> {
-                        Platform.runLater(() -> {
-                            if (!App.procesarErrorCritico(err)) mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-                        });
-                        return null;
-                    });
-                }
-            });
+            delImgAdmin.setOnAction(e -> procesarEliminacionAdminImagenResena(review.getSafeId()));
             actions.getChildren().add(delImgAdmin);
         }
     }
-    
+
+    private void procesarEliminacionAdminResena(String reviewId) {
+        if (!confirmarAccion("Eliminar Reseña", "¿Deseas eliminar administrativamente esta reseña?")) {
+            return;
+        }
+        adminService.deleteReviewDirectly(reviewId).thenRun(() -> 
+            Platform.runLater(() -> {
+                mostrarAlertaExito("Reseña eliminada administrativamente.");
+                this.currentReviewPage = 1;
+                cargarResenas(1);
+            })
+        ).exceptionally(this::manejarErrorAdmin);
+    }
+
+    private void procesarEliminacionAdminImagenResena(String reviewId) {
+        if (!confirmarAccion(TEXT_QUITAR_IMAGEN, "¿Deseas eliminar la imagen de esta reseña?")) {
+            return;
+        }
+        adminService.removeReviewImageDirectly(reviewId).thenRun(() -> 
+            Platform.runLater(() -> {
+                mostrarAlertaExito("Imagen eliminada administrativamente.");
+                this.currentReviewPage = 1;
+                cargarResenas(1);
+            })
+        ).exceptionally(this::manejarErrorAdmin);
+    }
+
     private void agregarBotonEliminarComentario(String cId, String rId, VBox parent, HBox actions) {
         Button del = new Button(TEXT_ELIMINAR);
         del.setStyle(STYLE_BTN_TRANSPARENT_RED);
-        del.setOnAction(e -> {
-            if (confirmarAccion("Eliminar Comentario", "¿Estás seguro de que deseas eliminar tu comentario?")) {
-                reviewService.deleteComment(cId).thenRun(() -> 
-                    Platform.runLater(() -> cargarComentariosUI(rId, parent, 1))
-                ).exceptionally(err -> {
-                    App.procesarErrorCritico(err);
-                    return null;
-                });
-            }
-        });
+        del.setOnAction(e -> procesarEliminacionComentario(cId, rId, parent));
         actions.getChildren().add(del);
+    }
+
+    private void procesarEliminacionComentario(String cId, String rId, VBox parent) {
+        if (!confirmarAccion("Eliminar Comentario", "¿Estás seguro de que deseas eliminar tu comentario?")) {
+            return;
+        }
+        reviewService.deleteComment(cId).thenRun(() -> 
+            Platform.runLater(() -> cargarComentariosUI(rId, parent, 1))
+        ).exceptionally(err -> {
+            App.procesarErrorCritico(err);
+            return null;
+        });
     }
 
     private void agregarBotonesAdminComentario(CommentDto c, String rId, VBox parent, HBox actions) {
         Button delAdmin = new Button(TEXT_ELIMINAR);
         delAdmin.setStyle(STYLE_BTN_TRANSPARENT_ORANGE);
-        delAdmin.setOnAction(e -> {
-            if (confirmarAccion("Eliminar Comentario", "¿Deseas eliminar administrativamente este comentario?")) {
-                adminService.deleteCommentDirectly(c.getSafeId()).thenRun(() -> 
-                    Platform.runLater(() -> {
-                        mostrarAlertaExito("Comentario eliminado administrativamente.");
-                        cargarComentariosUI(rId, parent, 1);
-                    })
-                ).exceptionally(err -> {
-                    Platform.runLater(() -> {
-                        if (!App.procesarErrorCritico(err)) mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-                    });
-                    return null;
-                });
-            }
-        });
+        delAdmin.setOnAction(e -> procesarEliminacionAdminComentario(c.getSafeId(), rId, parent));
         actions.getChildren().add(delAdmin);
 
         if (c.getImageUrl() != null && !c.getImageUrl().isEmpty()) {
             Button delImgAdmin = new Button(TEXT_QUITAR_IMAGEN);
             delImgAdmin.setStyle(STYLE_BTN_TRANSPARENT_ORANGE);
-            delImgAdmin.setOnAction(e -> {
-                if (confirmarAccion(TEXT_QUITAR_IMAGEN, "¿Deseas eliminar la imagen de este comentario?")) {
-                    adminService.removeCommentImageDirectly(c.getSafeId()).thenRun(() -> 
-                        Platform.runLater(() -> {
-                            mostrarAlertaExito("Imagen eliminada administrativamente.");
-                            cargarComentariosUI(rId, parent, 1);
-                        })
-                    ).exceptionally(err -> {
-                        Platform.runLater(() -> {
-                            if (!App.procesarErrorCritico(err)) mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
-                        });
-                        return null;
-                    });
-                }
-            });
+            delImgAdmin.setOnAction(e -> procesarEliminacionAdminImagenComentario(c.getSafeId(), rId, parent));
             actions.getChildren().add(delImgAdmin);
         }
+    }
+
+    private void procesarEliminacionAdminComentario(String commentId, String rId, VBox parent) {
+        if (!confirmarAccion("Eliminar Comentario", "¿Deseas eliminar administrativamente este comentario?")) {
+            return;
+        }
+        adminService.deleteCommentDirectly(commentId).thenRun(() -> 
+            Platform.runLater(() -> {
+                mostrarAlertaExito("Comentario eliminado administrativamente.");
+                cargarComentariosUI(rId, parent, 1);
+            })
+        ).exceptionally(this::manejarErrorAdmin);
+    }
+
+    private void procesarEliminacionAdminImagenComentario(String commentId, String rId, VBox parent) {
+        if (!confirmarAccion(TEXT_QUITAR_IMAGEN, "¿Deseas eliminar la imagen de este comentario?")) {
+            return;
+        }
+        adminService.removeCommentImageDirectly(commentId).thenRun(() -> 
+            Platform.runLater(() -> {
+                mostrarAlertaExito("Imagen eliminada administrativamente.");
+                cargarComentariosUI(rId, parent, 1);
+            })
+        ).exceptionally(this::manejarErrorAdmin);
+    }
+
+    private Void manejarErrorAdmin(Throwable err) {
+        Platform.runLater(() -> {
+            if (!App.procesarErrorCritico(err)) {
+                mostrarAlertaError(AppConstants.MESSAGE_ERROR_API);
+            }
+        });
+        return null;
     }
 
     private void agregarBotonEditarResena(ReviewDto review, HBox actions, VBox card) {
@@ -1530,7 +1527,7 @@ public class ShowDetailController {
         try {
             Image img = new Image(url, true);
             img.errorProperty().addListener((obs, oldVal, isError) -> {
-                if (isError) Platform.runLater(() -> ponerImagenError(imageView));
+                if (Boolean.TRUE.equals(isError)) Platform.runLater(() -> ponerImagenError(imageView));
             });
             imageView.setImage(img);
         } catch (Exception e) {

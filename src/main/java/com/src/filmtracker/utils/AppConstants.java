@@ -42,9 +42,10 @@ public final class AppConstants {
     public static final String ADMIN_USERS_SEARCH_URL = USERS_SERVICE_URL + "/admin/search";
     public static final String ADMIN_AUTH_USERS_URL = AUTH_SERVICE_URL + "/admin/users";
     public static final String ADMIN_MODERATION_REPORTS_URL = MODERATION_SERVICE_URL + "/admin/reports";
-    public static final String ADMIN_AUTH_STATS_URL = AUTH_SERVICE_URL + "/admin/stats";
-    public static final String ADMIN_REVIEWS_STATS_URL = REVIEWS_URL + "/admin/stats";
-    public static final String ADMIN_MODERATION_STATS_URL = MODERATION_SERVICE_URL + "/admin/stats";
+    public static final String ROUTE_ADMIN_STATS = "/admin/stats";
+    public static final String ADMIN_AUTH_STATS_URL = AUTH_SERVICE_URL + ROUTE_ADMIN_STATS;
+    public static final String ADMIN_REVIEWS_STATS_URL = REVIEWS_URL + ROUTE_ADMIN_STATS;
+    public static final String ADMIN_MODERATION_STATS_URL = MODERATION_SERVICE_URL + ROUTE_ADMIN_STATS;
     
     public static final String NOTIFICATIONS_SERVICE_URL = CONFIG.getProperty("api.notifications.url", "http://localhost:3008/api/notifications");
     public static final String NOTIFICATIONS_UNREAD_URL = NOTIFICATIONS_SERVICE_URL + "/unread-count";

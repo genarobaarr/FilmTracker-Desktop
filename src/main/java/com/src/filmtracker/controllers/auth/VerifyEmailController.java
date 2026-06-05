@@ -71,14 +71,14 @@ public class VerifyEmailController {
             SessionManager.getInstance().logout();
             mostrarExito(AppConstants.MESSAGE_SUCCESS_VERIFIED + " Redirigiendo al Login...");
             
-            new Thread(() -> {
+            Thread.ofVirtual().start(() -> {
                 try {
                     Thread.sleep(2500);
                     Platform.runLater(() -> App.setRoot(AppConstants.FXML_LOGIN));
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt(); 
                 }
-            }).start();
+            });
         }
     }
 

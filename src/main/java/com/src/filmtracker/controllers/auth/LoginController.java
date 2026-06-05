@@ -90,8 +90,7 @@ public class LoginController {
     private void procesarErrorLogin(Throwable e) {
         Throwable cause = e.getCause();
 
-        if (cause instanceof AccountModeratedException) {
-            AccountModeratedException modEx = (AccountModeratedException) cause;
+        if (cause instanceof AccountModeratedException modEx) {
             manejarCuentaModerada(modEx);
             return;
         }

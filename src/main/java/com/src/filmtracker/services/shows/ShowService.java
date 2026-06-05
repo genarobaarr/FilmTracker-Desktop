@@ -23,6 +23,14 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class ShowService implements IShowService {
+    
+    private static final String HEADER_ACCEPT = "Accept";
+    private static final String HEADER_AUTH = "Authorization";
+    private static final String TYPE_JSON = "application/json";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ERROR_PREFIX = "Error: ";
+    private static final String KEY_DATA = "data";
+
     private final HttpClient client;
     private final Gson gson;
     
@@ -62,10 +70,10 @@ public class ShowService implements IShowService {
     
     @Override
     public CompletableFuture<List<Show>> getShowsByGenre(String genre) {
-        String encodedGenre = java.net.URLEncoder.encode(genre, java.nio.charset.StandardCharsets.UTF_8);
+        String encodedGenre = URLEncoder.encode(genre, StandardCharsets.UTF_8);
         String url = AppConstants.SHOWS_BY_GENRE_URL + encodedGenre;
         
-        return client.sendAsync(createRequest(url), java.net.http.HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     com.src.filmtracker.App.checkHttpResponse(response);
                     return response.body();
@@ -92,33 +100,33 @@ public class ShowService implements IShowService {
     }
     
     @Override
-    public CompletableFuture<com.src.filmtracker.models.shows.Show> getShowDetails(Integer tvmazeId) {
+    public CompletableFuture<Show> getShowDetails(Integer tvmazeId) {
         String url = AppConstants.SHOWS_SERVICE_URL + "/" + tvmazeId;
         
-        java.net.http.HttpRequest.Builder builder = java.net.http.HttpRequest.newBuilder()
-                .uri(java.net.URI.create(url))
-                .header("Accept", "application/json")
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(HEADER_ACCEPT, TYPE_JSON)
                 .GET();
 
         if (SessionManager.getInstance().isAuthenticated()) {
-            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+            builder.header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken());
         }
 
-        return client.sendAsync(builder.build(), java.net.http.HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     com.src.filmtracker.App.checkHttpResponse(response);
                     
                     if (response.statusCode() >= 400) {
-                        throw new RuntimeException("Error: " + response.statusCode());
+                        throw new IllegalStateException(ERROR_PREFIX + response.statusCode());
                     }
                     
                     com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(response.body()).getAsJsonObject();
                     
-                    if (json.has("data")) {
-                        return gson.fromJson(json.get("data"), com.src.filmtracker.models.shows.Show.class);
+                    if (json.has(KEY_DATA)) {
+                        return gson.fromJson(json.get(KEY_DATA), Show.class);
                     }
                     
-                    return gson.fromJson(json, com.src.filmtracker.models.shows.Show.class);
+                    return gson.fromJson(json, Show.class);
                 });
     }
 
@@ -131,23 +139,14 @@ public class ShowService implements IShowService {
                 .thenApply(json -> gson.fromJson(json, responseClass));
     }
 
-    private <T> CompletableFuture<List<T>> executeGetList(String url, Type type) {
-        return client.sendAsync(createRequest(url), HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> {
-                    com.src.filmtracker.App.checkHttpResponse(response);
-                    return response.body();
-                })
-                .thenApply(json -> gson.fromJson(json, type));
-    }
-
     private HttpRequest createRequest(String url) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Accept", "application/json")
+                .header(HEADER_ACCEPT, TYPE_JSON)
                 .GET();
 
         if (SessionManager.getInstance().isAuthenticated()) {
-            builder.header("Authorization", "Bearer " + SessionManager.getInstance().getToken());
+            builder.header(HEADER_AUTH, BEARER_PREFIX + SessionManager.getInstance().getToken());
         }
 
         return builder.build();

@@ -14,10 +14,6 @@ public record NotificationDto(
     @SerializedName(value = "created_at", alternate = {"createdAt"}) String createdAt
 ) {
     public boolean isRead() {
-        if (readAt == null) {
-            return false;
-        }
-        
-        return true;
+        return readAt != null;
     }
 }

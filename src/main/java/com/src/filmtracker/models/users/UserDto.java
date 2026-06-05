@@ -15,16 +15,12 @@ public record UserDto(
     String createdAt
 ) {
     public String getSafeAuthId() {
-        if (authId != null) {
-            if (!authId.isEmpty()) {
-                return authId;
-            }
+        if (authId != null && !authId.isEmpty()) {
+            return authId;
         }
         
-        if (id != null) {
-            if (!id.isEmpty()) {
-                return id;
-            }
+        if (id != null && !id.isEmpty()) {
+            return id;
         }
         
         return "";

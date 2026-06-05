@@ -75,15 +75,13 @@ public class ReportController {
                 
         ReportRequest request = new ReportRequest(targetType, targetId, reasonCode, description);
 
-        moderationService.createReport(request).thenRun(() -> {
+        moderationService.createReport(request).thenRun(() -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito(AppConstants.MESSAGE_SUCCESS_REPORT);
                 handleClose();
-            });
-        }).exceptionally(e -> {
-            Platform.runLater(() -> {
-                manejarErrorReporte(e);
-            });
+            })
+        ).exceptionally(e -> {
+            Platform.runLater(() -> manejarErrorReporte(e));
             return null;
         });
     }
@@ -96,11 +94,9 @@ public class ReportController {
             return false;
         }
 
-        if (descriptionArea != null) {
-            if (InputValidator.exceedsMaxLength(descriptionArea.getText(), 250)) {
-                mostrarError(AppConstants.MESSAGE_ERROR_MAX_LENGTH);
-                return false;
-            }
+        if (descriptionArea != null && InputValidator.exceedsMaxLength(descriptionArea.getText(), 250)) {
+            mostrarError(AppConstants.MESSAGE_ERROR_MAX_LENGTH);
+            return false;
         }
 
         return true;
@@ -113,11 +109,9 @@ public class ReportController {
             errorMsg = e.getCause().getMessage();
         }
         
-        if (errorMsg != null) {
-            if (errorMsg.contains("409")) {
-                mostrarError(AppConstants.MESSAGE_ERROR_REPORT_DUPLICATE);
-                return;
-            }
+        if (errorMsg != null && errorMsg.contains("409")) {
+            mostrarError(AppConstants.MESSAGE_ERROR_REPORT_DUPLICATE);
+            return;
         }
         
         mostrarError(AppConstants.MESSAGE_ERROR_REPORT);

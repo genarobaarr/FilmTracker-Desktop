@@ -741,7 +741,7 @@ public class AdminPanelController {
         java.util.concurrent.CompletableFuture<Void> future = null;
         String defaultNote = "";
         
-        if (action != null){ 
+        if (action != null) { 
             switch (action) {
                 case ACTION_DEL_REVIEW -> {
                     future = adminService.deleteReviewDirectly(targetId);
@@ -758,6 +758,9 @@ public class AdminPanelController {
                 case ACTION_RM_COM_IMG -> {
                     future = adminService.removeCommentImageDirectly(targetId);
                     defaultNote = "Imagen de comentario eliminada administrativamente.";
+                }
+                default -> {
+                    // Sin acción por defecto requerida
                 }
             }
         }

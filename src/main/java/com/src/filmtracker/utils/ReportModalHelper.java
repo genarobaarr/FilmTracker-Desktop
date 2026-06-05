@@ -27,6 +27,7 @@ public final class ReportModalHelper {
             stage.setScene(new Scene(root));
             stage.showAndWait();
         } catch (Exception e) {
+            // Falla silenciosa intencional al intentar cargar o renderizar el componente visual del modal
         }
     }
 }

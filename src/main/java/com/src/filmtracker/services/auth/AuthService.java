@@ -3,6 +3,7 @@ package com.src.filmtracker.services.auth;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 import com.src.filmtracker.models.auth.AccountModeratedException;
 import com.src.filmtracker.models.common.ApiResponse;
 import com.src.filmtracker.models.auth.AuthResponse;
@@ -62,12 +63,12 @@ public class AuthService implements IAuthService {
     }
 
     @Override
-    public CompletableFuture<ApiResponse> resendVerification(ResendVerificationRequest request) {
-        return executePost(AppConstants.AUTH_RESEND_VERIFICATION_URL, request, ApiResponse.class);
+    public CompletableFuture<ApiResponse<Object>> resendVerification(ResendVerificationRequest request) {
+        return executePostApiResponse(AppConstants.AUTH_RESEND_VERIFICATION_URL, request);
     }
     
     @Override
-    public CompletableFuture<ApiResponse> changePassword(ChangePasswordRequest request) {
+    public CompletableFuture<ApiResponse<Object>> changePassword(ChangePasswordRequest request) {
         String jsonBody = gson.toJson(request);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
@@ -81,18 +82,18 @@ public class AuthService implements IAuthService {
                 .thenApply(response -> {
                     evaluarErrorGenerico(response);
                     
-                    return gson.fromJson(response.body(), ApiResponse.class);
+                    return gson.fromJson(response.body(), new TypeToken<ApiResponse<Object>>(){}.getType());
                 });
     }
     
     @Override
-    public CompletableFuture<ApiResponse> forgotPassword(ForgotPasswordRequest request) {
-        return executePost(AppConstants.AUTH_FORGOT_PASSWORD_URL, request, ApiResponse.class);
+    public CompletableFuture<ApiResponse<Object>> forgotPassword(ForgotPasswordRequest request) {
+        return executePostApiResponse(AppConstants.AUTH_FORGOT_PASSWORD_URL, request);
     }
 
     @Override
-    public CompletableFuture<ApiResponse> resetPassword(ResetPasswordRequest request) {
-        return executePost(AppConstants.AUTH_RESET_PASSWORD_URL, request, ApiResponse.class);
+    public CompletableFuture<ApiResponse<Object>> resetPassword(ResetPasswordRequest request) {
+        return executePostApiResponse(AppConstants.AUTH_RESET_PASSWORD_URL, request);
     }
 
     private <T> CompletableFuture<T> executePost(String url, Object bodyData, Class<T> responseClass) {
@@ -110,6 +111,24 @@ public class AuthService implements IAuthService {
                 evaluarErrorAutenticacion(response);
                 
                 return gson.fromJson(response.body(), responseClass);
+            });
+    }
+
+    private CompletableFuture<ApiResponse<Object>> executePostApiResponse(String url, Object bodyData) {
+        String jsonBody = gson.toJson(bodyData);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(HEADER_CONTENT_TYPE, TYPE_JSON)
+                .header(HEADER_ACCEPT, TYPE_JSON)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .thenApply(response -> {
+                evaluarErrorAutenticacion(response);
+                
+                return gson.fromJson(response.body(), new TypeToken<ApiResponse<Object>>(){}.getType());
             });
     }
 

@@ -36,6 +36,7 @@ public class LeaderboardsController {
     private static final String TEXT_LOADING_USER = "Cargando usuario...";
     private static final String TEXT_LOADING_SERIES = "Cargando serie...";
     private static final String TEXT_NO_TITLE = "Sin título";
+    private static final String TEXT_LIKES = " likes";
 
     @FXML private ComboBox<String> periodComboBox;
     @FXML private VBox usersContainer;
@@ -225,14 +226,14 @@ public class LeaderboardsController {
         descLbl.setTextFill(Color.LIGHTGRAY);
         descLbl.setWrapText(true);
 
-        Label metaLbl = new Label("@Usuario • ❤️ " + review.getSafeLikesCount() + " likes");
+        Label metaLbl = new Label("@Usuario • ❤️ " + review.getSafeLikesCount() + TEXT_LIKES);
         metaLbl.setTextFill(Color.GRAY);
         metaLbl.setStyle(STYLE_META_11);
 
         if (review.authId() != null) {
             userService.getUserById(review.authId()).thenAccept(user -> {
                 if (user != null && user.username() != null) {
-                    Platform.runLater(() -> metaLbl.setText("@" + user.username() + " • ❤️ " + review.getSafeLikesCount() + " likes"));
+                    Platform.runLater(() -> metaLbl.setText("@" + user.username() + " • ❤️ " + review.getSafeLikesCount() + TEXT_LIKES));
                 }
             }).exceptionally(e -> {
                 App.procesarErrorCritico(e);
@@ -300,7 +301,7 @@ public class LeaderboardsController {
         descLbl.setTextFill(Color.LIGHTGRAY);
         descLbl.setWrapText(true);
 
-        Label metaLbl = new Label("❤️ " + comment.getSafeLikesCount() + " likes");
+        Label metaLbl = new Label("❤️ " + comment.getSafeLikesCount() + TEXT_LIKES);
         metaLbl.setTextFill(Color.web(AppConstants.COLOR_ACCENT));
         metaLbl.setStyle(STYLE_META_11 + " -fx-font-weight: bold;");
 

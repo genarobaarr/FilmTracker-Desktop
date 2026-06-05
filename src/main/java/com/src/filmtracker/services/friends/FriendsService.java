@@ -23,6 +23,7 @@ public class FriendsService implements IFriendsService {
     private static final String ERROR_API = "Error en la petición: ";
     private static final String KEY_DATA = "data";
     private static final String KEY_STATUS = "status";
+    private static final String ROUTE_REQUESTS = "/requests/";
 
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
@@ -147,13 +148,13 @@ public class FriendsService implements IFriendsService {
 
     @Override
     public CompletableFuture<Void> acceptFriendRequest(Integer requestId) {
-        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/" + requestId + "/accept";
+        String url = AppConstants.FRIENDS_SERVICE_URL + ROUTE_REQUESTS + requestId + "/accept";
         return executePutRequest(url);
     }
 
     @Override
     public CompletableFuture<Void> rejectFriendRequest(Integer requestId) {
-        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/" + requestId + "/reject";
+        String url = AppConstants.FRIENDS_SERVICE_URL + ROUTE_REQUESTS + requestId + "/reject";
         return executePutRequest(url);
     }
 
@@ -167,7 +168,7 @@ public class FriendsService implements IFriendsService {
 
     @Override
     public CompletableFuture<Void> cancelFriendRequest(Integer requestId) {
-        String url = AppConstants.FRIENDS_SERVICE_URL + "/requests/" + requestId;
+        String url = AppConstants.FRIENDS_SERVICE_URL + ROUTE_REQUESTS + requestId;
 
         return client.sendAsync(buildDeleteRequest(url), HttpResponse.BodyHandlers.ofString())
                 .thenApply(res -> {

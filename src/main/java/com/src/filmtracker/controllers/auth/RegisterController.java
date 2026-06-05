@@ -16,6 +16,7 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 public class RegisterController {
+
     @FXML private TextField usernameField;
     @FXML private TextField nameField;
     @FXML private TextField emailField;
@@ -25,13 +26,19 @@ public class RegisterController {
 
     private final IAuthService authService = new AuthService();
 
-    @FXML private void handleClose() { 
-        Platform.exit(); System.exit(0); 
+    @FXML 
+    private void handleClose() { 
+        Platform.exit(); 
+        System.exit(0); 
     }
-    @FXML private void handleMinimize() { 
+    
+    @FXML 
+    private void handleMinimize() { 
         ((Stage)nameField.getScene().getWindow()).setIconified(true); 
     }
-    @FXML private void goToLogin() { 
+    
+    @FXML 
+    private void goToLogin() { 
         App.setRoot(AppConstants.FXML_LOGIN); 
     }
 
@@ -41,7 +48,6 @@ public class RegisterController {
         String name = nameField.getText().trim();
         String email = emailField.getText().trim();
         String pass = passwordField.getText().trim();
-        String confirmPass = confirmPasswordField.getText().trim();
 
         if (!validateInputs()) {
             return;
@@ -52,12 +58,12 @@ public class RegisterController {
         authService.register(regRequest).thenCompose(regResponse -> {
             LoginRequest loginReq = new LoginRequest(email, pass);
             return authService.login(loginReq);
-        }).thenAccept(authResponse -> {
+        }).thenAccept(authResponse -> 
             Platform.runLater(() -> {
                 SessionManager.getInstance().login(authResponse);
                 App.setRoot(AppConstants.FXML_DASHBOARD); 
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> showError(AppConstants.MESSAGE_ERROR_REG_FAILED));
             return null;
         });
@@ -65,20 +71,7 @@ public class RegisterController {
     
     private boolean validateInputs() {
         errorLabel.setVisible(false);
-
-        if (!validarCamposLlenos()) {
-            return false;
-        }
-
-        if (!validarFormatos()) {
-            return false;
-        }
-
-        if (!validarContrasenas()) {
-            return false;
-        }
-
-        return true;
+        return validarCamposLlenos() && validarFormatos() && validarContrasenas();
     }
 
     private boolean validarCamposLlenos() {
@@ -88,7 +81,6 @@ public class RegisterController {
                 InputValidator.isNullOrEmpty(passwordField.getText()) ||
                 InputValidator.isNullOrEmpty(confirmPasswordField.getText())) 
         {
-            
             showError(AppConstants.MESSAGE_ERROR_EMPTY_FIELDS);
             return false;
         }
@@ -121,7 +113,6 @@ public class RegisterController {
         if (!passwordField.getText().equals(confirmPasswordField.getText())) {
             showError(AppConstants.MESSAGE_ERROR_PASSWORD_MISMATCH);
             return false;
-
         }
 
         return true;

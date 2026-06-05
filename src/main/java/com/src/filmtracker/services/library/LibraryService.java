@@ -27,6 +27,7 @@ public class LibraryService implements ILibraryService {
     private static final String KEY_DATA = "data";
     private static final String METHOD_POST = "POST";
     private static final String ERROR_PREFIX = "API Error: ";
+    private static final String PAGE_PARAMETER = "?page=";
 
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
@@ -72,19 +73,19 @@ public class LibraryService implements ILibraryService {
 
     @Override
     public CompletableFuture<List<LibraryItemDto>> getFavoritesPaged(int page) {
-        String url = AppConstants.FAVORITES_URL + "?page=" + page;
+        String url = AppConstants.FAVORITES_URL + PAGE_PARAMETER + page;
         return executeGetList(url);
     }
 
     @Override
     public CompletableFuture<List<LibraryItemDto>> getFavoritesByUserPaged(String authId, int page) {
-        String url = AppConstants.FAVORITES_URL + "/user/" + authId + "?page=" + page;
+        String url = AppConstants.FAVORITES_URL + "/user/" + authId + PAGE_PARAMETER + page;
         return executeGetList(url);
     }
 
     @Override
     public CompletableFuture<List<LibraryItemDto>> getWatchlistPaged(int page) {
-        String url = AppConstants.WATCHLIST_URL + "?page=" + page;
+        String url = AppConstants.WATCHLIST_URL + PAGE_PARAMETER + page;
         return executeGetList(url);
     }
     

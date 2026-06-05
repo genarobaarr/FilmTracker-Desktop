@@ -19,30 +19,31 @@ public class ResetPasswordController {
     @FXML private PasswordField passwordField;
     @FXML private PasswordField confirmField;
     @FXML private Label errorLabel;
+    
     private final IAuthService authService = new AuthService();
 
     @FXML
     private void handleReset() {
         String token = tokenField.getText().trim();
         String pass = passwordField.getText();
-        String confirm = confirmField.getText();
 
         if (!validateInputs()) {
             return;
         }
 
-        authService.resetPassword(new ResetPasswordRequest(token, pass)).thenAccept(res -> {
+        authService.resetPassword(new ResetPasswordRequest(token, pass)).thenAccept(res -> 
             Platform.runLater(() -> {
                 mostrarExito();
                 App.setRoot(AppConstants.FXML_LOGIN);
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> mostrarError(AppConstants.MESSAGE_ERROR_API));
             return null;
         });
     }
     
-    @FXML private void handleBack() { 
+    @FXML 
+    private void handleBack() { 
         App.setRoot(AppConstants.FXML_LOGIN); 
     }
     

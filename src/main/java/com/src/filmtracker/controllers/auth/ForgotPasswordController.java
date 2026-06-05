@@ -27,11 +27,9 @@ public class ForgotPasswordController {
             return;
         }
         
-        authService.forgotPassword(new ForgotPasswordRequest(email)).thenAccept(res -> {
-            Platform.runLater(() -> {
-                App.setRoot(AppConstants.FXML_RESET_PASSWORD);
-            });
-        }).exceptionally(e -> {
+        authService.forgotPassword(new ForgotPasswordRequest(email)).thenAccept(res -> 
+            Platform.runLater(() -> App.setRoot(AppConstants.FXML_RESET_PASSWORD))
+        ).exceptionally(e -> {
             Platform.runLater(() -> mostrarError(AppConstants.MESSAGE_ERROR_API));
             return null;
         });
@@ -60,7 +58,6 @@ public class ForgotPasswordController {
         if (!InputValidator.isValidEmail(emailField.getText())) {
             mostrarError(AppConstants.MESSAGE_ERROR_INVALID_EMAIL);
             return false;
-
         }
 
         return true;

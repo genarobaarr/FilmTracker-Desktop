@@ -70,20 +70,12 @@ public record CommentDto(
             return false;
         }
         
-        if (likedByMe instanceof Boolean) {
-            return (Boolean) likedByMe;
+        if (likedByMe instanceof Boolean b) {
+            return b;
         }
         
         String s = likedByMe.toString().trim().toLowerCase();
         
-        if (s.equals("true")) {
-            return true;
-        }
-        
-        if (s.equals("1")) {
-            return true;
-        }
-        
-        return false;
+        return s.equals("true") || s.equals("1");
     }
 }

@@ -53,12 +53,12 @@ public class ChangePasswordController {
     private void procesarCambio(String current, String nuevo) {
         ChangePasswordRequest request = new ChangePasswordRequest(current, nuevo);
 
-        authService.changePassword(request).thenAccept(res -> {
+        authService.changePassword(request).thenAccept(res -> 
             Platform.runLater(() -> {
                 mostrarAlertaExito();
                 App.setRoot(AppConstants.FXML_DASHBOARD);
-            });
-        }).exceptionally(e -> {
+            })
+        ).exceptionally(e -> {
             Platform.runLater(() -> {
                 if (e.getMessage().contains("401")) {
                     mostrarMensajeError(AppConstants.MESSAGE_ERROR_PASSWORD_CURRENT);

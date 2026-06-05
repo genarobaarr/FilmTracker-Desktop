@@ -377,17 +377,21 @@ public class ProfileController {
         };
         
         if (esUsuarioActual(user)) {
-            UserDto sessionUser = SessionManager.getInstance().getCurrentUser();
-            if (sessionUser != null) {
-                if (datos[0] == null) datos[0] = sessionUser.name();
-                if (datos[1] == null) datos[1] = sessionUser.email();
-                if (datos[2] == null) datos[2] = sessionUser.role();
-                if (datos[3] == null) datos[3] = sessionUser.profileImage();
-                if (datos[4] == null) datos[4] = sessionUser.createdAt();
-            }
+            aplicarDatosSesionFallback(datos);
         }
         
         return datos;
+    }
+
+    private void aplicarDatosSesionFallback(String[] datos) {
+        UserDto sessionUser = SessionManager.getInstance().getCurrentUser();
+        if (sessionUser != null) {
+            if (datos[0] == null) datos[0] = sessionUser.name();
+            if (datos[1] == null) datos[1] = sessionUser.email();
+            if (datos[2] == null) datos[2] = sessionUser.role();
+            if (datos[3] == null) datos[3] = sessionUser.profileImage();
+            if (datos[4] == null) datos[4] = sessionUser.createdAt();
+        }
     }
 
     private void configurarFechaMiembro(String createdAt) {
